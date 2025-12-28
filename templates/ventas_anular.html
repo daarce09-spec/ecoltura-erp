@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Anular Ventas - ECOLTURA{% endblock %}
+{% block content %}
+
+<style>
+    :root {
+        --eco-green-dark: #1e5651;   /* Verde Principal ECOLTURA */
+        --eco-red-action: #d94352;   /* Rojo solo para el botón de acción crítica */
+        --eco-bg: #f8faf9;
+    }
+
+    /* Título en VERDE (Corregido) */
+    .main-title { 
+        color: var(--eco-green-dark); 
+        font-weight: 700; 
+        font-size: 2.8rem; 
+        margin-top: 20px;
+        margin-bottom: 5px; 
+    }
+    
+    .subtitle { color: #6c757d; font-size: 1.1rem; margin-bottom: 30px; }
+
+    /* Contenedor de Búsqueda */
+    .card-eco { 
+        background: white; 
+        border-radius: 20px; 
+        padding: 30px; 
+        box-shadow: 0 10px 30px rgba(0,0,0,0.08); 
+        margin-bottom: 40px; 
+        border: none; 
+    }
+    
+    .filter-label { font-weight: 700; color: #333; margin-bottom: 8px; font-size: 0.95rem; }
+
+    /* Botón Buscar Verde */
+    .btn-buscar-verde { 
+        background-color: var(--eco-green-dark) !important; 
+        color: white !important; 
+        border-radius: 12px; 
+        padding: 12px; 
+        border: none; 
+        font-weight: 700;
+        text-transform: uppercase;
+    }
+
+    /* Botón Anular Rojo (Solo en la tabla para advertir) */
+    .btn-anular-rojo {
+        background-color: var(--eco-red-action) !important;
+        color: white !important;
+        border: none !important;
+        font-weight: 700;
+        padding: 8px 20px;
+        border-radius: 10px;
+        transition: 0.2s;
+    }
+    .btn-anular-rojo:hover { opacity: 0.9; transform: scale(1.02); }
+
+    /* Tabla */
+    .table-container { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }
+    .table thead { background-color: #f1f4f3; }
+    .table thead th { color: var(--eco-green-dark); font-weight: 700; padding: 15px; border: none; }
+    
+    /* Estilos de Modales */
+    .modal-eco { border-radius: 25px; overflow: hidden; border: none; }
+    .modal-header-verde { background: var(--eco-green-dark); color: white; border: none; padding: 20px; }
+</style>
+
+<div class="container-fluid px-5">
+    
+    <h1 class="main-title">Anular venta</h1>
+    <p class="subtitle">Seleccione la transacción que desea revertir del sistema.</p>
+
+    <div class="card-eco">
+        <form action="{{ url_for('ventas_bp.anular_buscar') }}" method="POST">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="filter-label">ID Venta</label>
+                    <input type="number" name="id_venta" class="form-control" placeholder="Ej: 105">
+                </div>
+                <div class="col-md-3">
+                    <label class="filter-label">Cliente</label>
+                    <select name="cliente_id" class="form-select">
+                        <option value="">Todos los clientes</option>
+                        {% for c in clientes %}
+                        <option value="{{ c[0] }}">{{ c[1] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="filter-label">Rango de fechas</label>
+                    <div class="input-group">
+                        <input type="date" name="fecha_inicio" class="form-control">
+                        <span class="input-group-text bg-light border-0">al</span>
+                        <input type="date" name="fecha_fin" class="form-control">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn-buscar-verde w-100">BUSCAR VENTA</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    {% if ventas %}
+    <div class="table-container">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th class="ps-4">ID</th>
+                    <th>Fecha y Hora</th>
+                    <th>Cliente</th>
+                    <th>Total</th>
+                    <th class="text-center">Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas %}
+                <tr>
+                    <td class="ps-4 fw-bold">#{{ v[0] }}</td>
+                    <td>{{ v[1].strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ v[4] }}</td>
+                    <td class="fw-bold">₡{{ "{:,.0f}".format(v[2]) }}</td>
+                    <td class="text-center">
+                        {% if v[3] != "Anulado" %}
+                        <button class="btn-anular-rojo" onclick="confirmarAnulacion({{ v[0] }})">
+                            Anular Venta
+                        </button>
+                        {% else %}
+                        <span class="badge bg-secondary rounded-pill px-3">Anulado</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal fade" id="modalConfirmar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content modal-eco">
+            <div class="modal-header-verde">
+                <h5 class="modal-title fw-bold">Confirmar Acción</h5>
+            </div>
+            <div class="modal-body p-4 text-center">
+                ¿Está seguro que desea anular la venta <strong id="ventaIdText"></strong>?<br>
+                <span class="text-muted">Los productos se devolverán al inventario disponible.</span>
+            </div>
+            <div class="modal-footer border-0 p-3">
+                <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
+                <form id="formConfirmar" method="POST">
+                    <button type="submit" class="btn-anular-rojo">Sí, Anular</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalExito" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 400px;">
+        <div class="modal-content modal-eco">
+            <div class="modal-header-verde text-center">
+                <h5 class="modal-title w-100 fw-bold">Operación Exitosa</h5>
+            </div>
+            <div class="modal-body text-center py-5">
+                <div class="mb-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="50" height="50" fill="#28a745" class="bi bi-check-circle-fill" viewBox="0 0 16 16">
+                        <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                    </svg>
+                </div>
+                <h4 class="fw-bold" style="color: var(--eco-green-dark);">¡Completado!</h4>
+                <p class="text-muted">Su venta fue anulada con éxito.</p>
+                <button type="button" class="btn-buscar-verde px-5 mt-2" data-bs-dismiss="modal">Aceptar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function confirmarAnulacion(id) {
+        document.getElementById('ventaIdText').innerText = '#' + id;
+        document.getElementById('formConfirmar').action = '/ventas/anular/confirmar/' + id;
+        new bootstrap.Modal(document.getElementById('modalConfirmar')).show();
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        {% with messages = get_flashed_messages(category_filter=["exito_anulacion"]) %}
+            {% if messages %}
+                new bootstrap.Modal(document.getElementById('modalExito')).show();
+            {% endif %}
+        {% endwith %}
+    });
+</script>
+
+{% endblock %}

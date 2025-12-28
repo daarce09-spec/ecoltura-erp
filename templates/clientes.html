@@ -1,0 +1,293 @@
+{% extends "base.html" %}
+{% block title %}ECOLTURA | Clientes{% endblock %}
+{% block content %}
+
+<style>
+  :root { --brand-green: #2d6a4f; --brand-green-hover: #1b4332; }
+  .bg-verde-eco { background-color: var(--brand-green) !important; }
+  .text-verde-eco { color: var(--brand-green) !important; font-size: 1.25rem; }
+  .btn-verde-eco { background-color: var(--brand-green); color: white; border: none; transition: 0.3s; }
+  .btn-verde-eco:hover { background-color: var(--brand-green-hover); color: white; }
+  .card-eco { border-radius: 15px; border: none; }
+  .scroll-container { overflow: visible;}
+  .search-box { border-radius: 25px; border: 2px solid #f0f0f0; padding-left: 45px; height: 45px; }
+  
+  .client-item { 
+    border: 1px solid #eee; 
+    border-radius: 12px; 
+    padding: 15px; 
+    margin-bottom: 15px; 
+    background: #fff;
+  }
+  .data-label { font-size: 0.65rem; color: #888; letter-spacing: 1px; font-weight: bold; text-transform: uppercase; }
+  .data-value { font-weight: 700; color: #333; display: block; }
+</style>
+
+<div class="row g-4">
+  <div class="col-lg-4">
+    <div class="card card-eco shadow-sm">
+      <div class="card-header bg-verde-eco text-white py-3">
+        <h6 class="mb-0 fw-bold"><i class="bi bi-person-plus-fill me-2"></i>Nuevo Cliente</h6>
+      </div>
+      <div class="card-body p-4">
+
+        <!-- FORM NUEVO CLIENTE -->
+        <form method="POST" action="{{ url_for('clientes_bp.clientes') }}">
+          
+          <div class="mb-3">
+            <label class="form-label small fw-bold">NOMBRE COMPLETO</label>
+            <input type="text" name="nombre" class="form-control" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">CÉDULA</label>
+            <input type="text" name="cedula" class="form-control" required maxlength="9"
+            pattern="[0-9]{9}" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">CELULAR / WHATSAPP</label>
+            <input type="text" name="celular" class="form-control" required maxlength="8"
+            pattern="[0-9]{8}" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label small fw-bold">DIRECCIÓN</label>
+            <textarea name="direccion" class="form-control" rows="2" required></textarea>
+          </div>
+
+          <!-- CHECKBOXES -->
+          <div class="mb-3 mt-3">
+            <label class="form-label small fw-bold">MODELO DE VENTA</label>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="cliente_feria" name="cliente_feria">
+              <label class="form-check-label">Feria</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="cliente_domicilio" name="cliente_domicilio">
+              <label class="form-check-label">Domicilio</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="cliente_suscripcion" name="cliente_suscripcion">
+              <label class="form-check-label">Suscripción</label>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="cliente_sin_modelo_venta" name="cliente_sin_modelo_venta">
+              <label class="form-check-label">Sin modelo de venta</label>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-verde-eco w-100 py-2 fw-bold">Guardar</button>
+        </form>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- LISTADO -->
+  <div class="col-lg-8">
+    <div class="card card-eco shadow-sm p-4">
+      <div class="position-relative mb-4">
+        <i class="bi bi-search" style="position:absolute;left:18px;top:12px;color:#aaa;"></i>
+        <input type="text" id="buscador" class="form-control search-box" placeholder="Buscar..." onkeyup="buscar()">
+      </div>
+
+      <div class="scroll-container">
+        {% for c in clientes %}
+        <div class="client-item item-busqueda shadow-sm">
+
+          <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+            <h5 class="fw-bold text-verde-eco mb-0">{{ c[1] }}</h5>
+
+            <div class="d-flex gap-2">
+              <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEdit{{ c[0] }}">
+                <i class="bi bi-pencil"></i>
+              </button>
+
+              <form action="{{ url_for('clientes_bp.clientes_eliminar', id=c[0]) }}" method="POST"
+              onsubmit="return confirm('¿Eliminar?')">
+                <button type="submit" class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            </div>
+          </div>
+
+          <div class="row g-3 mb-3">
+            <div class="col-6">
+              <span class="data-label">CÉDULA</span>
+              <span class="data-value">{{ c[2] }}</span>
+            </div>
+
+            <div class="col-6">
+              <span class="data-label">WHATSAPP</span>
+              <span class="data-value">{{ c[3] }}</span>
+            </div>
+          </div>
+
+          <div class="bg-light p-3 rounded-3">
+            <span class="data-label">DIRECCIÓN DE ENTREGA</span>
+            <span class="text-dark fw-semibold d-block mt-1">{{ c[4] }}</span>
+          </div>
+
+        </div>
+
+        <!-- MODAL EDITAR -->
+        <div class="modal fade" id="modalEdit{{ c[0] }}" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content card-eco shadow-lg">
+              
+              <div class="modal-header bg-verde-eco text-white">
+                <h5 class="modal-title fw-bold">Editar Cliente</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+              </div>
+
+              <form action="{{ url_for('clientes_bp.clientes_editar', id=c[0]) }}" method="POST">
+                <div class="modal-body p-4">
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Nombre</label>
+                    <input type="text" name="nombre_edit" value="{{ c[1] }}" class="form-control" required>
+                  </div>
+
+                  <div class="row">
+                    <div class="col-6 mb-3">
+                      <label class="form-label small fw-bold">Cédula</label>
+                      <input type="text" name="cedula_edit" value="{{ c[2] }}" class="form-control"
+                      maxlength="9" pattern="[0-9]{9}" required
+                      oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+
+                    <div class="col-6 mb-3">
+                      <label class="form-label small fw-bold">WhatsApp</label>
+                      <input type="text" name="celular_edit" value="{{ c[3] }}" class="form-control"
+                      maxlength="8" pattern="[0-9]{8}" required
+                      oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Dirección</label>
+                    <textarea name="direccion_edit" class="form-control" rows="2" required>{{ c[4] }}</textarea>
+                  </div>
+
+                  <!-- CHECKBOXES EDIT -->
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">MODELO DE VENTA</label>
+
+                    <div class="form-check">
+                      <input class="form-check-input checkbox-edit-feria" type="checkbox"
+                        name="cliente_feria_edit" {% if c[5] %}checked{% endif %}>
+                      <label class="form-check-label">Feria</label>
+                    </div>
+
+                    <div class="form-check">
+                      <input class="form-check-input checkbox-edit-domicilio" type="checkbox"
+                        name="cliente_domicilio_edit" {% if c[6] %}checked{% endif %}>
+                      <label class="form-check-label">Domicilio</label>
+                    </div>
+
+                    <div class="form-check">
+                      <input class="form-check-input checkbox-edit-suscripcion" type="checkbox"
+                        name="cliente_suscripcion_edit" {% if c[7] %}checked{% endif %}>
+                      <label class="form-check-label">Suscripción</label>
+                    </div>
+
+                    <div class="form-check">
+                      <input class="form-check-input checkbox-edit-sinmodelo" type="checkbox"
+                        name="cliente_sin_modelo_venta_edit" {% if c[8] %}checked{% endif %}>
+                      <label class="form-check-label">Sin modelo de venta</label>
+                    </div>
+                  </div>
+
+                </div>
+
+                <div class="modal-footer border-0">
+                  <button type="submit" class="btn btn-verde-eco w-100 fw-bold">Actualizar</button>
+                </div>
+              </form>
+
+            </div>
+          </div>
+        </div>
+
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function buscar() {
+  let filtro = document.getElementById('buscador').value.toLowerCase();
+  let items = document.querySelectorAll('.item-busqueda');
+  items.forEach(item => {
+    item.style.display = item.innerText.toLowerCase().includes(filtro) ? "" : "none";
+  });
+}
+</script>
+
+<!-- LÓGICA DE CHECKBOXES FINAL Y ESTRICTA -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    function aplicarReglas(feria, domicilio, suscripcion, sinModelo) {
+
+        // SIN MODELO → cancela los demás
+        if (sinModelo.checked) {
+            feria.checked = false;
+            domicilio.checked = false;
+            suscripcion.checked = false;
+            return;
+        }
+
+        // Marcar cualquiera → desmarca sin modelo
+        if (feria.checked || domicilio.checked || suscripcion.checked) {
+            sinModelo.checked = false;
+        }
+
+        // ❌ Regla estricta: DOMICILIO y SUSCRIPCIÓN jamás juntos
+        if (domicilio.checked) suscripcion.checked = false;
+        if (suscripcion.checked) domicilio.checked = false;
+    }
+
+    /* NUEVO CLIENTE */
+    const feria = document.getElementById("cliente_feria");
+    const domicilio = document.getElementById("cliente_domicilio");
+    const suscripcion = document.getElementById("cliente_suscripcion");
+    const sinModelo = document.getElementById("cliente_sin_modelo_venta");
+
+    [feria, domicilio, suscripcion, sinModelo].forEach(el => {
+        el.addEventListener("change", () => aplicarReglas(feria, domicilio, suscripcion, sinModelo));
+    });
+
+
+    /* EDITAR CLIENTE (MODALES) */
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+
+        modal.addEventListener('shown.bs.modal', () => {
+
+            const feriaE = modal.querySelector('.checkbox-edit-feria');
+            const domicilioE = modal.querySelector('.checkbox-edit-domicilio');
+            const suscripcionE = modal.querySelector('.checkbox-edit-suscripcion');
+            const sinModeloE = modal.querySelector('.checkbox-edit-sinmodelo');
+
+            [feriaE, domicilioE, suscripcionE, sinModeloE].forEach(el => {
+                el.addEventListener("change", () =>
+                    aplicarReglas(feriaE, domicilioE, suscripcionE, sinModeloE)
+                );
+            });
+
+        });
+
+    });
+
+});
+</script>
+
+{% endblock %}

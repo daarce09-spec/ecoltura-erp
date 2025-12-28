@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}ECOLTURA | Administración{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ECOLTURA">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.jpeg') }}">
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#2d6a4f">
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand-green: #2d6a4f;
+      --brand-green-dark: #1b4332;
+      --brand-bg: #f8faf9;
+    }
+
+    body { 
+      background-color: var(--brand-bg); 
+      font-family: 'Segoe UI', sans-serif; 
+    }
+
+    .btn-verde-eco {
+      background-color: var(--brand-green) !important;
+      color: white !important;
+      border: none !important;
+      border-radius: 8px !important;
+      padding: 10px 16px !important;
+      font-weight: 600 !important;
+      transition: 0.3s !important;
+    }
+
+    .btn-verde-eco:hover {
+      background-color: var(--brand-green-dark) !important;
+    }
+
+    .install-prompt {
+      display: none; 
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 92%;
+      max-width: 400px;
+      background-color: white;
+      padding: 15px;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+      z-index: 9999;
+      border-left: 5px solid var(--brand-green);
+    }
+
+    .navbar { 
+      border-bottom: 3px solid var(--brand-green);
+      background: #ffffff;
+    }
+
+    .navbar-brand { 
+      color: var(--brand-green) !important;
+      font-family: 'Montserrat', sans-serif;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="android-prompt" class="install-prompt">
+    <div class="d-flex align-items-center">
+      <img src="{{ url_for('static', filename='img/apple-touch-icon.jpeg') }}" width="50" class="me-3 rounded shadow-sm">
+      <div class="flex-grow-1" style="font-size: 0.85rem;">
+        <strong>ECOLTURA App</strong><br>
+        Instala acceso directo en tu pantalla.
+      </div>
+      <button id="btn-install-android" class="btn btn-sm btn-verde-eco px-3 me-2">Instalar</button>
+      <button type="button" class="btn-close" onclick="this.parentElement.parentElement.style.display='none'"></button>
+    </div>
+  </div>
+
+  <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
+    <div class="container">
+      <a class="navbar-brand fw-bold" href="{{ url_for('menu') }}">
+        <i class="bi bi-leaf-fill me-2"></i>ECOLTURA
+      </a>
+    </div>
+  </nav>
+
+  <main class="container py-4">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    // Service Worker
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register("/static/js/sw.js")
+        .then(reg => console.log("Service Worker Activo"))
+        .catch(err => console.error("Error en SW:", err));
+      });
+    }
+
+    // PWA prompt
+    let deferredPrompt;
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredPrompt = e;
+
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+      
+      if (isMobile) {
+        document.getElementById('android-prompt').style.display = 'block';
+      }
+    });
+
+    document.getElementById('btn-install-android')?.addEventListener('click', async () => {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+          document.getElementById('android-prompt').style.display = 'none';
+        }
+        deferredPrompt = null;
+      }
+    });
+
+    if (window.matchMedia('(display-mode: standalone)').matches) {
+      document.getElementById('android-prompt').style.display = 'none';
+    }
+  </script>
+
+</body>
+</html>

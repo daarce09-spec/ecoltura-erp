@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+{% block title %}ECOLTURA | Productos{% endblock %}
+{% block content %}
+
+<style>
+  .card-eco { border-radius: 15px; border: none; }
+  .text-verde-eco { color: var(--brand-green); }
+  .bg-verde-eco { background-color: var(--brand-green) !important; }
+</style>
+
+<!-- BLOQUE FLASH -->
+{% with messages = get_flashed_messages(category_filter=['productos']) %}
+  {% if messages %}
+    <div class="row mb-4">
+      <div class="col-12">
+        {% for message in messages %}
+          <div class="alert alert-info alert-dismissible fade show shadow-sm border-0 mb-3" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="row g-4">
+
+    <!-- FORM NUEVO PRODUCTO -->
+    <div class="col-lg-4">
+        <div class="card shadow-sm card-eco">
+            <div class="card-header bg-verde-eco text-white py-3">
+                <h6 class="mb-0 fw-bold">Nuevo Producto</h6>
+            </div>
+
+            <div class="card-body p-4">
+                <form method="POST" action="{{ url_for('productos_bp.productos') }}">
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">NOMBRE</label>
+                        <input type="text" name="nombre" class="form-control" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">UNIDAD</label>
+                            <select name="unidad" class="form-select" required>
+                                <option value="unidad">Unidad</option>
+                                <option value="kg">Kg</option>
+                                <option value="manojo">Manojo</option>
+                                <option value="litro">Litro</option>
+                            </select>
+                        </div>
+
+                        <div class="col-6 mb-3">
+                            <label class="form-label small fw-bold text-muted">PRECIO (₡)</label>
+                            <input type="number" name="precio" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold text-muted">CATEGORÍA</label>
+                        <select name="categoria" class="form-select">
+                            <option value="Verduras">Verduras</option>
+                            <option value="Frutas">Frutas</option>
+                            <option value="Otros">Otros</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" class="btn btn-verde-eco w-100 fw-bold">Guardar</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- TABLA PRODUCTOS -->
+    <div class="col-lg-8">
+        <div class="card shadow-sm card-eco overflow-hidden">
+            <div class="table-responsive">
+
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="ps-4">Producto</th>
+                            <th>Unidad</th>
+                            <th>Precio</th>
+                            <th>Categoría</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        {% for p in productos %}
+                        <tr>
+                            <td class="ps-4 fw-bold">{{ p[1] }}</td>
+                            <td>{{ p[3] }}</td>
+                            <td class="text-success fw-bold">₡{{ p[4] }}</td>
+                            <td>{{ p[2] }}</td>
+
+                            <td class="text-center">
+                                <div class="btn-group gap-2">
+
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            data-bs-toggle="modal" data-bs-target="#editModal{{ p[0] }}">
+                                        Editar
+                                    </button>
+
+                                    <form action="{{ url_for('productos_bp.eliminar_producto', id=p[0]) }}"
+                                          method="POST">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('¿Eliminar?')">
+                                            Borrar
+                                        </button>
+                                    </form>
+
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- MODAL EDITAR PRODUCTO -->
+                        <div class="modal fade" id="editModal{{ p[0] }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+
+                                    <div class="modal-header bg-primary text-white">
+                                        <h5 class="modal-title">Editar Producto</h5>
+                                        <button type="button" class="btn-close btn-close-white"
+                                                data-bs-dismiss="modal"></button>
+                                    </div>
+
+                                    <form action="{{ url_for('productos_bp.editar_producto', id=p[0]) }}"
+                                          method="POST">
+
+                                        <div class="modal-body">
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Nombre</label>
+                                                <input type="text" name="nombre_edit"
+                                                       class="form-control" value="{{ p[1] }}" required>
+                                            </div>
+
+                                            <div class="row">
+                                                <div class="col-6 mb-3">
+                                                    <label class="form-label fw-bold">Unidad</label>
+                                                    <input type="text" name="unidad_edit"
+                                                           class="form-control" value="{{ p[3] }}" required>
+                                                </div>
+
+                                                <div class="col-6 mb-3">
+                                                    <label class="form-label fw-bold">Precio</label>
+                                                    <input type="number" name="precio_edit"
+                                                           class="form-control" value="{{ p[4] }}" required>
+                                                </div>
+                                            </div>
+
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Categoría</label>
+                                                <select name="categoria_edit" class="form-select">
+                                                    <option value="Verduras" {% if p[2] == "Verduras" %}selected{% endif %}>Verduras</option>
+                                                    <option value="Frutas" {% if p[2] == "Frutas" %}selected{% endif %}>Frutas</option>
+                                                    <option value="Otros" {% if p[2] == "Otros" %}selected{% endif %}>Otros</option>
+                                                </select>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="modal-footer">
+                                            <button type="submit" class="btn btn-primary w-100">
+                                                Actualizar Producto
+                                            </button>
+                                        </div>
+
+                                    </form>
+
+                                </div>
+                            </div>
+                        </div>
+
+                        {% endfor %}
+                    </tbody>
+
+                </table>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+{% endblock %}

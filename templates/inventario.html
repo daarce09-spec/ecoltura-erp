@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  :root { 
+    --eco-green: #2d6a4f; 
+    --eco-light: #f8faf8;
+  }
+
+  .inventory-wrapper {
+    max-width: 900px;
+    margin: 40px auto;
+    text-align: center;
+    animation: fadeInPage 0.8s ease-out;
+  }
+
+  @keyframes fadeInPage {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .inventory-card {
+    background: white;
+    border: 2px solid #f1f3f1;
+    border-radius: 24px;
+    padding: 50px 30px;
+    text-decoration: none !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    height: 100%;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+  }
+
+  .inventory-card:hover {
+    transform: translateY(-10px);
+    border-color: var(--eco-green);
+    box-shadow: 0 15px 35px rgba(45, 106, 79, 0.12);
+  }
+
+  .icon-circle {
+    width: 90px;
+    height: 90px;
+    background: var(--eco-light);
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 25px;
+    transition: all 0.4s;
+  }
+
+  .inv-icon {
+    font-size: 3rem;
+    color: var(--eco-green);
+  }
+
+  .inventory-card:hover .icon-circle {
+    background: var(--eco-green);
+  }
+
+  .inventory-card:hover .inv-icon {
+    color: white;
+  }
+
+  .card-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+</style>
+
+<div class="inventory-wrapper">
+  <h2 class="mb-5 fw-bold text-dark">Módulo de Inventario</h2>
+
+  <div class="row g-4 justify-content-center">
+    
+    <div class="col-md-6">
+
+      <!-- CORREGIDO -->
+      <a href="{{ url_for('inventario_bp.inventario_registrar') }}" class="inventory-card">
+
+        <div class="icon-circle">
+          <i class="bi bi-journal-plus inv-icon"></i>
+        </div>
+        <h4 class="card-title">Registrar cosecha semanal</h4>
+      </a>
+    </div>
+
+    <div class="col-md-6">
+
+      <!-- CORREGIDO -->
+      <a href="{{ url_for('saldo_bp.inventario_saldo') }}" class="inventory-card">
+
+        <div class="icon-circle">
+          <i class="bi bi-clipboard-data inv-icon"></i>
+        </div>
+        <h4 class="card-title">Saldo actual</h4>
+      </a>
+    </div>
+
+  </div>
+</div>
+
+{% endblock %}

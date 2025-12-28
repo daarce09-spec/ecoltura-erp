@@ -1,0 +1,17 @@
+{
+  "name": "ECOLTURA",
+  "short_name": "ECOLTURA",
+  "description": "Gestión de productos orgánicos y lácteos",
+  "start_url": "/menu",
+  "display": "standalone",
+  "background_color": "#f8faf9",
+  "theme_color": "#2d6a4f",
+  "icons": [
+    {
+      "src": "/static/img/apple-touch-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

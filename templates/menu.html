@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  :root {
+    --eco-dark: #1b4332;
+    --eco-accent: #2d6a4f;
+    --eco-bg: #fdfdfd;
+  }
+
+  body {
+    background: var(--eco-bg) !important;
+    font-family: 'Quicksand', sans-serif;
+    margin: 0;
+    overflow-x: hidden;
+  }
+
+  .main-wrapper {
+    width: 100%;
+    margin: 5px auto;
+    padding: 0 20px;
+    text-align: center;
+    animation: fadeIn 1.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 85vh;
+    justify-content: center;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .hero-logo {
+    width: 320px;
+    max-width: 80%;
+    margin-bottom: 0px;
+    filter: drop-shadow(0 10px 20px rgba(0,0,0,0.05));
+    transition: transform 0.5s ease;
+  }
+
+  .brand-legend {
+    font-size: 1.2rem;
+    color: var(--eco-dark);
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin-top: -10px;
+    margin-bottom: 40px;
+    opacity: 0.8;
+  }
+
+  .cards-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 25px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .module-anchor {
+    text-decoration: none !important;
+  }
+
+  .minimal-card {
+    background: white;
+    border-radius: 35px;
+    padding: 35px 20px;
+    transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 4px 25px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.02);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .module-anchor:hover .minimal-card {
+    background: var(--eco-dark);
+    transform: translateY(-12px);
+    box-shadow: 0 25px 50px rgba(27, 67, 50, 0.15);
+  }
+
+  .icon-circle {
+    width: 85px;
+    height: 85px;
+    background: #f4f8f4;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    transition: all 0.5s;
+  }
+
+  .icon-circle i {
+    font-size: 2.8rem;
+    color: var(--eco-accent);
+    transition: all 0.5s;
+  }
+
+  .module-anchor:hover .icon-circle {
+    background: rgba(255,255,255,0.15);
+  }
+
+  .module-anchor:hover .icon-circle i {
+    color: white;
+  }
+
+  .module-name {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--eco-dark);
+    margin-bottom: 5px;
+    transition: color 0.4s;
+  }
+
+  .module-tag {
+    font-size: 0.8rem;
+    color: #bbb;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    transition: color 0.4s;
+  }
+
+  .module-anchor:hover .module-name,
+  .module-anchor:hover .module-tag {
+    color: white;
+  }
+
+  @media (max-width: 992px) {
+    .cards-container { grid-template-columns: repeat(2, 1fr); }
+    .hero-logo { width: 250px; }
+  }
+
+  @media (max-width: 500px) {
+    .cards-container { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="main-wrapper">
+
+  <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="hero-logo" alt="Ecoltura Logo">
+
+  <div class="brand-legend">Productos Orgánicos & Lácteos</div>
+
+  <div class="cards-container">
+
+    <!-- CLIENTES -->
+    <a href="{{ url_for('clientes_bp.clientes') }}" class="module-anchor">
+      <div class="minimal-card">
+        <div class="icon-circle">
+          <i class="bi bi-people"></i>
+        </div>
+        <div class="module-name">Clientes</div>
+        <div class="module-tag">Gestión</div>
+      </div>
+    </a>
+
+    <!-- PRODUCTOS -->
+    <a href="{{ url_for('productos_bp.productos') }}" class="module-anchor">
+      <div class="minimal-card">
+        <div class="icon-circle">
+          <i class="bi bi-basket3"></i>
+        </div>
+        <div class="module-name">Productos</div>
+        <div class="module-tag">Catálogo</div>
+      </div>
+    </a>
+
+    <!-- INVENTARIO -->
+    <a href="{{ url_for('inventario_bp.inventario_menu') }}" class="module-anchor">
+      <div class="minimal-card">
+        <div class="icon-circle">
+          <i class="bi bi-box-seam"></i>
+        </div>
+        <div class="module-name">Inventario</div>
+        <div class="module-tag">Stock</div>
+      </div>
+    </a>
+
+        <!-- VENTAS (corregido) -->
+    <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="module-anchor">
+      <div class="minimal-card">
+        <div class="icon-circle">
+          <i class="bi bi-receipt-cutoff"></i>
+        </div>
+        <div class="module-name">Ventas</div>
+        <div class="module-tag">Facturación</div>
+      </div>
+    </a>
+
+
+  </div>
+</div>
+
+{% endblock %}

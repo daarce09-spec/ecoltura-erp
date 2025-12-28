@@ -1,0 +1,273 @@
+{% extends "base.html" %}
+{% block title %}Registrar venta{% endblock %}
+{% block content %}
+
+<h2 class="fw-bold mb-4 text-success"><i class="bi bi-cart-check me-2"></i>Registrar venta</h2>
+
+<form id="form-venta">
+    <div class="row mb-3">
+        <div class="col-md-6 position-relative">
+            <label class="form-label fw-bold">Cliente (nombre o cédula)</label>
+            <input type="text" id="cliente_nombre" class="form-control" autocomplete="off" placeholder="Buscar cliente...">
+            <input type="hidden" name="cliente_id" id="cliente_id">
+
+            <div id="sugerencias_cliente"
+                class="list-group position-absolute w-100 shadow-sm bg-white"
+                style="z-index: 1000; display:none; max-height: 220px; overflow-y:auto;">
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label fw-bold">Fecha</label>
+            <input type="date" class="form-control" name="fecha" value="{{ hoy }}">
+        </div>
+    </div>
+
+    <hr>
+
+    <h4 class="fw-bold text-secondary">Detalle de productos</h4>
+
+    <div class="table-responsive bg-white rounded shadow-sm p-2">
+        <table class="table align-middle" id="tablaProductos">
+            <thead class="table-light">
+                <tr>
+                    <th>Producto</th>
+                    <th>Stock</th>
+                    <th style="width: 120px;">Cantidad</th>
+                    <th>Precio</th>
+                    <th style="width: 100px;">Desc %</th>
+                    <th>Subtotal</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <button type="button" id="agregar" class="btn btn-outline-success btn-sm fw-bold mt-2">+ Agregar producto</button>
+    </div>
+
+    <hr>
+
+    <div class="text-end mb-3">
+        <span class="fs-5 text-muted">Total Final:</span>
+        <div id="total-final" class="fw-bold fs-1 text-success">₡0.00</div>
+    </div>
+
+    <input type="hidden" name="lineas" id="lineas">
+
+    <button type="submit" id="btnGuardar" class="btn btn-success btn-lg w-100 fw-bold shadow">
+        GUARDAR VENTA
+    </button>
+</form>
+
+<div class="modal fade" id="modalConfirmarGuardar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius: 15px; border: none;">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">Confirmar Acción</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body fs-5 py-4">¿Desea procesar y guardar esta venta?</div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" id="btnConfirmarGuardar" class="btn btn-success px-5 fw-bold shadow-sm">
+          Sí, guardar
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade" id="modalVentaGuardada" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content text-center p-4" style="border-radius: 15px;">
+      <div class="text-success mb-3"><i class="bi bi-check-circle-fill" style="font-size: 4rem;"></i></div>
+      <h3 class="fw-bold">¡Venta Exitosa!</h3>
+      <p class="text-muted">El registro se completó y el inventario fue actualizado.</p>
+      <button type="button" class="btn btn-success w-100 fw-bold py-2" onclick="location.reload()">Aceptar</button>
+    </div>
+  </div>
+</div>
+
+<style>
+    .error-stock { border: 2px solid #dc3545 !important; background: #ffe6e6 !important; }
+    .mensaje-error { color: #dc3545; font-size: 0.8rem; margin-top: 4px; font-weight: bold; }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("form-venta");
+    const btnGuardarMain = document.getElementById("btnGuardar");
+    const inputCliente = document.getElementById("cliente_nombre");
+    const lista = document.getElementById("sugerencias_cliente");
+    const hiddenId = document.getElementById("cliente_id");
+    
+    let erroresStock = new Set();
+    let modalConfirmInstance;
+
+    // --- AUTOCOMPLETADO DE CLIENTES ---
+    inputCliente.addEventListener("input", function () {
+        const texto = inputCliente.value.trim();
+        if (texto.length < 2) { 
+            lista.style.display = "none"; 
+            hiddenId.value = ""; // Limpiar ID si borra el texto
+            return; 
+        }
+        
+        fetch(`/ventas/buscar_clientes/${texto}`)
+            .then(res => res.json())
+            .then(data => {
+                lista.innerHTML = "";
+                if (data.length === 0) { lista.style.display = "none"; return; }
+                data.forEach(c => {
+                    const item = document.createElement("button");
+                    item.type = "button";
+                    item.className = "list-group-item list-group-item-action";
+                    item.textContent = `${c.nombre} (${c.cedula})`;
+                    item.onclick = () => {
+                        inputCliente.value = c.nombre;
+                        hiddenId.value = c.id;
+                        lista.style.display = "none";
+                    };
+                    lista.appendChild(item);
+                });
+                lista.style.display = "block";
+            });
+    });
+
+    // Cerrar lista si se hace clic fuera
+    document.addEventListener("click", (e) => {
+        if (!inputCliente.contains(e.target) && !lista.contains(e.target)) {
+            lista.style.display = "none";
+        }
+    });
+
+    // --- AGREGAR FILAS DE PRODUCTOS ---
+    document.getElementById("agregar").addEventListener("click", () => {
+        const tbody = document.querySelector("#tablaProductos tbody");
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+            <td>
+                <select class="form-select producto-select" required><option value="">Seleccione</option></select>
+                <div class="mensaje-error d-none"></div>
+            </td>
+            <td class="stock">0</td>
+            <td><input type="number" min="1" class="form-control cantidad" value="1"></td>
+            <td class="precio">0</td>
+            <td><input type="number" min="0" step="0.01" class="form-control descuento" value="0"></td>
+            <td class="subtotal fw-bold text-success">0.00</td>
+            <td><button type="button" class="btn btn-outline-danger btn-sm eliminar border-0">X</button></td>
+        `;
+        tbody.appendChild(fila);
+        
+        fetch("/productos/listar").then(r => r.json()).then(data => {
+            const select = fila.querySelector(".producto-select");
+            data.forEach(p => {
+                const op = document.createElement("option");
+                op.value = p.id; op.textContent = p.nombre;
+                select.appendChild(op);
+            });
+        });
+
+        fila.querySelector(".producto-select").onchange = () => {
+            const val = fila.querySelector(".producto-select").value;
+            if(!val) return;
+            fetch(`/ventas/producto/${val}`)
+                .then(r => r.json()).then(d => {
+                    fila.querySelector(".precio").textContent = d.precio;
+                    fila.querySelector(".stock").textContent = d.stock;
+                    validarFila(fila);
+                });
+        };
+
+        fila.querySelectorAll("input").forEach(i => i.oninput = () => validarFila(fila));
+        fila.querySelector(".eliminar").onclick = () => { fila.remove(); actualizarTotal(); };
+    });
+
+    function validarFila(fila) {
+        const cantInput = fila.querySelector(".cantidad");
+        const stock = parseFloat(fila.querySelector(".stock").textContent) || 0;
+        const cant = parseFloat(cantInput.value) || 0;
+        const err = fila.querySelector(".mensaje-error");
+        
+        if (cant > stock) {
+            err.textContent = `Máximo: ${stock}`;
+            err.classList.remove("d-none");
+            cantInput.classList.add("error-stock");
+            erroresStock.add(fila);
+        } else {
+            err.classList.add("d-none");
+            cantInput.classList.remove("error-stock");
+            erroresStock.delete(fila);
+        }
+        
+        const p = parseFloat(fila.querySelector(".precio").textContent) || 0;
+        const d = parseFloat(fila.querySelector(".descuento").value) || 0;
+        fila.querySelector(".subtotal").textContent = ((p * cant) * (1 - d/100)).toFixed(2);
+        
+        btnGuardarMain.disabled = (erroresStock.size > 0);
+        actualizarTotal();
+    }
+
+    function actualizarTotal() {
+        let total = 0; let lineas = [];
+        document.querySelectorAll("#tablaProductos tbody tr").forEach(f => {
+            const id = f.querySelector(".producto-select").value;
+            const sub = parseFloat(f.querySelector(".subtotal").textContent) || 0;
+            if(id) {
+                total += sub;
+                // Formato para Python: id|cantidad|precio|descuento_colones|porcentaje_desc
+                const p = f.querySelector(".precio").textContent;
+                const c = f.querySelector(".cantidad").value;
+                const d_porc = f.querySelector(".descuento").value;
+                const d_col = (parseFloat(p) * parseFloat(c) * (parseFloat(d_porc)/100)).toFixed(2);
+                lineas.push(`${id}|${c}|${p}|${d_col}|${d_porc}`);
+            }
+        });
+        document.getElementById("total-final").textContent = "₡" + total.toFixed(2);
+        document.getElementById("lineas").value = lineas.join(",");
+    }
+
+    // --- PROCESO DE GUARDADO ---
+    form.addEventListener("submit", function(e){
+        e.preventDefault();
+        if(document.querySelectorAll("#tablaProductos tbody tr").length === 0) {
+            return alert("Agregue al menos un producto.");
+        }
+        modalConfirmInstance = new bootstrap.Modal(document.getElementById("modalConfirmarGuardar"));
+        modalConfirmInstance.show();
+    });
+
+    document.getElementById("btnConfirmarGuardar").addEventListener("click", function(){
+        const btnSi = this;
+        btnSi.disabled = true;
+        btnSi.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Guardando...';
+
+        fetch("{{ url_for('ventas_bp.guardar_venta') }}", {
+            method: "POST",
+            body: new FormData(form)
+        })
+        .then(r => r.json())
+        .then(resp => {
+            if(resp.status === "ok" || resp.id_venta || !resp.message) {
+                modalConfirmInstance.hide();
+                setTimeout(() => {
+                    const modalExito = new bootstrap.Modal(document.getElementById("modalVentaGuardada"));
+                    modalExito.show();
+                }, 400);
+            } else {
+                alert("Error: " + resp.message);
+                btnSi.disabled = false;
+                btnSi.textContent = "Sí, guardar";
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Error al conectar con el servidor.");
+            btnSi.disabled = false;
+            btnSi.textContent = "Sí, guardar";
+        });
+    });
+});
+</script>
+
+{% endblock %}
