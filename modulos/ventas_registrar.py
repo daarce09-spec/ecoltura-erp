@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import render_template, request, jsonify
 from db.conexion import obtener_conexion
-from datetime import datetime
+from datetime import datetime, timedelta     # ← aquí se importa correctamente
 from modulos.ventas_menu import ventas_bp
 
 # ============================================================
@@ -9,7 +9,7 @@ from modulos.ventas_menu import ventas_bp
 # ============================================================
 @ventas_bp.route("/ventas/registrar")
 def registrar_venta():
-    hoy = datetime.now().strftime("%Y-%m-%d")
+    hoy = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
     return render_template("ventas_registrar.html", hoy=hoy)
 
 # ============================================================
