@@ -91,6 +91,20 @@
 <style>
     .error-stock { border: 2px solid #dc3545 !important; background: #ffe6e6 !important; }
     .mensaje-error { color: #dc3545; font-size: 0.8rem; margin-top: 4px; font-weight: bold; }
+    .producto-sugerencias {
+        position: absolute;
+        z-index: 1050;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 6px;
+        max-height: 200px;
+        overflow-y: auto;
+        width: 100%;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        top: 100%;
+        left: 0;
+    }
+    .producto-wrap { position: relative; }
 </style>
 
 <script>
@@ -103,13 +117,19 @@ document.addEventListener("DOMContentLoaded", function () {
     
     let erroresStock = new Set();
     let modalConfirmInstance;
+    let todosLosProductos = [];
+
+    // Precargar lista de productos
+    fetch("/productos/listar").then(r => r.json()).then(data => {
+        todosLosProductos = data;
+    });
 
     // --- AUTOCOMPLETADO DE CLIENTES ---
     inputCliente.addEventListener("input", function () {
         const texto = inputCliente.value.trim();
         if (texto.length < 2) { 
             lista.style.display = "none"; 
-            hiddenId.value = ""; // Limpiar ID si borra el texto
+            hiddenId.value = "";
             return; 
         }
         
@@ -134,7 +154,6 @@ document.addEventListener("DOMContentLoaded", function () {
             });
     });
 
-    // Cerrar lista si se hace clic fuera
     document.addEventListener("click", (e) => {
         if (!inputCliente.contains(e.target) && !lista.contains(e.target)) {
             lista.style.display = "none";
@@ -146,38 +165,68 @@ document.addEventListener("DOMContentLoaded", function () {
         const tbody = document.querySelector("#tablaProductos tbody");
         const fila = document.createElement("tr");
         fila.innerHTML = `
-            <td>
-                <select class="form-select producto-select" required><option value="">Seleccione</option></select>
+            <td style="min-width:200px;">
+                <div class="producto-wrap">
+                    <input type="text" class="form-control producto-input" placeholder="Buscar producto..." autocomplete="off">
+                    <input type="hidden" class="producto-id">
+                    <div class="producto-sugerencias" style="display:none;"></div>
+                </div>
                 <div class="mensaje-error d-none"></div>
             </td>
             <td class="stock">0</td>
-            <td><input type="number" min="1" class="form-control cantidad" value="1"></td>
+            <td><input type="number" min="0.01" step="0.01" class="form-control cantidad" value="1"></td>
             <td class="precio">0</td>
             <td><input type="number" min="0" step="0.01" class="form-control descuento" value="0"></td>
             <td class="subtotal fw-bold text-success">0.00</td>
             <td><button type="button" class="btn btn-outline-danger btn-sm eliminar border-0">X</button></td>
         `;
         tbody.appendChild(fila);
-        
-        fetch("/productos/listar").then(r => r.json()).then(data => {
-            const select = fila.querySelector(".producto-select");
-            data.forEach(p => {
-                const op = document.createElement("option");
-                op.value = p.id; op.textContent = p.nombre;
-                select.appendChild(op);
+
+        // Autocompletado de producto
+        const inputProducto = fila.querySelector(".producto-input");
+        const hiddenProductoId = fila.querySelector(".producto-id");
+        const sugerencias = fila.querySelector(".producto-sugerencias");
+
+        inputProducto.addEventListener("input", function() {
+            const texto = this.value.trim().toLowerCase();
+            hiddenProductoId.value = "";
+            if (texto.length < 1) { sugerencias.style.display = "none"; return; }
+
+            const filtrados = todosLosProductos.filter(p =>
+                p.nombre.toLowerCase().includes(texto)
+            ).slice(0, 8);
+
+            sugerencias.innerHTML = "";
+            if (filtrados.length === 0) { sugerencias.style.display = "none"; return; }
+
+            filtrados.forEach(p => {
+                const item = document.createElement("button");
+                item.type = "button";
+                item.className = "list-group-item list-group-item-action py-1 px-2";
+                item.textContent = p.nombre;
+                item.onclick = () => {
+                    inputProducto.value = p.nombre;
+                    hiddenProductoId.value = p.id;
+                    sugerencias.style.display = "none";
+                    // Cargar precio y stock
+                    fetch(`/ventas/producto/${p.id}`)
+                        .then(r => r.json()).then(d => {
+                            fila.querySelector(".precio").textContent = d.precio;
+                            fila.querySelector(".stock").textContent = d.stock;
+                            validarFila(fila);
+                        });
+                };
+                sugerencias.appendChild(item);
             });
+            sugerencias.style.display = "block";
         });
 
-        fila.querySelector(".producto-select").onchange = () => {
-            const val = fila.querySelector(".producto-select").value;
-            if(!val) return;
-            fetch(`/ventas/producto/${val}`)
-                .then(r => r.json()).then(d => {
-                    fila.querySelector(".precio").textContent = d.precio;
-                    fila.querySelector(".stock").textContent = d.stock;
-                    validarFila(fila);
-                });
-        };
+        // Cerrar sugerencias al hacer clic fuera
+        document.addEventListener("click", (e) => {
+            if (!inputProducto.contains(e.target) && !sugerencias.contains(e.target)) {
+                sugerencias.style.display = "none";
+            }
+        });
 
         fila.querySelectorAll("input").forEach(i => i.oninput = () => validarFila(fila));
         fila.querySelector(".eliminar").onclick = () => { fila.remove(); actualizarTotal(); };
@@ -211,11 +260,10 @@ document.addEventListener("DOMContentLoaded", function () {
     function actualizarTotal() {
         let total = 0; let lineas = [];
         document.querySelectorAll("#tablaProductos tbody tr").forEach(f => {
-            const id = f.querySelector(".producto-select").value;
+            const id = f.querySelector(".producto-id").value;
             const sub = parseFloat(f.querySelector(".subtotal").textContent) || 0;
             if(id) {
                 total += sub;
-                // Formato para Python: id|cantidad|precio|descuento_colones|porcentaje_desc
                 const p = f.querySelector(".precio").textContent;
                 const c = f.querySelector(".cantidad").value;
                 const d_porc = f.querySelector(".descuento").value;
