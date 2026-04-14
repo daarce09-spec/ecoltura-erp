@@ -15,5 +15,6 @@ def obtener_conexion():
         host=parsed.hostname,
         port=parsed.port,
         sslmode="require",
-        connect_timeout=5  # evita que Gunicorn mate el worker
+        connect_timeout=5,  # evita que Gunicorn mate el worker
+        options="-c timezone=America/Costa_Rica"
     )
