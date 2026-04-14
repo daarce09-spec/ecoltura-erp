@@ -94,7 +94,7 @@ def guardar_venta():
         cliente_id = request.form.get("cliente_id")
         cliente_id = int(cliente_id) if cliente_id and cliente_id.strip() != "" else None
         
-        fecha_hora_exacta = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        fecha_hora_exacta = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
         lineas_raw = request.form.get("lineas", "")
 
         if not lineas_raw.strip():
