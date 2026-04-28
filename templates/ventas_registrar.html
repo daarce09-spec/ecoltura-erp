@@ -213,6 +213,8 @@ document.addEventListener("DOMContentLoaded", function () {
                         .then(r => r.json()).then(d => {
                             fila.querySelector(".precio").textContent = d.precio;
                             fila.querySelector(".stock").textContent = d.stock;
+                            // Resetear cantidad a 1 para que no quede bloqueado con stock=0 anterior
+                            fila.querySelector(".cantidad").value = 1;
                             validarFila(fila);
                         });
                 };
