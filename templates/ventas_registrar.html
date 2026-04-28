@@ -229,7 +229,12 @@ document.addEventListener("DOMContentLoaded", function () {
         });
 
         fila.querySelectorAll("input").forEach(i => i.oninput = () => validarFila(fila));
-        fila.querySelector(".eliminar").onclick = () => { fila.remove(); actualizarTotal(); };
+        fila.querySelector(".eliminar").onclick = () => {
+            erroresStock.delete(fila);
+            fila.remove();
+            actualizarTotal();
+            actualizarBotonGuardar();
+        };
     });
 
     function validarFila(fila) {
@@ -253,8 +258,13 @@ document.addEventListener("DOMContentLoaded", function () {
         const d = parseFloat(fila.querySelector(".descuento").value) || 0;
         fila.querySelector(".subtotal").textContent = ((p * cant) * (1 - d/100)).toFixed(2);
         
-        btnGuardarMain.disabled = (erroresStock.size > 0);
+        actualizarBotonGuardar();
         actualizarTotal();
+    }
+
+    function actualizarBotonGuardar() {
+        const filas = document.querySelectorAll("#tablaProductos tbody tr");
+        btnGuardarMain.disabled = (filas.length === 0) || (erroresStock.size > 0);
     }
 
     function actualizarTotal() {
