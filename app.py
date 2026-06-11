@@ -13,6 +13,7 @@ from modulos.ventas_menu import ventas_bp
 # Cargar rutas extras del módulo de ventas (necesario)
 import modulos.ventas_registrar
 import modulos.ventas_anular
+import modulos.ventas_ticket
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "ecoltura_secret_key_2025"
