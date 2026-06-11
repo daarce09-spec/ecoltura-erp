@@ -5,18 +5,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Ticket #{{ venta.id }} — ECOLTURA</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f0; margin: 0; padding: 16px;
            display: flex; flex-direction: column; align-items: center; }
-    .ticket { background: #fff; border-radius: 12px; padding: 20px; max-width: 380px; width: 100%;
-              box-shadow: 0 2px 8px rgba(0,0,0,.1); position: relative; }
-    .ticket h2 { margin: 0 0 4px; color: #2e7d32; }
-    .ticket .meta { color: #666; font-size: .9rem; margin-bottom: 12px; line-height: 1.5; }
+    .ticket { background: #fff; border-radius: 12px; padding: 24px; max-width: 380px; width: 100%;
+              box-shadow: 0 2px 8px rgba(0,0,0,.1); position: relative; box-sizing: border-box; }
+    .ticket h2 { margin: 0 0 4px; color: #2e7d32; letter-spacing: 1px; }
+    .ticket .meta { color: #666; font-size: .9rem; margin-bottom: 12px; line-height: 1.6; }
     .ticket hr { border: none; border-top: 1px dashed #ccc; }
-    .item { display: flex; justify-content: space-between; padding: 4px 0; font-size: .95rem; gap: 8px; }
+    .item { display: flex; justify-content: space-between; padding: 5px 0; font-size: .95rem; gap: 8px; }
     .fila { display: flex; justify-content: space-between; font-size: .95rem; padding: 2px 0; color: #555; }
     .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.15rem;
-             padding-top: 8px; color: #2e7d32; }
+             padding-top: 10px; color: #2e7d32; }
+    .gracias { text-align: center; color: #2e7d32; font-size: .9rem; margin-top: 14px; font-weight: 600; }
     .anulado { position: absolute; top: 40%; left: 10%; transform: rotate(-15deg);
                color: #c62828; border: 3px solid #c62828; padding: 4px 16px;
                font-size: 1.6rem; font-weight: 800; opacity: .55; border-radius: 6px; }
@@ -25,12 +27,12 @@
            border-radius: 10px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer;
            text-decoration: none; }
     .btn-wa { background: #25D366; color: #fff; }
+    .btn-img { background: #2e7d32; color: #fff; }
     .btn-sec { background: #e0e0e0; color: #333; }
-    .btn[disabled] { opacity: .5; cursor: not-allowed; }
   </style>
 </head>
 <body>
-  <div class="ticket">
+  <div class="ticket" id="ticketCard">
     {% if venta.estado == 'Anulado' %}<div class="anulado">ANULADO</div>{% endif %}
     <h2>🌱 ECOLTURA</h2>
     <div class="meta">
@@ -55,28 +57,59 @@
       <span>TOTAL</span>
       <span>₡{{ "{:,.0f}".format(venta.total) }}</span>
     </div>
+    <div class="gracias">¡Gracias por su compra! 💚</div>
   </div>
 
   <div class="acciones">
     {% if venta.estado != 'Anulado' %}
+    <button class="btn btn-img" onclick="compartirImagen()">
+      📸 Compartir ticket como imagen
+    </button>
     <a class="btn btn-wa" href="{{ enlace_wa }}" target="_blank" rel="noopener">
-      📲 Compartir por WhatsApp
+      💬 Compartir como texto (WhatsApp)
     </a>
-    <button class="btn btn-sec" onclick="compartirNativo()">Compartir con otra app</button>
     {% endif %}
     <a class="btn btn-sec" href="{{ url_for('ventas_bp.registrar_venta') }}">➕ Nueva venta</a>
     <a class="btn btn-sec" href="{{ url_for('menu') }}">Volver al menú</a>
   </div>
 
   <script>
-    const textoTicket = {{ texto_ticket | tojson }};
-    async function compartirNativo() {
-      if (navigator.share) {
-        try { await navigator.share({ title: "Ticket ECOLTURA", text: textoTicket }); }
-        catch (e) { /* usuario canceló */ }
-      } else {
-        await navigator.clipboard.writeText(textoTicket);
-        alert("Ticket copiado al portapapeles ✅");
+    async function generarImagen() {
+      const card = document.getElementById("ticketCard");
+      const canvas = await html2canvas(card, {
+        scale: 3,                 // alta resolución
+        backgroundColor: "#ffffff",
+        useCORS: true
+      });
+      return new Promise(res => canvas.toBlob(res, "image/png"));
+    }
+
+    async function compartirImagen() {
+      try {
+        const blob = await generarImagen();
+        const archivo = new File([blob], "ticket_ecoltura_{{ venta.id }}.png", { type: "image/png" });
+
+        // En celular: abre la hoja nativa -> elegir WhatsApp -> la imagen va al chat
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+          await navigator.share({
+            files: [archivo],
+            title: "Ticket ECOLTURA #{{ venta.id }}"
+          });
+        } else {
+          // En PC: descarga el PNG para adjuntarlo manualmente en WhatsApp Web
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = "ticket_ecoltura_{{ venta.id }}.png";
+          a.click();
+          URL.revokeObjectURL(url);
+          alert("Imagen descargada ✅ Adjuntala en WhatsApp Web con el clip 📎");
+        }
+      } catch (e) {
+        if (e.name !== "AbortError") {
+          console.error(e);
+          alert("No se pudo generar la imagen.");
+        }
       }
     }
   </script>
