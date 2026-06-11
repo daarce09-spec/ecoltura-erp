@@ -102,17 +102,14 @@
     .error-stock { border: 2px solid #dc3545 !important; background: #ffe6e6 !important; }
     .mensaje-error { color: #dc3545; font-size: 0.8rem; margin-top: 4px; font-weight: bold; }
     .producto-sugerencias {
-        position: absolute;
-        z-index: 1050;
+        position: fixed;
+        z-index: 2050;
         background: white;
         border: 1px solid #dee2e6;
         border-radius: 6px;
         max-height: 200px;
         overflow-y: auto;
-        width: 100%;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        top: 100%;
-        left: 0;
     }
     .producto-wrap { position: relative; }
 </style>
@@ -210,6 +207,13 @@ document.addEventListener("DOMContentLoaded", function () {
             sugerencias.innerHTML = "";
             if (filtrados.length === 0) { sugerencias.style.display = "none"; return; }
 
+            // Posicionar el desplegable justo bajo el input (posición fija,
+            // para que el scroll horizontal de la tabla no lo recorte)
+            const rect = inputProducto.getBoundingClientRect();
+            sugerencias.style.top = (rect.bottom + 2) + "px";
+            sugerencias.style.left = rect.left + "px";
+            sugerencias.style.width = rect.width + "px";
+
             filtrados.forEach(p => {
                 const item = document.createElement("button");
                 item.type = "button";
@@ -239,6 +243,14 @@ document.addEventListener("DOMContentLoaded", function () {
             if (!inputProducto.contains(e.target) && !sugerencias.contains(e.target)) {
                 sugerencias.style.display = "none";
             }
+        });
+
+        // Ocultar sugerencias al hacer scroll (horizontal de la tabla o de la página)
+        document.querySelector(".table-responsive").addEventListener("scroll", () => {
+            sugerencias.style.display = "none";
+        });
+        window.addEventListener("scroll", () => {
+            sugerencias.style.display = "none";
         });
 
         fila.querySelectorAll("input").forEach(i => i.oninput = () => validarFila(fila));
