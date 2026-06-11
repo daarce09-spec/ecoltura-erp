@@ -30,19 +30,7 @@
     .btn-desc { background: #2e7d32; color: #fff; }
     .btn-sec { background: #e0e0e0; color: #333; }
     .btn:active { transform: scale(.98); }
-
-    /* Modal de elección en escritorio */
-    .overlay { position: fixed; inset: 0; background: rgba(0,0,0,.45); display: none;
-               align-items: center; justify-content: center; z-index: 2000; padding: 16px; }
-    .overlay.visible { display: flex; }
-    .dialogo { background: #fff; border-radius: 14px; padding: 24px; max-width: 360px; width: 100%;
-               box-shadow: 0 10px 30px rgba(0,0,0,.25); text-align: center; }
-    .dialogo h3 { margin: 0 0 6px; color: #2e7d32; }
-    .copiado { background: #e8f5e9; color: #2e7d32; border-radius: 8px; padding: 10px;
-               font-size: .9rem; font-weight: 600; margin: 12px 0; }
-    .copiado.error { background: #fff3e0; color: #e65100; }
-    .dialogo .btn { width: 100%; margin-top: 8px; box-sizing: border-box; }
-    .nota { font-size: .8rem; color: #888; margin-top: 10px; }
+    .solo-movil { display: none; }
   </style>
 </head>
 <body>
@@ -75,33 +63,21 @@
   </div>
 
   <div class="acciones">
-    {% if venta.estado != 'Anulado' %}
-    <button class="btn btn-wa" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
-    {% endif %}
     <button class="btn btn-desc" onclick="descargarComprobante()">📥 Descargar comprobante</button>
-    <a class="btn btn-sec" href="{{ url_for('ventas_bp.registrar_venta') }}">➕ Nueva venta</a>
+    {% if venta.estado != 'Anulado' %}
+    <button class="btn btn-wa solo-movil" id="btnEnviarWA" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
+    {% endif %}
     <a class="btn btn-sec" href="{{ url_for('menu') }}">Volver al menú</a>
   </div>
 
-  <!-- Modal de elección (solo escritorio) -->
-  <div class="overlay" id="overlayWA" onclick="if(event.target===this) cerrarModal()">
-    <div class="dialogo">
-      <h3>Enviar ticket #{{ venta.id }}</h3>
-      <div class="copiado" id="estadoCopiado">✅ Imagen copiada — pegala con <b>Ctrl+V</b> en el chat</div>
-      <button class="btn btn-wa" onclick="abrirWhatsAppWeb()">🌐 WhatsApp Web</button>
-      <button class="btn btn-desc" onclick="abrirWhatsAppApp()">💻 App de WhatsApp (PC)</button>
-      <button class="btn btn-sec" onclick="cerrarModal()">Cancelar</button>
-      <div class="nota">Si la app no se abre, es porque no está instalada — usá WhatsApp Web.</div>
-    </div>
-  </div>
-
   <script>
-    // --- Teléfono del cliente (limpio, formato 506XXXXXXXX) ---
-    const celularRaw = {{ (venta.celular or '') | tojson }};
-    let telefono = (celularRaw || "").replace(/\D/g, "");
-    if (telefono.length === 8) telefono = "506" + telefono;
-
     const esMovil = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    // El botón de WhatsApp solo existe en celular
+    if (esMovil) {
+      const btnWA = document.getElementById("btnEnviarWA");
+      if (btnWA) btnWA.style.display = "flex";
+    }
 
     async function generarImagen() {
       const canvas = await html2canvas(document.getElementById("ticketCard"), {
@@ -124,61 +100,21 @@
       catch (e) { console.error(e); alert("No se pudo generar el comprobante."); }
     }
 
-    // --- FLUJO PRINCIPAL ---
+    // Solo celular: imagen directa a WhatsApp vía hoja nativa
     async function enviarWhatsApp() {
       try {
         const blob = await generarImagen();
+        const archivo = new File([blob], "ticket_ecoltura_{{ venta.id }}.png", { type: "image/png" });
 
-        if (esMovil) {
-          // CELULAR: imagen directa a WhatsApp vía hoja nativa
-          const archivo = new File([blob], "ticket_ecoltura_{{ venta.id }}.png", { type: "image/png" });
-          if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-            await navigator.share({ files: [archivo], title: "Ticket ECOLTURA #{{ venta.id }}" });
-            return;
-          }
-          // Respaldo si el navegador móvil no soporta compartir archivos
+        if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+          await navigator.share({ files: [archivo], title: "Ticket ECOLTURA #{{ venta.id }}" });
+        } else {
           descargarBlob(blob);
           alert("Imagen descargada ✅ Adjuntala en WhatsApp desde tu galería.");
-          return;
         }
-
-        // ESCRITORIO: copiar imagen al portapapeles y elegir Web o App
-        const estado = document.getElementById("estadoCopiado");
-        try {
-          await navigator.clipboard.write([ new ClipboardItem({ "image/png": blob }) ]);
-          estado.textContent = "✅ Imagen copiada — pegala con Ctrl+V en el chat";
-          estado.classList.remove("error");
-        } catch (err) {
-          // Si el navegador no deja copiar, descargamos como respaldo
-          descargarBlob(blob);
-          estado.textContent = "📥 Imagen descargada — adjuntala con el clip 📎 en el chat";
-          estado.classList.add("error");
-        }
-        document.getElementById("overlayWA").classList.add("visible");
-
       } catch (e) {
         if (e.name !== "AbortError") { console.error(e); alert("No se pudo generar la imagen."); }
       }
-    }
-
-    function abrirWhatsAppWeb() {
-      const url = telefono
-        ? `https://web.whatsapp.com/send?phone=${telefono}`
-        : "https://web.whatsapp.com/";
-      window.open(url, "_blank");
-      cerrarModal();
-    }
-
-    function abrirWhatsAppApp() {
-      // Protocolo whatsapp:// abre la app de escritorio si está instalada
-      window.location.href = telefono
-        ? `whatsapp://send?phone=${telefono}`
-        : "whatsapp://send";
-      cerrarModal();
-    }
-
-    function cerrarModal() {
-      document.getElementById("overlayWA").classList.remove("visible");
     }
   </script>
 </body>

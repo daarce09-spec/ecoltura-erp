@@ -92,6 +92,13 @@
 </div>
 
 <style>
+    /* Scroll horizontal del detalle de productos (móvil y pantallas angostas) */
+    .table-responsive {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+    #tablaProductos { min-width: 780px; }
+
     .error-stock { border: 2px solid #dc3545 !important; background: #ffe6e6 !important; }
     .mensaje-error { color: #dc3545; font-size: 0.8rem; margin-top: 4px; font-weight: bold; }
     .producto-sugerencias {
