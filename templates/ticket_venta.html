@@ -4,24 +4,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ticket #{{ venta.id }} — ECOLTURA</title>
+  <title>Comprobante #{{ venta.id }} — ECOLTURA</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     body { font-family: 'Segoe UI', sans-serif; background: #f0f4f0; margin: 0; padding: 16px;
            display: flex; flex-direction: column; align-items: center; }
-    .ticket { background: #fff; border-radius: 12px; padding: 24px; max-width: 380px; width: 100%;
+
+    .ticket { background: #fff; border-radius: 12px; padding: 28px 26px; max-width: 380px; width: 100%;
               box-shadow: 0 2px 8px rgba(0,0,0,.1); position: relative; box-sizing: border-box; }
-    .ticket h2 { margin: 0 0 4px; color: #2e7d32; letter-spacing: 1px; }
-    .ticket .meta { color: #666; font-size: .9rem; margin-bottom: 12px; line-height: 1.6; }
-    .ticket hr { border: none; border-top: 1px dashed #ccc; }
-    .item { display: flex; justify-content: space-between; padding: 5px 0; font-size: .95rem; gap: 8px; }
-    .fila { display: flex; justify-content: space-between; font-size: .95rem; padding: 2px 0; color: #555; }
-    .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.15rem;
+
+    .logo-wrap { text-align: center; margin-bottom: 10px; }
+    .logo-wrap img { max-width: 160px; height: auto; }
+
+    .doc-titulo { text-align: center; font-size: .8rem; letter-spacing: 2.5px; color: #7a7a7a;
+                  text-transform: uppercase; margin-bottom: 14px; }
+
+    .meta { font-size: .88rem; color: #444; line-height: 1.7; margin-bottom: 12px; }
+    .meta b { color: #2e7d32; }
+    .meta-fila { display: flex; justify-content: space-between; gap: 12px; }
+    .meta-fila span:last-child { text-align: right; }
+
+    .ticket hr { border: none; border-top: 1px dashed #bbb; margin: 10px 0; }
+
+    .encabezado-items { display: flex; justify-content: space-between; font-size: .75rem;
+                        color: #999; text-transform: uppercase; letter-spacing: 1px; padding-bottom: 4px; }
+    .item { display: flex; justify-content: space-between; padding: 5px 0; font-size: .93rem;
+            color: #333; gap: 8px; }
+    .item .cant { color: #888; font-size: .85rem; }
+
+    .fila { display: flex; justify-content: space-between; font-size: .93rem; padding: 2px 0; color: #555; }
+    .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.2rem;
              padding-top: 10px; color: #2e7d32; }
-    .gracias { text-align: center; color: #2e7d32; font-size: .9rem; margin-top: 14px; font-weight: 600; }
-    .anulado { position: absolute; top: 40%; left: 10%; transform: rotate(-15deg);
+
+    .pie { text-align: center; margin-top: 16px; }
+    .pie .gracias { color: #2e7d32; font-size: .92rem; font-weight: 600; }
+    .pie .leyenda { color: #aaa; font-size: .72rem; margin-top: 6px; letter-spacing: .5px; }
+
+    .anulado { position: absolute; top: 42%; left: 12%; transform: rotate(-15deg);
                color: #c62828; border: 3px solid #c62828; padding: 4px 16px;
-               font-size: 1.6rem; font-weight: 800; opacity: .55; border-radius: 6px; }
+               font-size: 1.6rem; font-weight: 800; opacity: .55; border-radius: 6px; z-index: 5; }
+
     .acciones { max-width: 380px; width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
     .btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px;
            border-radius: 10px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer;
@@ -30,27 +52,33 @@
     .btn-desc { background: #2e7d32; color: #fff; }
     .btn-sec { background: #e0e0e0; color: #333; }
     .btn:active { transform: scale(.98); }
-    .solo-movil { display: none; }
   </style>
 </head>
 <body>
   <div class="ticket" id="ticketCard">
     {% if venta.estado == 'Anulado' %}<div class="anulado">ANULADO</div>{% endif %}
-    <h2>🌱 ECOLTURA</h2>
-    <div class="meta">
-      Ticket #{{ venta.id }}<br>
-      {{ venta.fecha.strftime('%d/%m/%Y %I:%M %p') }}<br>
-      Cliente: {{ venta.cliente }}<br>
-      Pago: {{ venta.metodo_pago }}
+
+    <div class="logo-wrap">
+      <img id="logoEcoltura" src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" alt="ECOLTURA">
     </div>
+    <div class="doc-titulo">Comprobante de venta</div>
+
+    <div class="meta">
+      <div class="meta-fila"><span><b>N°</b> {{ venta.id }}</span><span>{{ venta.fecha.strftime('%d/%m/%Y %I:%M %p') }}</span></div>
+      <div class="meta-fila"><span>Cliente</span><span>{{ venta.cliente }}</span></div>
+      <div class="meta-fila"><span>Método de pago</span><span>{{ venta.metodo_pago }}</span></div>
+    </div>
+
     <hr>
+    <div class="encabezado-items"><span>Detalle</span><span>Importe</span></div>
     {% for d in detalles %}
     <div class="item">
-      <span>{{ d.producto }} x{{ '%g'|format(d.cantidad) }} {{ d.unidad }}</span>
+      <span>{{ d.producto }} <span class="cant">× {{ '%g'|format(d.cantidad) }} {{ d.unidad }}</span></span>
       <span>₡{{ "{:,.0f}".format(d.total_linea) }}</span>
     </div>
     {% endfor %}
     <hr>
+
     {% if venta.descuento > 0 %}
     <div class="fila"><span>Subtotal</span><span>₡{{ "{:,.0f}".format(venta.subtotal) }}</span></div>
     <div class="fila"><span>Descuento</span><span>-₡{{ "{:,.0f}".format(venta.descuento) }}</span></div>
@@ -59,13 +87,17 @@
       <span>TOTAL</span>
       <span>₡{{ "{:,.0f}".format(venta.total) }}</span>
     </div>
-    <div class="gracias">¡Gracias por su compra! 💚</div>
+
+    <div class="pie">
+      <div class="gracias">¡Gracias por su compra!</div>
+      <div class="leyenda">ECOLTURA · Productos orgánicos y lácteos</div>
+    </div>
   </div>
 
   <div class="acciones">
     <button class="btn btn-desc" onclick="descargarComprobante()">📥 Descargar comprobante</button>
     {% if venta.estado != 'Anulado' %}
-    <button class="btn btn-wa solo-movil" id="btnEnviarWA" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
+    <button class="btn btn-wa" id="btnEnviarWA" style="display:none" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
     {% endif %}
     <a class="btn btn-sec" href="{{ url_for('menu') }}">Volver al menú</a>
   </div>
@@ -79,7 +111,15 @@
       if (btnWA) btnWA.style.display = "flex";
     }
 
+    // Esperar a que el logo cargue antes de capturar (evita comprobantes sin logo)
+    function logoListo() {
+      const img = document.getElementById("logoEcoltura");
+      if (!img || img.complete) return Promise.resolve();
+      return new Promise(res => { img.onload = res; img.onerror = res; });
+    }
+
     async function generarImagen() {
+      await logoListo();
       const canvas = await html2canvas(document.getElementById("ticketCard"), {
         scale: 3, backgroundColor: "#ffffff", useCORS: true
       });
@@ -90,7 +130,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "ticket_ecoltura_{{ venta.id }}.png";
+      a.download = "comprobante_ecoltura_{{ venta.id }}.png";
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -104,10 +144,10 @@
     async function enviarWhatsApp() {
       try {
         const blob = await generarImagen();
-        const archivo = new File([blob], "ticket_ecoltura_{{ venta.id }}.png", { type: "image/png" });
+        const archivo = new File([blob], "comprobante_ecoltura_{{ venta.id }}.png", { type: "image/png" });
 
         if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-          await navigator.share({ files: [archivo], title: "Ticket ECOLTURA #{{ venta.id }}" });
+          await navigator.share({ files: [archivo], title: "Comprobante ECOLTURA #{{ venta.id }}" });
         } else {
           descargarBlob(blob);
           alert("Imagen descargada ✅ Adjuntala en WhatsApp desde tu galería.");
