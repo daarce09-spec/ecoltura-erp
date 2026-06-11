@@ -83,7 +83,10 @@
       <div class="text-success mb-3"><i class="bi bi-check-circle-fill" style="font-size: 4rem;"></i></div>
       <h3 class="fw-bold">¡Venta Exitosa!</h3>
       <p class="text-muted">El registro se completó y el inventario fue actualizado.</p>
-      <button type="button" class="btn btn-success w-100 fw-bold py-2" onclick="location.reload()">Aceptar</button>
+      <button type="button" id="btnVerTicket" class="btn btn-success w-100 fw-bold py-2 mb-2">
+        <i class="bi bi-whatsapp me-1"></i> Ver ticket / Compartir
+      </button>
+      <button type="button" class="btn btn-outline-success w-100 fw-bold py-2" onclick="location.reload()">Nueva venta</button>
     </div>
   </div>
 </div>
@@ -118,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
     let erroresStock = new Set();
     let modalConfirmInstance;
     let todosLosProductos = [];
+    let ventaGuardadaId = null;   // ← ID de la venta recién guardada (para el ticket)
 
     // Precargar lista de productos
     fetch("/productos/listar").then(r => r.json()).then(data => {
@@ -309,6 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
         .then(r => r.json())
         .then(resp => {
             if(resp.status === "ok" || resp.id_venta || !resp.message) {
+                ventaGuardadaId = resp.venta_id || resp.id_venta || null;   // ← guardar el ID
                 modalConfirmInstance.hide();
                 setTimeout(() => {
                     const modalExito = new bootstrap.Modal(document.getElementById("modalVentaGuardada"));
@@ -326,6 +331,15 @@ document.addEventListener("DOMContentLoaded", function () {
             btnSi.disabled = false;
             btnSi.textContent = "Sí, guardar";
         });
+    });
+
+    // --- IR AL TICKET / COMPARTIR POR WHATSAPP ---
+    document.getElementById("btnVerTicket").addEventListener("click", function(){
+        if (ventaGuardadaId) {
+            window.location.href = "/ventas/ticket/" + ventaGuardadaId;
+        } else {
+            alert("No se pudo obtener el ID de la venta.");
+        }
     });
 });
 </script>

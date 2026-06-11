@@ -1,0 +1,84 @@
+<!-- templates/ticket_venta.html -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ticket #{{ venta.id }} — ECOLTURA</title>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f4f0; margin: 0; padding: 16px;
+           display: flex; flex-direction: column; align-items: center; }
+    .ticket { background: #fff; border-radius: 12px; padding: 20px; max-width: 380px; width: 100%;
+              box-shadow: 0 2px 8px rgba(0,0,0,.1); position: relative; }
+    .ticket h2 { margin: 0 0 4px; color: #2e7d32; }
+    .ticket .meta { color: #666; font-size: .9rem; margin-bottom: 12px; line-height: 1.5; }
+    .ticket hr { border: none; border-top: 1px dashed #ccc; }
+    .item { display: flex; justify-content: space-between; padding: 4px 0; font-size: .95rem; gap: 8px; }
+    .fila { display: flex; justify-content: space-between; font-size: .95rem; padding: 2px 0; color: #555; }
+    .total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.15rem;
+             padding-top: 8px; color: #2e7d32; }
+    .anulado { position: absolute; top: 40%; left: 10%; transform: rotate(-15deg);
+               color: #c62828; border: 3px solid #c62828; padding: 4px 16px;
+               font-size: 1.6rem; font-weight: 800; opacity: .55; border-radius: 6px; }
+    .acciones { max-width: 380px; width: 100%; margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px;
+           border-radius: 10px; border: none; font-size: 1rem; font-weight: 600; cursor: pointer;
+           text-decoration: none; }
+    .btn-wa { background: #25D366; color: #fff; }
+    .btn-sec { background: #e0e0e0; color: #333; }
+    .btn[disabled] { opacity: .5; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+  <div class="ticket">
+    {% if venta.estado == 'Anulado' %}<div class="anulado">ANULADO</div>{% endif %}
+    <h2>🌱 ECOLTURA</h2>
+    <div class="meta">
+      Ticket #{{ venta.id }}<br>
+      {{ venta.fecha.strftime('%d/%m/%Y %I:%M %p') }}<br>
+      Cliente: {{ venta.cliente }}<br>
+      Pago: {{ venta.metodo_pago }}
+    </div>
+    <hr>
+    {% for d in detalles %}
+    <div class="item">
+      <span>{{ d.producto }} x{{ '%g'|format(d.cantidad) }} {{ d.unidad }}</span>
+      <span>₡{{ "{:,.0f}".format(d.total_linea) }}</span>
+    </div>
+    {% endfor %}
+    <hr>
+    {% if venta.descuento > 0 %}
+    <div class="fila"><span>Subtotal</span><span>₡{{ "{:,.0f}".format(venta.subtotal) }}</span></div>
+    <div class="fila"><span>Descuento</span><span>-₡{{ "{:,.0f}".format(venta.descuento) }}</span></div>
+    {% endif %}
+    <div class="total">
+      <span>TOTAL</span>
+      <span>₡{{ "{:,.0f}".format(venta.total) }}</span>
+    </div>
+  </div>
+
+  <div class="acciones">
+    {% if venta.estado != 'Anulado' %}
+    <a class="btn btn-wa" href="{{ enlace_wa }}" target="_blank" rel="noopener">
+      📲 Compartir por WhatsApp
+    </a>
+    <button class="btn btn-sec" onclick="compartirNativo()">Compartir con otra app</button>
+    {% endif %}
+    <a class="btn btn-sec" href="{{ url_for('ventas_bp.registrar_venta') }}">➕ Nueva venta</a>
+    <a class="btn btn-sec" href="{{ url_for('menu') }}">Volver al menú</a>
+  </div>
+
+  <script>
+    const textoTicket = {{ texto_ticket | tojson }};
+    async function compartirNativo() {
+      if (navigator.share) {
+        try { await navigator.share({ title: "Ticket ECOLTURA", text: textoTicket }); }
+        catch (e) { /* usuario canceló */ }
+      } else {
+        await navigator.clipboard.writeText(textoTicket);
+        alert("Ticket copiado al portapapeles ✅");
+      }
+    }
+  </script>
+</body>
+</html>
