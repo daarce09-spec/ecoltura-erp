@@ -43,9 +43,9 @@
   .cards-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 20px;
     width: 100%;
-    max-width: 880px;
+    max-width: 1100px;
   }
 
   .module-link { text-decoration: none; }
@@ -53,7 +53,7 @@
   .module-card {
     background: white;
     border-radius: 20px;
-    padding: 28px 20px 24px;
+    padding: 36px 28px 30px;
     display: flex; flex-direction: column; align-items: center; gap: 12px;
     border: 1.5px solid rgba(107,191,107,.15);
     box-shadow: 0 2px 12px rgba(27,67,50,.06);
@@ -76,7 +76,7 @@
   .module-link:hover .module-card::before { transform: scaleX(1); }
 
   .icon-wrap {
-    width: 64px; height: 64px; border-radius: 16px;
+    width: 76px; height: 76px; border-radius: 18px;
     background: #f0f7f0;
     display: flex; align-items: center; justify-content: center;
     transition: background .25s;
@@ -84,13 +84,13 @@
   .module-link:hover .icon-wrap { background: #1b4332; }
 
   .icon-wrap i {
-    font-size: 1.8rem; color: #2d6a4f;
+    font-size: 2.2rem; color: #2d6a4f;
     transition: color .25s;
   }
   .module-link:hover .icon-wrap i { color: white; }
 
   .module-name {
-    font-size: 1rem; font-weight: 700; color: #1b4332;
+    font-size: 1.1rem; font-weight: 700; color: #1b4332;
     transition: color .25s; text-align: center;
   }
   .module-tag {
