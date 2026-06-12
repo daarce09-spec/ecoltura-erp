@@ -45,7 +45,6 @@
     .intro-background {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image:
-        linear-gradient(rgba(20,24,14,.5), rgba(20,24,14,.5)),
         url('https://images.unsplash.com/photo-1602943543714-cf535b048440?q=80&w=1920&auto=format&fit=crop');
       background-size: cover; background-position: center;
       transition: filter 1.2s ease, transform 2s ease;
@@ -58,12 +57,36 @@
     #intro-screen.ready .intro-text { opacity: 1; transform: translateY(0); }
     #intro-screen.difuminar { opacity: 0; visibility: hidden; pointer-events: none; }
     #intro-screen.difuminar .intro-background { filter: blur(25px); transform: scale(1.08); }
-    .intro-logo { width: 160px; margin-bottom: 18px; filter: brightness(0) invert(1); }
-    .intro-tagline { font-family: 'Fraunces', serif; font-size: clamp(1.6rem,4vw,2.4rem);
-                     color: #fff; font-weight: 300; letter-spacing: 2px; }
-    .intro-tagline em { font-style: italic; color: var(--lima); }
-    .intro-sub { font-family: 'Inter', sans-serif; font-size: .72rem; letter-spacing: 3px;
-                 color: rgba(255,255,255,.7); text-transform: uppercase; margin-top: 10px; }
+
+    /* Franja blanca sólida del intro */
+    .intro-franja {
+      background: #ffffff;
+      padding: 32px 64px;
+      border-top: 5px solid var(--lima);
+      border-bottom: 5px solid var(--lima);
+      display: flex; flex-direction: column; align-items: center; gap: 10px;
+      min-width: 460px;
+      box-shadow: 0 8px 40px rgba(0,0,0,.25);
+    }
+    .intro-logo-wrap {
+      display: flex; align-items: center; gap: 14px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid #E6E2DA;
+      width: 100%;
+      justify-content: center;
+    }
+    .intro-logo-wrap img { height: 56px; width: auto; }
+    .intro-logo-nombre { font-family: 'Fraunces', serif; font-size: 2.2rem;
+                         letter-spacing: 7px; color: #3F3F41; font-weight: 400; }
+    .intro-logo-sub { font-family: 'Inter', sans-serif; font-size: .62rem; letter-spacing: 2.5px;
+                      color: #D9742E; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
+    .intro-sep { width: 36px; height: 1.5px; background: var(--lima); margin: 2px auto; }
+    .intro-tagline { font-family: 'Fraunces', serif; font-size: 1.25rem;
+                     color: #3F3F41; font-weight: 300; letter-spacing: .5px; margin-top: 4px; }
+    .intro-tagline em { font-style: italic; color: #3E6B22; }
+    .intro-sub { font-family: 'Inter', sans-serif; font-size: .6rem; letter-spacing: 3.5px;
+                 color: #7A8C80; text-transform: uppercase; margin-top: 2px; }
+    @media (max-width: 560px) { .intro-franja { min-width: unset; padding: 24px 28px; } }
 
     /* ── HEADER: siempre blanco con logo real ── */
     header {
@@ -93,11 +116,10 @@
       position: relative; min-height: 100vh;
       display: flex; align-items: flex-end;
       background-image:
-        linear-gradient(rgba(20,24,14,.28) 20%, rgba(20,24,14,.72) 90%),
-        url('/static/img/finca/hero.jpg'),
-        linear-gradient(168deg, #9AAB6E 0%, #647E3C 38%, #3C5A22 68%, #243A14 100%);
-      background-size: cover; background-position: center; background-repeat: no-repeat;
-      padding-top: 70px;  /* espacio para el header fijo blanco */
+        linear-gradient(rgba(20,24,14,0.3) 20%, rgba(20,24,14,0.75) 90%),
+        url('https://images.unsplash.com/photo-1602943543714-cf535b048440?q=80&w=1920&auto=format&fit=crop');
+      background-size: cover; background-position: center center; background-repeat: no-repeat;
+      padding-top: 70px;
     }
     /* Placeholder si no hay hero.jpg */
     .hero-contenido { max-width: 1160px; margin: 0 auto; padding: 0 24px 100px;
@@ -364,18 +386,16 @@
 <div id="intro-screen">
   <div class="intro-background"></div>
   <div class="intro-text">
-    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:18px">
-      <svg viewBox="0 0 60 50" fill="none" style="height:54px;width:auto">
-        <path d="M30 46 C30 30 30 16 30 4 C36 14 36 32 30 46Z" fill="#A4C93C"/>
-        <path d="M30 46 C26 32 18 20 8 14 C12 28 20 40 30 46Z" fill="#8CBF45"/>
-        <path d="M30 46 C34 32 42 20 52 14 C48 28 40 40 30 46Z" fill="#8CBF45"/>
-        <path d="M30 46 C24 38 12 32 2 32 C10 42 20 46 30 46Z" fill="#C9DC7A"/>
-        <path d="M30 46 C36 38 48 32 58 32 C50 42 40 46 30 46Z" fill="#C9DC7A"/>
-      </svg>
-      <span style="font-family:'Fraunces',serif;font-size:2rem;letter-spacing:5px;color:#fff;font-weight:400">ECOLTURA</span>
+    <div class="intro-franja">
+      <div class="intro-logo-wrap">
+        <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
+        <span class="intro-logo-nombre">ECOLTURA</span>
+      </div>
+      <div class="intro-logo-sub">Productos Orgánicos y Lácteos</div>
+      <div class="intro-sep"></div>
+      <div class="intro-tagline">De la finca, <em>hasta su mesa.</em></div>
+      <div class="intro-sub">Finca familiar · Costa Rica</div>
     </div>
-    <div class="intro-tagline">De la finca, <em>hasta su mesa.</em></div>
-    <div class="intro-sub">Finca familiar · Costa Rica</div>
   </div>
 </div>
 
