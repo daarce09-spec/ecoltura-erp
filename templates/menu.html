@@ -5,49 +5,49 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECOLTURA | Administración</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --verde: #2E6B3E; --verde-os: #1A4226; --lima: #7AB648;
-      --crema: #F4F7F0; --blanco: #FFFFFF; --carbon: #1C1C1E;
-    }
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; overflow: hidden; }
-    body { font-family: 'Inter', sans-serif; background: var(--crema); color: var(--carbon); }
+    :root { --verde: #2E6B3E; --crema: #F4F7F0; --blanco: #FFFFFF; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; background: var(--crema); }
 
-    /* --- ESTILOS DE MÓDULOS --- */
+    /* Layout principal */
+    .shell { display: flex; flex-direction: column; min-height: 100vh; }
+    .topbar { background: var(--blanco); padding: 15px 32px; border-bottom: 2px solid #7AB648; display: flex; align-items: center; }
+    
+    /* Grid de tarjetas inteligente: se ajusta solo al tamaño de pantalla */
     .modulos {
-      display: grid; padding: 24px 32px; gap: 20px;
-      grid-template-columns: repeat(3, 1fr); height: 100%;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 20px;
+      padding: 32px;
+      flex-grow: 1;
     }
-    
+
     .modulo {
-      background: white; border-radius: 20px;
+      background: white;
+      padding: 40px;
+      border-radius: 20px;
+      border: 1px solid rgba(0,0,0,0.05);
       display: flex; flex-direction: column; align-items: center; justify-content: center;
-      gap: 16px; text-decoration: none; border: 1px solid rgba(0,0,0,0.06);
-      transition: all 0.3s ease;
+      gap: 15px;
+      text-decoration: none;
+      transition: transform 0.2s;
     }
-
-    /* --- CAMBIO UX PARA PC: Fuentes más grandes --- */
-    @media (min-width: 901px) {
-      .mod-nombre { font-size: 1.4rem !important; } /* Aumentado de 1rem a 1.4rem */
-      .mod-tag { font-size: 0.8rem !important; letter-spacing: 2px !important; } /* Aumentado para legibilidad */
-      .mod-icon i { font-size: 3rem !important; } /* Iconos más grandes en PC */
-      .modulo { gap: 24px; }
-    }
-
-    .mod-nombre { font-size: 1rem; font-weight: 700; color: var(--carbon); }
-    .mod-tag { font-size: .6rem; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
     
-    /* ... resto de estilos (mantenidos igual) ... */
-    .topbar { background: var(--blanco); border-bottom: 2px solid var(--lima); display: flex; align-items: center; padding: 0 32px; height: 72px; }
-    .badge-alert { position: absolute; top: 20px; right: 20px; background: #EF4444; color: white; border-radius: 999px; width: 24px; height: 24px; display: none; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
+    /* Ajuste para PC: Fuentes más grandes */
+    @media (min-width: 900px) {
+      .mod-nombre { font-size: 1.5rem !important; }
+      .mod-tag { font-size: 0.9rem !important; }
+      .mod-icon i { font-size: 3.5rem !important; }
+    }
+
+    .mod-nombre { font-size: 1.1rem; font-weight: 700; color: #1C1C1E; }
+    .mod-tag { font-size: 0.7rem; color: #9CA3AF; text-transform: uppercase; letter-spacing: 2px; }
+    .mod-icon i { font-size: 2.5rem; color: var(--verde); }
+
+    /* Badge rojo */
+    .badge-alert { background: #EF4444; color: white; border-radius: 50%; width: 22px; height: 22px; display: none; align-items: center; justify-content: center; font-size: 0.7rem; position: absolute; top: 20px; right: 20px; }
     .badge-alert.on { display: flex; }
-    
-    @media (max-width: 900px) {
-      html, body { overflow: auto; }
-      .modulos { grid-template-columns: repeat(2, 1fr); padding: 16px; }
-    }
   </style>
 </head>
 <body>
@@ -56,14 +56,14 @@
   <header class="topbar">
     <a href="/menu" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
       <img src="/static/img/ecoltura-logo.png" style="height:38px;">
-      <span style="font-weight:800; color:var(--verde-os);">ECOLTURA</span>
+      <span style="font-weight:800; color:var(--verde);">ECOLTURA</span>
     </a>
   </header>
 
   <main class="modulos">
     <a href="/clientes" class="modulo">
       <div class="mod-icon"><i class="bi bi-people"></i></div>
-      <div class="mod-info" style="text-align:center">
+      <div style="text-align:center">
         <div class="mod-nombre">Clientes</div>
         <div class="mod-tag">Gestión</div>
       </div>
@@ -72,3 +72,4 @@
 </div>
 </body>
 </html>
+
