@@ -17,8 +17,8 @@ import modulos.ventas_ticket
 from modulos.web_publica import web_bp
 
 # ── Bandejas del app (Fases 3 y 4 — se crean después) ──
-from modulos.pedidos  import pedidos_bp
-from modulos.visitas  import visitas_bp
+#from modulos.pedidos  import pedidos_bp
+#from modulos.visitas  import visitas_bp
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "ecoltura_secret_key_2025"
