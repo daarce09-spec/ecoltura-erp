@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ECOLTURA — Productos orgánicos y lácteos de finca</title>
+  <meta name="description" content="Finca familiar costarricense. Productos orgánicos y lácteos artesanales, cosechados por encargo y entregados sin intermediarios.">
+
+  <link rel="icon" type="image/png" href="/static/img/apple-touch-icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    /* ── Paleta: wordmark carbón + hojas verdes + naranja del tagline + crema ── */
+    :root {
+      --negro:      #1A1C18;
+      --carbon:     #3F3F41;   /* wordmark del logo */
+      --crema:      #F4F1EA;
+      --blanco:     #FFFFFF;
+      --sage:       #7A8C80;
+      --borde:      #E2E0DA;
+      --texto:      #55554F;
+      --gris:       #8C8C85;
+      --verde:      #3E6B22;   /* hoja oscura del logo – acción */
+      --verde-os:   #2E5117;
+      --lima:       #A4C93C;   /* hoja clara – microacento */
+      --naranja:    #D9742E;   /* tagline del logo – eyebrows y precios */
+      --header-sol: rgba(62,107,34,0.96);  /* verde para header sólido */
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--crema);
+           color: var(--texto); line-height: 1.65; font-size: 15px;
+           -webkit-font-smoothing: antialiased; }
+    h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 300; }
+
+    /* ── INTRO ── */
+    #intro-screen {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      z-index: 999; display: flex; justify-content: center; align-items: center;
+      background: var(--negro);
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+    }
+    .intro-background {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(rgba(20,24,14,.5), rgba(20,24,14,.5)),
+        url('https://images.unsplash.com/photo-1602943543714-cf535b048440?q=80&w=1920&auto=format&fit=crop');
+      background-size: cover; background-position: center;
+      transition: filter 1.2s ease, transform 2s ease;
+    }
+    .intro-text {
+      position: relative; z-index: 1000; text-align: center;
+      opacity: 0; transform: translateY(10px);
+      transition: opacity 1s ease .3s, transform 1s ease .3s;
+    }
+    #intro-screen.ready .intro-text { opacity: 1; transform: translateY(0); }
+    #intro-screen.difuminar { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro-screen.difuminar .intro-background { filter: blur(25px); transform: scale(1.08); }
+    .intro-logo { width: 160px; margin-bottom: 18px; filter: brightness(0) invert(1); }
+    .intro-tagline { font-family: 'Fraunces', serif; font-size: clamp(1.6rem,4vw,2.4rem);
+                     color: #fff; font-weight: 300; letter-spacing: 2px; }
+    .intro-tagline em { font-style: italic; color: var(--lima); }
+    .intro-sub { font-family: 'Inter', sans-serif; font-size: .72rem; letter-spacing: 3px;
+                 color: rgba(255,255,255,.7); text-transform: uppercase; margin-top: 10px; }
+
+    /* ── HEADER: transparente → verde sólido al scroll ── */
+    header {
+      position: fixed; top: 0; left: 0; width: 100%; padding: 18px 40px;
+      display: flex; justify-content: space-between; align-items: center;
+      z-index: 100; transition: background .3s, border-color .3s, box-shadow .3s;
+      background: transparent; border-bottom: 1px solid transparent;
+    }
+    header.solido {
+      background: var(--header-sol);
+      border-bottom: 1px solid rgba(0,0,0,.12);
+      box-shadow: 0 2px 16px rgba(0,0,0,.18);
+    }
+    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .logo img { height: 36px; width: auto; transition: filter .3s; }
+    header:not(.solido) .logo img { filter: brightness(0) invert(1); }
+    header.solido .logo img { filter: none; }
+    .logo-texto { font-family: 'Fraunces', serif; font-size: 1.2rem; letter-spacing: 3px;
+                  text-transform: uppercase; line-height: 1.1; color: #fff; transition: color .3s; }
+    .logo-sub { display: block; font-family: 'Inter', sans-serif; font-size: .53rem;
+                letter-spacing: 1.5px; color: rgba(255,255,255,.8); margin-top: 2px;
+                font-weight: 600; text-transform: uppercase; transition: color .3s; }
+    header.solido .logo-texto { color: #fff; }
+    header.solido .logo-sub { color: rgba(255,255,255,.8); }
+
+    .tabs { display: flex; gap: 28px; align-items: center; }
+    .tab { background: none; border: none; color: rgba(255,255,255,.85); text-decoration: none;
+           font-family: 'Inter', sans-serif; font-size: .78rem; font-weight: 600;
+           letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer;
+           padding: 6px 0; border-bottom: 2px solid transparent; transition: all .2s; }
+    .tab:hover { color: #fff; opacity: 1; }
+    .tab.activa { color: #fff; border-bottom-color: var(--lima); }
+    header.solido .tab { color: rgba(255,255,255,.85); }
+    header.solido .tab:hover, header.solido .tab.activa { color: #fff; }
+    header.solido .tab.activa { border-bottom-color: var(--lima); }
+    @media (max-width: 600px) { header { padding: 14px 18px; } .tabs { gap: 18px; } }
+
+    /* ── PÁGINAS ── */
+    .pagina { display: none; }
+    .pagina.visible { display: block; }
+
+    /* ═══════════════════════════════════════════
+       PÁGINA 1 — PEDIDOS
+    ═══════════════════════════════════════════ */
+    .hero {
+      position: relative; min-height: 100vh;
+      display: flex; align-items: flex-end;
+      background-image:
+        linear-gradient(rgba(20,24,14,.28) 20%, rgba(20,24,14,.72) 90%),
+        url('/static/img/finca/hero.jpg'),
+        linear-gradient(168deg, #9AAB6E 0%, #647E3C 38%, #3C5A22 68%, #243A14 100%);
+      background-size: cover; background-position: center; background-repeat: no-repeat;
+    }
+    /* Placeholder si no hay hero.jpg */
+    .hero-contenido { max-width: 1160px; margin: 0 auto; padding: 0 24px 100px;
+                      width: 100%; position: relative; z-index: 2; }
+    .kicker { font-family: 'Inter'; font-size: .68rem; letter-spacing: 4px;
+              text-transform: uppercase; color: rgba(255,255,255,.85); font-weight: 600; }
+    .hero h1 { color: #fff; font-size: clamp(2.6rem,6.5vw,4.8rem); line-height: 1.08;
+               max-width: 16ch; margin: 16px 0 0; }
+    .hero h1 em { font-style: italic; }
+    .hero p { color: rgba(255,255,255,.85); font-size: 1.05rem; margin: 20px 0 32px; max-width: 46ch; }
+    .cta-hero { display: inline-flex; align-items: center; background: var(--verde);
+                color: #fff; padding: 16px 34px; text-decoration: none; font-weight: 600;
+                font-size: .82rem; letter-spacing: 1.5px; text-transform: uppercase; transition: background .15s; }
+    .cta-hero:hover { background: var(--verde-os); }
+    .cta-linea { display: inline-flex; margin-left: 18px; color: #fff; text-decoration: none;
+                 font-weight: 600; font-size: .82rem; letter-spacing: 1.5px; text-transform: uppercase;
+                 padding: 16px 0; border-bottom: 1.5px solid rgba(255,255,255,.5); }
+    .cta-linea:hover { border-color: #fff; }
+    .scroll-hint { position: absolute; bottom: 28px; left: 50%; transform: translateX(-50%);
+                   color: rgba(255,255,255,.6); font-size: 1.3rem;
+                   animation: flotar 2s ease-in-out infinite; }
+    @keyframes flotar { 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,8px)} }
+    @media (prefers-reduced-motion:reduce) { .scroll-hint { animation: none; } }
+
+    /* Franja tienda */
+    .franja { background: var(--blanco); border-bottom: 1px solid var(--borde); }
+    .franja-inner { max-width: 1160px; margin: 0 auto; padding: 52px 24px 32px;
+                    display: flex; flex-wrap: wrap; justify-content: space-between;
+                    align-items: flex-end; gap: 18px; }
+    .franja .eyebrow { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase;
+                       color: var(--naranja); font-weight: 600; }
+    .franja h2 { font-family: 'Fraunces', serif; font-size: clamp(1.6rem,3vw,2.3rem);
+                 margin-top: 6px; color: var(--negro); font-weight: 400; }
+    .franja .sub { font-size: .9rem; color: var(--gris); max-width: 52ch; margin-top: 6px; }
+    .buscador-wrap input { width: 280px; max-width: 100%; padding: 11px 15px;
+                           border: 1px solid var(--borde); font-family: 'Inter'; font-size: .92rem;
+                           background: var(--crema); outline: none; }
+    .buscador-wrap input:focus { border-color: var(--verde); }
+
+    /* Grid tienda */
+    .tienda { max-width: 1160px; margin: 0 auto; padding: 28px 24px 120px;
+              display: grid; grid-template-columns: 1fr 320px; gap: 36px; align-items: start; }
+    @media (max-width: 960px) { .tienda { grid-template-columns: 1fr; padding: 22px 16px 100px; } }
+
+    /* Chips / filtros */
+    .chips { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 26px;
+             border-bottom: 1px solid var(--borde); }
+    .chip { border: none; background: none; color: var(--gris); padding: 10px 2px 12px;
+            cursor: pointer; font-family: 'Inter'; font-weight: 600; font-size: .78rem;
+            letter-spacing: 1px; text-transform: uppercase;
+            border-bottom: 2px solid transparent; margin-bottom: -1px; }
+    .chip.activo { color: var(--negro); border-bottom-color: var(--verde); }
+    .chip:hover { color: var(--negro); }
+
+    /* Tarjetas de producto */
+    .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px,1fr)); gap: 20px; }
+    .prod { display: flex; flex-direction: column; cursor: default; }
+    .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
+                background: linear-gradient(165deg, #E9E7DC, #C9CEB2 70%);
+                transition: opacity .15s; }
+    .prod:hover .prod-img { opacity: .92; }
+    .prod-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .prod-img .placeholder { position: absolute; inset: 0; display: flex; align-items: center;
+                              justify-content: center; flex-direction: column; gap: 8px; }
+    .prod-img .placeholder svg { width: 40px; height: 34px; opacity: .25; }
+    .prod-img .placeholder span { font-size: .6rem; letter-spacing: 1px; text-transform: uppercase;
+                                   color: var(--sage); font-weight: 600; }
+    .prod-body { padding: 13px 2px 0; display: flex; flex-direction: column; gap: 2px; }
+    .prod h4 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 500; color: var(--negro); }
+    .prod .unidad { color: var(--gris); font-size: .74rem; }
+    .prod .fila-precio { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
+    .precio { font-weight: 700; color: var(--naranja); font-size: .95rem; }
+    .sin-stock { font-size: .74rem; color: var(--gris); font-style: italic; }
+    .agregar { background: none; color: var(--verde); border: 1.5px solid var(--verde);
+               padding: 8px 18px; font-family: 'Inter'; font-weight: 600; font-size: .74rem;
+               letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
+    .agregar:hover { background: var(--verde); color: #fff; }
+    .stepper { display: flex; align-items: center; border: 1.5px solid var(--verde); }
+    .stepper button { background: none; border: none; width: 30px; height: 31px;
+                      font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
+    .stepper button:hover { background: var(--verde); color: #fff; }
+    .stepper b { min-width: 28px; text-align: center; color: var(--negro); font-size: .9rem; }
+    .cargando-prod { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
+    .sin-resultados { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
+
+    /* Panel de pedido */
+    .resumen { background: var(--blanco); border: 1px solid var(--borde);
+               padding: 26px 22px; position: sticky; top: 80px; }
+    .resumen-titulo { font-family: 'Inter'; font-size: .7rem; font-weight: 600;
+                      letter-spacing: 2.5px; text-transform: uppercase; color: var(--negro);
+                      margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); }
+    .item-res { display: flex; justify-content: space-between; align-items: center; gap: 6px;
+                padding: 9px 0; border-bottom: 1px solid var(--crema); font-size: .85rem; }
+    .item-res .nombre-it { color: var(--negro); font-weight: 500; flex: 1; }
+    .controles-mini { display: flex; align-items: center; gap: 6px; }
+    .controles-mini button { background: var(--crema); border: 1px solid var(--borde);
+                             width: 22px; height: 22px; cursor: pointer; font-weight: 600;
+                             color: var(--verde); font-size: .85rem; line-height: 1; }
+    .controles-mini button:hover { background: var(--verde); border-color: var(--verde); color: #fff; }
+    .res-vacio { color: var(--gris); font-size: .86rem; padding: 14px 0 18px; }
+    .total-res { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.02rem;
+                 color: var(--negro); padding: 14px 0 4px; }
+    .resumen input { width: 100%; padding: 11px 13px; margin-top: 10px; border: 1px solid var(--borde);
+                     font-family: 'Inter'; font-size: .9rem; background: var(--crema); outline: none; }
+    .resumen input:focus { border-color: var(--verde); background: #fff; }
+    .btn-enviar-pedido { width: 100%; margin-top: 14px; background: var(--verde); color: #fff;
+                         border: none; padding: 15px; font-family: 'Inter'; font-weight: 600;
+                         font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
+                         cursor: pointer; transition: background .12s; }
+    .btn-enviar-pedido:hover { background: var(--verde-os); }
+    .micro { font-size: .72rem; color: var(--gris); margin-top: 10px; text-align: center; line-height: 1.5; }
+
+    /* Barra móvil */
+    .barra-movil { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
+                   background: var(--negro); color: #fff; padding: 14px 18px;
+                   justify-content: space-between; align-items: center; font-size: .88rem;
+                   box-shadow: 0 -4px 16px rgba(0,0,0,.14); cursor: pointer; }
+    .barra-movil .ir { font-weight: 600; font-size: .74rem; letter-spacing: 1.5px;
+                       text-transform: uppercase; border: 1px solid rgba(255,255,255,.4);
+                       padding: 8px 16px; }
+    @media (max-width: 960px) { .resumen { position: static; } .barra-movil { display: flex; } }
+
+    /* ── MODAL DE CONFIRMACIÓN DE PEDIDO ── */
+    .overlay { position: fixed; inset: 0; background: rgba(26,28,24,.55); z-index: 500;
+               display: flex; align-items: center; justify-content: center; padding: 16px;
+               opacity: 0; pointer-events: none; transition: opacity .25s; }
+    .overlay.visible { opacity: 1; pointer-events: auto; }
+    .modal { background: var(--blanco); max-width: 480px; width: 100%;
+             padding: 36px 32px; position: relative; }
+    .modal-titulo { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--negro);
+                    font-weight: 400; margin-bottom: 16px; }
+    .modal-detalle { font-size: .88rem; color: var(--texto); margin-bottom: 18px; }
+    .modal-detalle table { width: 100%; border-collapse: collapse; }
+    .modal-detalle td { padding: 6px 0; border-bottom: 1px solid var(--crema); font-size: .86rem; }
+    .modal-detalle td:last-child { text-align: right; font-weight: 600; }
+    .modal-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.05rem;
+                   color: var(--negro); padding: 12px 0 18px; }
+    .modal-nota { font-size: .8rem; color: var(--gris); line-height: 1.5; margin-bottom: 18px; }
+    .modal-botones { display: flex; gap: 12px; }
+    .btn-confirmar { flex: 1; background: var(--verde); color: #fff; border: none; padding: 14px;
+                     font-family: 'Inter'; font-weight: 600; font-size: .82rem; letter-spacing: 1px;
+                     text-transform: uppercase; cursor: pointer; transition: background .12s; }
+    .btn-confirmar:hover { background: var(--verde-os); }
+    .btn-cancelar { flex: 1; background: var(--crema); color: var(--carbon); border: 1px solid var(--borde);
+                    padding: 14px; font-family: 'Inter'; font-weight: 600; font-size: .82rem;
+                    letter-spacing: 1px; text-transform: uppercase; cursor: pointer; }
+    .modal-cerrar { position: absolute; top: 14px; right: 16px; background: none; border: none;
+                    font-size: 1.3rem; cursor: pointer; color: var(--gris); }
+
+    /* ── MODAL ÉXITO ── */
+    .modal-exito-ico { font-size: 2.8rem; margin-bottom: 14px; }
+    .modal-exito-titulo { font-family: 'Fraunces', serif; font-size: 1.6rem; color: var(--verde);
+                          font-weight: 400; margin-bottom: 8px; }
+    .modal-exito-texto { font-size: .92rem; color: var(--texto); line-height: 1.6; }
+
+    /* ═══════════════════════════════════════════
+       PÁGINA 2 — LA FINCA
+    ═══════════════════════════════════════════ */
+    .hero-finca {
+      position: relative; min-height: 70vh; display: flex; align-items: flex-end;
+      background-image:
+        linear-gradient(rgba(20,24,14,.3) 40%, rgba(20,24,14,.68)),
+        url('/static/img/finca/historia.jpg'),
+        linear-gradient(165deg, #8FA86A 0%, #5C7E3A 50%, #2E4A1A 100%);
+      background-size: cover; background-position: center;
+    }
+    .hero-finca .contenido { position: relative; z-index: 2; max-width: 1160px; margin: 0 auto;
+                             padding: 0 24px 72px; width: 100%; }
+    .hero-finca h1 { color: #fff; font-size: clamp(2rem,4.8vw,3.4rem); font-weight: 300; max-width: 22ch; }
+    .hero-finca p { color: rgba(255,255,255,.82); margin-top: 12px; font-size: 1rem; max-width: 52ch; }
+
+    section { padding: 80px 24px; }
+    .contenedor { max-width: 1160px; margin: 0 auto; }
+    .titulo-seccion { font-size: clamp(1.5rem,2.8vw,2.2rem); margin: 10px 0 18px; color: var(--negro); }
+    .eyebrow { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase;
+               color: var(--naranja); font-weight: 600; }
+
+    .bloque-blanco { background: var(--blanco); border-bottom: 1px solid var(--borde); }
+    .historia-larga { display: grid; grid-template-columns: 1.05fr .95fr; gap: 56px; align-items: start; }
+    .historia-larga p { margin-bottom: 15px; font-size: .96rem; }
+    @media (max-width: 880px) { .historia-larga { grid-template-columns: 1fr; } }
+
+    /* Carrusel de fotos finca */
+    .carrusel { position: relative; overflow: hidden; }
+    .carrusel-track { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .cfoto { aspect-ratio: 4/3; overflow: hidden; position: relative;
+             background: linear-gradient(160deg, #E9E7DC, #BBC49C); }
+    .cfoto img { width: 100%; height: 100%; object-fit: cover; display: block;
+                 transition: transform .6s ease; }
+    .cfoto:hover img { transform: scale(1.04); }
+    .cfoto.grande { grid-column: 1/-1; aspect-ratio: 16/7; }
+    .cfoto .etq { position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,.88);
+                  color: var(--gris); font-size: .6rem; font-weight: 600; letter-spacing: .5px;
+                  padding: 4px 10px; }
+
+    .semillas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
+    .semilla { background: var(--crema); padding: 24px 22px; border-top: 2px solid var(--verde); }
+    .semilla h3 { font-family: 'Inter'; font-size: .7rem; font-weight: 700; letter-spacing: 2.5px;
+                  text-transform: uppercase; margin-bottom: 9px; color: var(--verde); }
+    .semilla p { font-size: .92rem; margin: 0; }
+    @media (max-width: 680px) { .semillas { grid-template-columns: 1fr; } }
+
+    .valores { display: grid; grid-template-columns: repeat(3,1fr); gap: 0;
+               margin-top: 36px; border-top: 1px solid var(--borde); }
+    .valor { padding: 28px 22px 28px 0; border-bottom: 1px solid var(--borde); }
+    .valor + .valor { padding-left: 22px; border-left: 1px solid var(--borde); }
+    .valor .num { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--sage); font-style: italic; }
+    .valor h4 { font-family: 'Fraunces', serif; color: var(--negro); margin: 7px 0 6px;
+                font-size: 1.05rem; font-weight: 500; }
+    .valor p { font-size: .86rem; margin: 0; }
+    @media (max-width: 680px) { .valores { grid-template-columns: 1fr; }
+      .valor + .valor { padding-left: 0; border-left: none; } }
+
+    /* Visitas */
+    #visitas-bloque { background: var(--negro); }
+    .visitas-grid { display: grid; grid-template-columns: 1.05fr .95fr; gap: 52px; align-items: start; }
+    #visitas-bloque .eyebrow { color: var(--lima); }
+    #visitas-bloque h2 { color: #fff; }
+    #visitas-bloque p, #visitas-bloque li { color: #C9C9C0; }
+    #visitas-bloque ul { list-style: none; margin: 18px 0 0; }
+    #visitas-bloque li { padding: 7px 0 7px 26px; position: relative; font-size: .94rem; }
+    #visitas-bloque li::before { content: ""; position: absolute; left: 0; top: 16px;
+                                 width: 14px; height: 1.5px; background: var(--lima); }
+    .form-visita { background: var(--crema); padding: 28px 26px; }
+    .form-titulo { font-family: 'Inter'; font-size: .7rem; font-weight: 700; letter-spacing: 2.5px;
+                   text-transform: uppercase; color: var(--negro); margin-bottom: 18px;
+                   padding-bottom: 12px; border-bottom: 1px solid var(--borde); }
+    .form-visita label { display: block; font-size: .72rem; font-weight: 600; color: var(--carbon);
+                         margin: 12px 0 5px; letter-spacing: .4px; }
+    .form-visita input, .form-visita select {
+      width: 100%; padding: 12px 13px; border: 1px solid var(--borde);
+      font-family: 'Inter'; font-size: .92rem; background: #fff; outline: none; }
+    .form-visita input:focus, .form-visita select:focus { border-color: var(--verde); }
+    .fecha-btn-grupo { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px,1fr)); gap: 8px; margin-top: 6px; }
+    .fecha-btn { border: 1.5px solid var(--borde); background: #fff; padding: 9px 6px;
+                 text-align: center; cursor: pointer; font-family: 'Inter'; font-size: .8rem;
+                 font-weight: 600; transition: all .12s; }
+    .fecha-btn:hover { border-color: var(--verde); color: var(--verde); }
+    .fecha-btn.seleccionada { background: var(--verde); border-color: var(--verde); color: #fff; }
+    .sin-fechas { font-size: .84rem; color: var(--gris); margin-top: 8px; }
+    .btn-visita { width: 100%; margin-top: 18px; background: var(--verde); color: #fff; border: none;
+                  padding: 14px; font-family: 'Inter'; font-weight: 600; font-size: .8rem;
+                  letter-spacing: 1.5px; text-transform: uppercase; cursor: pointer; }
+    .btn-visita:hover { background: var(--verde-os); }
+    @media (max-width: 880px) { .visitas-grid { grid-template-columns: 1fr; } }
+
+    /* FOOTER */
+    footer { background: var(--negro); color: #A9A9A2; padding: 50px 24px 28px; }
+    .footer-inner { max-width: 1160px; margin: 0 auto; display: grid;
+                    grid-template-columns: 1.3fr 1fr 1fr; gap: 30px; }
+    .footer-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+    .footer-logo img { height: 30px; filter: brightness(0) invert(1); }
+    footer h5 { font-size: .64rem; letter-spacing: 2.5px; text-transform: uppercase;
+                color: var(--lima); margin-bottom: 10px; font-weight: 600; }
+    footer p { font-size: .86rem; line-height: 1.9; }
+    .firma { max-width: 1160px; margin: 32px auto 0; padding-top: 18px;
+             border-top: 1px solid rgba(255,255,255,.1); font-size: .7rem; color: #6E6E68; }
+    @media (max-width: 720px) { .footer-inner { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+
+<!-- ── INTRO ── -->
+<div id="intro-screen">
+  <div class="intro-background"></div>
+  <div class="intro-text">
+    <img src="/static/img/ecoltura-logo.png" class="intro-logo" alt="ECOLTURA">
+    <div class="intro-tagline">De la finca, <em>hasta su mesa.</em></div>
+    <div class="intro-sub">Finca familiar · Costa Rica</div>
+  </div>
+</div>
+
+<!-- ── HEADER ── -->
+<header id="cabecera">
+  <a class="logo" href="#" onclick="irPagina('pedido'); return false;">
+    <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
+  </a>
+  <div class="tabs">
+    <button class="tab activa" id="tabPedido" onclick="irPagina('pedido')">Pedidos</button>
+    <button class="tab" id="tabFinca" onclick="irPagina('finca')">La finca</button>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════
+     PÁGINA 1 — PEDIDOS
+═══════════════════════════════════════════ -->
+<div class="pagina visible" id="pagPedido">
+
+  <div class="hero">
+    <div class="hero-contenido">
+      <div class="kicker">Finca familiar · Costa Rica</div>
+      <h1>De la finca, <em>hasta su mesa.</em></h1>
+      <p>Cultivado sin químicos, cosechado por encargo y entregado sin intermediarios.
+         Alimento en su punto exacto, de nuestra familia para la suya.</p>
+      <a class="cta-hero" href="#tienda" onclick="event.preventDefault();document.getElementById('tienda').scrollIntoView({behavior:'smooth'})">Ver la cosecha del día</a>
+      <a class="cta-linea" href="#" onclick="irPagina('finca');return false;">Conocer la finca</a>
+    </div>
+    <div class="scroll-hint">↓</div>
+  </div>
+
+  <div class="franja" id="tienda">
+    <div class="franja-inner">
+      <div>
+        <span class="eyebrow" id="fechaHoy"></span>
+        <h2>Cosecha del día</h2>
+        <div class="sub">Seleccione sus productos y envíe el pedido. Lo alistamos con producto
+          recién cosechado y le contactamos para coordinar la entrega.
+          El pago se realiza al recibir en efectivo o SINPE Móvil.</div>
+      </div>
+      <div class="buscador-wrap">
+        <input type="text" id="buscar" placeholder="Buscar producto" oninput="renderProductos()">
+      </div>
+    </div>
+  </div>
+
+  <div class="tienda">
+    <div>
+      <div class="chips" id="chips"></div>
+      <div class="grid-prod" id="gridProductos">
+        <div class="cargando-prod">Cargando la cosecha del día...</div>
+      </div>
+    </div>
+
+    <aside class="resumen" id="resumen">
+      <div class="resumen-titulo">Su pedido</div>
+      <div id="zonaResumen"><div class="res-vacio">Aún no ha agregado productos.</div></div>
+      <div class="total-res"><span>Total</span><span id="totalRes">₡0</span></div>
+      <input type="text" id="pedNombre"   placeholder="Nombre completo">
+      <input type="text" id="pedCedula"   placeholder="Número de cédula">
+      <input type="tel"  id="pedCelular"  placeholder="Celular">
+      <input type="text" id="pedNotas"    placeholder="Notas (opcional — zona, horario...)">
+      <button class="btn-enviar-pedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
+      <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
+    </aside>
+  </div>
+
+  <div class="barra-movil" onclick="document.getElementById('resumen').scrollIntoView({behavior:'smooth'})">
+    <span><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
+    <span class="ir">Ver pedido</span>
+  </div>
+</div>
+
+<!-- Modal confirmación pedido -->
+<div class="overlay" id="overlayConfirm">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
+    <div class="modal-titulo">Confirmar pedido</div>
+    <div class="modal-detalle" id="modalDetalle"></div>
+    <div class="modal-nota">Al confirmar, su pedido llega a nuestra bandeja. Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
+    <div class="modal-botones">
+      <button class="btn-cancelar" onclick="cerrarModal('overlayConfirm')">Editar</button>
+      <button class="btn-confirmar" id="btnConfirmar" onclick="enviarPedido()">Confirmar y enviar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal éxito pedido -->
+<div class="overlay" id="overlayExito">
+  <div class="modal" style="text-align:center">
+    <div class="modal-exito-ico">🌱</div>
+    <div class="modal-exito-titulo">¡Pedido recibido!</div>
+    <div class="modal-exito-texto" id="textoExito"></div>
+    <button class="btn-confirmar" style="margin-top:22px;width:100%" onclick="cerrarModal('overlayExito')">Cerrar</button>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     PÁGINA 2 — LA FINCA
+═══════════════════════════════════════════ -->
+<div class="pagina" id="pagFinca">
+
+  <div class="hero-finca">
+    <div class="contenido">
+      <div class="kicker" style="font-size:.68rem;letter-spacing:4px;text-transform:uppercase;color:rgba(255,255,255,.82);font-weight:600">Finca familiar · Costa Rica</div>
+      <h1>Conozca la finca detrás de su comida.</h1>
+      <p>Tres generaciones cultivando sin químicos, con paciencia y respeto por la tierra.</p>
+    </div>
+  </div>
+
+  <section class="bloque-blanco">
+    <div class="contenedor historia-larga">
+      <div>
+        <span class="eyebrow">Nuestra historia</span>
+        <h2 class="titulo-seccion">Una finca, una familia, una forma de cultivar</h2>
+        <p>ECOLTURA nació del deseo de producir alimento de verdad: sin químicos, con paciencia
+           y con respeto por la tierra que nos da de comer. Lo que empezó como una huerta para
+           la casa hoy alimenta a decenas de familias de nuestra comunidad.</p>
+        <p>Trabajamos con un modelo de <b>cosecha por encargo</b>: usted pide, nosotros cosechamos.
+           Eso significa menos desperdicio, productos en su punto exacto de maduración y un trato
+           directo donde usted sabe quién cultivó lo que está en su mesa.</p>
+        <p>Además de las hortalizas y frutas de temporada, producimos lácteos artesanales en
+           pequeños lotes, con la misma filosofía: limpio, fresco y local.</p>
+        <div class="semillas">
+          <div class="semilla">
+            <h3>Misión</h3>
+            <p>Llevar alimentos orgánicos, frescos y de temporada directamente del campo a las
+               familias, cuidando la salud de las personas y la del suelo por igual.</p>
+          </div>
+          <div class="semilla">
+            <h3>Visión</h3>
+            <p>Ser la finca de confianza de nuestra comunidad: agricultura familiar sostenible
+               que demuestra que producir limpio es posible.</p>
+          </div>
+        </div>
+      </div>
+      <div class="carrusel" id="carruselFinca">
+        <!-- Se llena con JS desde /api/fotos-finca o con imágenes estáticas -->
+        <div class="carrusel-track">
+          <div class="cfoto grande"><img src="/static/img/finca/foto1.jpg" onerror="this.style.display='none'" alt="La finca">
+            <span class="etq">La finca</span></div>
+          <div class="cfoto"><img src="/static/img/finca/foto2.jpg" onerror="this.style.display='none'" alt="Cosecha"></div>
+          <div class="cfoto"><img src="/static/img/finca/foto3.jpg" onerror="this.style.display='none'" alt="Lácteos"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="contenedor">
+      <span class="eyebrow">Cómo cultivamos</span>
+      <h2 class="titulo-seccion">Nuestros compromisos</h2>
+      <div class="valores">
+        <div class="valor">
+          <div class="num">No. 1</div>
+          <h4>Cero químicos</h4>
+          <p>Sin pesticidas ni fertilizantes sintéticos. Compost propio y control biológico de plagas.</p>
+        </div>
+        <div class="valor">
+          <div class="num">No. 2</div>
+          <h4>Agua y suelo</h4>
+          <p>Riego responsable y rotación de cultivos para que la tierra descanse y se regenere.</p>
+        </div>
+        <div class="valor">
+          <div class="num">No. 3</div>
+          <h4>Trato directo</h4>
+          <p>Sin intermediarios: el precio justo llega al productor y la frescura llega a su mesa.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="visitas-bloque">
+    <div class="contenedor visitas-grid">
+      <div>
+        <span class="eyebrow">Agroturismo familiar</span>
+        <h2 class="titulo-seccion" style="color:#fff">Visite la finca</h2>
+        <p>Abrimos las puertas para que su familia viva una mañana de campo: caminar entre los
+           cultivos, cosechar con sus propias manos y probar lo que la tierra da.</p>
+        <ul>
+          <li>Recorrido guiado por los cultivos y el módulo de lácteos</li>
+          <li>Cosecha participativa: se lleva lo que cosecha</li>
+          <li>Degustación de productos de la finca</li>
+          <li>Ideal para familias, escuelas y grupos pequeños</li>
+        </ul>
+      </div>
+      <div class="form-visita">
+        <div class="form-titulo">Agendar una visita</div>
+        <label>Nombre completo</label>
+        <input type="text" id="visNombre" placeholder="Su nombre">
+        <label>Celular</label>
+        <input type="tel" id="visCelular" placeholder="Para contactarle por WhatsApp">
+        <label>Cantidad de personas</label>
+        <select id="visPersonas">
+          <option value="1">1 persona</option>
+          <option value="2">2 personas</option>
+          <option value="3">3 personas</option>
+          <option value="4">4 personas</option>
+          <option value="5">5 personas</option>
+          <option value="6">6 o más personas</option>
+        </select>
+        <label>Fecha disponible</label>
+        <div class="fecha-btn-grupo" id="fechasDisponibles">
+          <div class="sin-fechas">Cargando fechas...</div>
+        </div>
+        <button class="btn-visita" onclick="enviarReserva()">Solicitar reservación</button>
+      </div>
+    </div>
+  </section>
+
+</div><!-- fin pagFinca -->
+
+<footer>
+  <div class="footer-inner">
+    <div>
+      <div class="footer-logo">
+        <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
+      </div>
+      <p>Productos orgánicos y lácteos artesanales.<br>Finca familiar, Costa Rica.</p>
+    </div>
+    <div>
+      <h5>Contacto</h5>
+      <p>WhatsApp: 8888-8888<br>info@ecoltura.com</p>
+    </div>
+    <div>
+      <h5>Encuéntrenos</h5>
+      <p>Feria del agricultor, sábados<br>Visitas a la finca con cita previa</p>
+    </div>
+  </div>
+  <div class="firma">© ECOLTURA — Cultivado con paciencia y respeto absoluto por la tierra.</div>
+</footer>
+
+<script>
+// ── INTRO ──────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  const intro = document.getElementById("intro-screen");
+  setTimeout(() => intro.classList.add("ready"), 100);
+  function quitarIntro() {
+    if (!intro.classList.contains("difuminar")) intro.classList.add("difuminar");
+  }
+  setTimeout(quitarIntro, 2800);
+  window.addEventListener("scroll",    quitarIntro, { once: true });
+  window.addEventListener("wheel",     quitarIntro, { once: true });
+  window.addEventListener("touchmove", quitarIntro, { once: true });
+});
+
+// ── HEADER ─────────────────────────────────────────
+const cab = document.getElementById("cabecera");
+function ajustarHeader() { cab.classList.toggle("solido", window.scrollY > 60); }
+window.addEventListener("scroll", ajustarHeader);
+
+// ── PESTAÑAS ───────────────────────────────────────
+function irPagina(dest) {
+  ["pedido","finca"].forEach(p => {
+    document.getElementById("pag" + p.charAt(0).toUpperCase() + p.slice(1))
+      .classList.toggle("visible", p === dest);
+    document.getElementById("tab" + p.charAt(0).toUpperCase() + p.slice(1))
+      .classList.toggle("activa", p === dest);
+  });
+  window.scrollTo({ top: 0 });
+  ajustarHeader();
+  if (dest === "finca") cargarFechasVisita();
+}
+
+// ── FECHA HOY ──────────────────────────────────────
+(function() {
+  const d = new Date();
+  const dias   = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
+  const meses  = ["enero","febrero","marzo","abril","mayo","junio","julio","agosto","septiembre","octubre","noviembre","diciembre"];
+  document.getElementById("fechaHoy").textContent =
+    `Disponible hoy · ${dias[d.getDay()]} ${d.getDate()} de ${meses[d.getMonth()]}`;
+})();
+
+// ── PRODUCTOS ──────────────────────────────────────
+let PRODUCTOS = [];
+const pedido  = {};
+let filtroCat = "Todos";
+
+async function cargarProductos() {
+  try {
+    const r = await fetch("/api/productos");
+    PRODUCTOS = await r.json();
+    renderChips();
+    renderProductos();
+  } catch (e) {
+    document.getElementById("gridProductos").innerHTML =
+      '<div class="sin-resultados">Error al cargar el catálogo. Por favor recargue la página.</div>';
+  }
+}
+
+function renderChips() {
+  const cats = ["Todos", ...new Set(PRODUCTOS.map(p => p.categoria))];
+  document.getElementById("chips").innerHTML = cats.map(c =>
+    `<button class="chip ${c === filtroCat ? 'activo' : ''}" onclick="cambiarFiltro('${c}')">${c}</button>`
+  ).join("");
+}
+
+function cambiarFiltro(c) { filtroCat = c; renderChips(); renderProductos(); }
+
+const HOJA_SVG = `<svg viewBox="0 0 60 50" fill="#3E6B22"><path d="M30 46 C30 30 30 16 30 4 C36 14 36 32 30 46Z"/><path d="M30 46 C26 32 18 20 8 14 C12 28 20 40 30 46Z"/><path d="M30 46 C34 32 42 20 52 14 C48 28 40 40 30 46Z"/></svg>`;
+
+function renderProductos() {
+  const q = (document.getElementById("buscar").value || "").toLowerCase().trim();
+  const lista = PRODUCTOS.filter(p =>
+    (filtroCat === "Todos" || p.categoria === filtroCat) &&
+    (!q || p.nombre.toLowerCase().includes(q))
+  );
+  const grid = document.getElementById("gridProductos");
+  if (lista.length === 0) {
+    grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda en la cosecha de hoy.</div>';
+    return;
+  }
+  grid.innerHTML = lista.map(p => {
+    const cant = pedido[p.id] || 0;
+    const control = cant === 0
+      ? `<button class="agregar" onclick="actualizarPedido(${p.id},1)">Añadir</button>`
+      : `<div class="stepper"><button onclick="actualizarPedido(${p.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${p.id},1)">+</button></div>`;
+    return `<div class="prod">
+      <div class="prod-img">
+        <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
+             onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
+        <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
+      </div>
+      <div class="prod-body">
+        <h4>${p.nombre}</h4>
+        <div class="unidad">${p.unidad}</div>
+        <div class="fila-precio">
+          <span class="precio">₡${p.precio.toLocaleString('es-CR')}</span>
+          ${control}
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function actualizarPedido(id, delta) {
+  pedido[id] = Math.max(0, (pedido[id] || 0) + delta);
+  if (pedido[id] === 0) delete pedido[id];
+  renderProductos();
+  renderResumen();
+}
+
+function renderResumen() {
+  const ids  = Object.keys(pedido);
+  const zona = document.getElementById("zonaResumen");
+  let total = 0, unds = 0;
+  if (ids.length === 0) {
+    zona.innerHTML = '<div class="res-vacio">Aún no ha agregado productos.</div>';
+  } else {
+    zona.innerHTML = ids.map(id => {
+      const p   = PRODUCTOS.find(x => x.id == id);
+      const sub = p.precio * pedido[id];
+      total += sub; unds += pedido[id];
+      return `<div class="item-res">
+        <span class="nombre-it">${p.nombre}</span>
+        <span class="controles-mini">
+          <button onclick="actualizarPedido(${p.id},-1)">−</button><b>${pedido[id]}</b>
+          <button onclick="actualizarPedido(${p.id},1)">+</button>
+          <b style="min-width:60px;text-align:right">₡${sub.toLocaleString('es-CR')}</b>
+        </span>
+      </div>`;
+    }).join("");
+  }
+  document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
+  document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
+  document.getElementById("cantMovil").textContent   = unds;
+}
+
+// ── MODAL CONFIRMACIÓN ─────────────────────────────
+function abrirModalConfirmacion() {
+  const nombre  = document.getElementById("pedNombre").value.trim();
+  const celular = document.getElementById("pedCelular").value.trim();
+  if (Object.keys(pedido).length === 0) { alert("Agregue al menos un producto."); return; }
+  if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
+
+  let total = 0;
+  const filas = Object.keys(pedido).map(id => {
+    const p   = PRODUCTOS.find(x => x.id == id);
+    const sub = p.precio * pedido[id];
+    total += sub;
+    return `<tr><td>${p.nombre} × ${pedido[id]} ${p.unidad}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
+  }).join("");
+
+  document.getElementById("modalDetalle").innerHTML = `
+    <table><tbody>${filas}</tbody></table>
+    <div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
+  abrirModal('overlayConfirm');
+}
+
+async function enviarPedido() {
+  const btn = document.getElementById("btnConfirmar");
+  btn.disabled = true; btn.textContent = "Enviando...";
+
+  const items = Object.keys(pedido).map(id => ({
+    producto_id: parseInt(id), cantidad: pedido[id]
+  }));
+
+  try {
+    const r = await fetch("/api/pedidos", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        nombre:  document.getElementById("pedNombre").value.trim(),
+        cedula:  document.getElementById("pedCedula").value.trim(),
+        celular: document.getElementById("pedCelular").value.trim(),
+        notas:   document.getElementById("pedNotas").value.trim(),
+        items
+      })
+    });
+    const data = await r.json();
+
+    cerrarModal('overlayConfirm');
+
+    if (data.ok) {
+      const nombre = document.getElementById("pedNombre").value.trim();
+      document.getElementById("textoExito").innerHTML =
+        `Gracias, <b>${nombre}</b>. Su pedido #${data.pedido_id} ya está en nuestra bandeja.<br><br>
+         Lo alistamos con producto recién cosechado y le contactaremos por WhatsApp para coordinar el pago y la entrega.`;
+      abrirModal('overlayExito');
+      // Limpiar
+      Object.keys(pedido).forEach(k => delete pedido[k]);
+      ["pedNombre","pedCedula","pedCelular","pedNotas"].forEach(id => document.getElementById(id).value = "");
+      renderProductos(); renderResumen();
+    } else {
+      alert("Error: " + data.error);
+    }
+  } catch(e) {
+    alert("Error de conexión. Por favor intente de nuevo.");
+  }
+  btn.disabled = false; btn.textContent = "Confirmar y enviar";
+}
+
+// ── VISITAS ────────────────────────────────────────
+let fechaSeleccionadaId = null;
+
+async function cargarFechasVisita() {
+  const cont = document.getElementById("fechasDisponibles");
+  cont.innerHTML = '<div class="sin-fechas">Cargando fechas...</div>';
+  try {
+    const r = await fetch("/api/visitas/fechas");
+    const fechas = await r.json();
+    if (fechas.length === 0) {
+      cont.innerHTML = '<div class="sin-fechas">No hay fechas habilitadas por el momento. Escríbanos por WhatsApp.</div>';
+      return;
+    }
+    cont.innerHTML = fechas.map(f => {
+      const d = new Date(f.fecha + "T12:00:00");
+      const label = d.toLocaleDateString('es-CR', { weekday: 'short', day: 'numeric', month: 'short' });
+      return `<button class="fecha-btn" data-id="${f.id}" onclick="seleccionarFecha(${f.id}, this)">
+        ${label}<br><small style="font-size:.62rem;opacity:.7">${f.cupos_libres} cupo${f.cupos_libres !== 1 ? 's' : ''}</small>
+      </button>`;
+    }).join("");
+  } catch(e) {
+    cont.innerHTML = '<div class="sin-fechas">No se pudieron cargar las fechas.</div>';
+  }
+}
+
+function seleccionarFecha(id, el) {
+  fechaSeleccionadaId = id;
+  document.querySelectorAll(".fecha-btn").forEach(b => b.classList.remove("seleccionada"));
+  el.classList.add("seleccionada");
+}
+
+async function enviarReserva() {
+  const nombre   = document.getElementById("visNombre").value.trim();
+  const celular  = document.getElementById("visCelular").value.trim();
+  const personas = parseInt(document.getElementById("visPersonas").value);
+  if (!nombre || !celular)      { alert("Indique su nombre y celular."); return; }
+  if (!fechaSeleccionadaId)     { alert("Seleccione una fecha disponible."); return; }
+
+  try {
+    const r = await fetch("/api/visitas/reservar", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fecha_id: fechaSeleccionadaId, nombre, celular, personas })
+    });
+    const data = await r.json();
+    if (data.ok) {
+      alert(`¡Reservación recibida, ${nombre}! Le confirmaremos por WhatsApp.`);
+      document.getElementById("visNombre").value = "";
+      document.getElementById("visCelular").value = "";
+      fechaSeleccionadaId = null;
+      cargarFechasVisita();
+    } else {
+      alert("Error: " + data.error);
+    }
+  } catch(e) {
+    alert("Error de conexión.");
+  }
+}
+
+// ── MODALES ────────────────────────────────────────
+function abrirModal(id)  { document.getElementById(id).classList.add("visible"); }
+function cerrarModal(id) { document.getElementById(id).classList.remove("visible"); }
+document.addEventListener("keydown", e => {
+  if (e.key === "Escape") {
+    cerrarModal("overlayConfirm");
+    cerrarModal("overlayExito");
+  }
+});
+
+// ── INICIALIZAR ────────────────────────────────────
+cargarProductos();
+</script>
+</body>
+</html>

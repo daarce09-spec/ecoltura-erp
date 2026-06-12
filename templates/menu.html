@@ -30,51 +30,48 @@
 
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+    to   { opacity: 1; transform: translateY(0); }
   }
 
   .hero-logo {
-    width: 320px;
-    max-width: 80%;
-    margin-bottom: 0px;
+    width: 320px; max-width: 80%; margin-bottom: 0px;
     filter: drop-shadow(0 10px 20px rgba(0,0,0,0.05));
     transition: transform 0.5s ease;
   }
 
   .brand-legend {
-    font-size: 1.2rem;
-    color: var(--eco-dark);
-    font-weight: 500;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin-top: -10px;
-    margin-bottom: 40px;
-    opacity: 0.8;
+    font-size: 1.2rem; color: var(--eco-dark); font-weight: 500;
+    letter-spacing: 3px; text-transform: uppercase;
+    margin-top: -10px; margin-bottom: 40px; opacity: 0.8;
   }
 
   .cards-container {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);  /* primera fila: 3 módulos originales */
     gap: 25px;
     width: 100%;
     max-width: 1200px;
     margin: 0 auto;
   }
 
-  .module-anchor {
-    text-decoration: none !important;
+  /* Segunda fila centrada para los 3 módulos nuevos y Ventas */
+  .cards-row2 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 25px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 25px auto 0;
   }
 
+  .module-anchor { text-decoration: none !important; }
+
   .minimal-card {
-    background: white;
-    border-radius: 35px;
-    padding: 35px 20px;
+    background: white; border-radius: 35px; padding: 35px 20px;
     transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
-    box-shadow: 0 4px 25px rgba(0,0,0,0.04);
-    border: 1px solid rgba(0,0,0,0.02);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.04); border: 1px solid rgba(0,0,0,0.02);
+    display: flex; flex-direction: column; align-items: center;
+    position: relative;
   }
 
   .module-anchor:hover .minimal-card {
@@ -84,116 +81,125 @@
   }
 
   .icon-circle {
-    width: 85px;
-    height: 85px;
-    background: #f4f8f4;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-bottom: 20px;
-    transition: all 0.5s;
+    width: 85px; height: 85px; background: #f4f8f4; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    margin-bottom: 20px; transition: all 0.5s;
   }
 
-  .icon-circle i {
-    font-size: 2.8rem;
-    color: var(--eco-accent);
-    transition: all 0.5s;
-  }
+  .icon-circle i { font-size: 2.8rem; color: var(--eco-accent); transition: all 0.5s; }
+  .module-anchor:hover .icon-circle { background: rgba(255,255,255,0.15); }
+  .module-anchor:hover .icon-circle i { color: white; }
 
-  .module-anchor:hover .icon-circle {
-    background: rgba(255,255,255,0.15);
-  }
-
-  .module-anchor:hover .icon-circle i {
-    color: white;
-  }
-
-  .module-name {
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--eco-dark);
-    margin-bottom: 5px;
-    transition: color 0.4s;
-  }
-
-  .module-tag {
-    font-size: 0.8rem;
-    color: #bbb;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    transition: color 0.4s;
-  }
+  .module-name { font-size: 1.4rem; font-weight: 700; color: var(--eco-dark);
+                 margin-bottom: 5px; transition: color 0.4s; }
+  .module-tag  { font-size: 0.8rem; color: #bbb; text-transform: uppercase;
+                 letter-spacing: 2px; transition: color 0.4s; }
 
   .module-anchor:hover .module-name,
-  .module-anchor:hover .module-tag {
-    color: white;
+  .module-anchor:hover .module-tag { color: white; }
+
+  /* Badge de pendientes */
+  .badge-pendientes {
+    position: absolute; top: 18px; right: 20px;
+    background: #E05C2E; color: #fff; border-radius: 999px;
+    min-width: 26px; height: 26px; padding: 0 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: .78rem; font-weight: 700; font-family: 'Inter', sans-serif;
   }
+  .badge-pendientes.oculto { display: none; }
 
   @media (max-width: 992px) {
     .cards-container { grid-template-columns: repeat(2, 1fr); }
+    .cards-row2 { grid-template-columns: repeat(2, 1fr); }
     .hero-logo { width: 250px; }
   }
-
   @media (max-width: 500px) {
     .cards-container { grid-template-columns: 1fr; }
+    .cards-row2 { grid-template-columns: 1fr; }
   }
 </style>
 
 <div class="main-wrapper">
 
   <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="hero-logo" alt="Ecoltura Logo">
-
   <div class="brand-legend">Productos Orgánicos & Lácteos</div>
 
+  <!-- Fila 1: módulos operativos -->
   <div class="cards-container">
-
-    <!-- CLIENTES -->
     <a href="{{ url_for('clientes_bp.clientes') }}" class="module-anchor">
       <div class="minimal-card">
-        <div class="icon-circle">
-          <i class="bi bi-people"></i>
-        </div>
+        <div class="icon-circle"><i class="bi bi-people"></i></div>
         <div class="module-name">Clientes</div>
         <div class="module-tag">Gestión</div>
       </div>
     </a>
 
-    <!-- PRODUCTOS -->
     <a href="{{ url_for('productos_bp.productos') }}" class="module-anchor">
       <div class="minimal-card">
-        <div class="icon-circle">
-          <i class="bi bi-basket3"></i>
-        </div>
+        <div class="icon-circle"><i class="bi bi-basket3"></i></div>
         <div class="module-name">Productos</div>
         <div class="module-tag">Catálogo</div>
       </div>
     </a>
 
-    <!-- INVENTARIO -->
     <a href="{{ url_for('inventario_bp.inventario_menu') }}" class="module-anchor">
       <div class="minimal-card">
-        <div class="icon-circle">
-          <i class="bi bi-box-seam"></i>
-        </div>
+        <div class="icon-circle"><i class="bi bi-box-seam"></i></div>
         <div class="module-name">Inventario</div>
         <div class="module-tag">Stock</div>
       </div>
     </a>
+  </div>
 
-        <!-- VENTAS (corregido) -->
+  <!-- Fila 2: ventas + web -->
+  <div class="cards-row2">
     <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="module-anchor">
       <div class="minimal-card">
-        <div class="icon-circle">
-          <i class="bi bi-receipt-cutoff"></i>
-        </div>
+        <div class="icon-circle"><i class="bi bi-receipt-cutoff"></i></div>
         <div class="module-name">Ventas</div>
         <div class="module-tag">Facturación</div>
       </div>
     </a>
 
+    <a href="{{ url_for('pedidos_bp.bandeja_pedidos') }}" class="module-anchor">
+      <div class="minimal-card">
+        <span class="badge-pendientes" id="badgePedidos">...</span>
+        <div class="icon-circle"><i class="bi bi-bag-check"></i></div>
+        <div class="module-name">Pedidos Web</div>
+        <div class="module-tag">Bandeja</div>
+      </div>
+    </a>
 
+    <a href="{{ url_for('visitas_bp.bandeja_visitas') }}" class="module-anchor">
+      <div class="minimal-card">
+        <span class="badge-pendientes oculto" id="badgeVisitas">0</span>
+        <div class="icon-circle"><i class="bi bi-calendar2-check"></i></div>
+        <div class="module-name">Visitas</div>
+        <div class="module-tag">Finca</div>
+      </div>
+    </a>
   </div>
+
 </div>
+
+<script>
+// Cargar contadores de pendientes al entrar al menú
+(async function() {
+  try {
+    const r = await fetch("/admin/api/contadores");
+    const d = await r.json();
+
+    const bp = document.getElementById("badgePedidos");
+    bp.textContent = d.pedidos_pendientes;
+    bp.classList.toggle("oculto", d.pedidos_pendientes === 0);
+
+    const bv = document.getElementById("badgeVisitas");
+    bv.textContent = d.visitas_pendientes;
+    bv.classList.toggle("oculto", d.visitas_pendientes === 0);
+  } catch(e) {
+    document.getElementById("badgePedidos").classList.add("oculto");
+  }
+})();
+</script>
 
 {% endblock %}
