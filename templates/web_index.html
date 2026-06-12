@@ -65,41 +65,22 @@
     .intro-sub { font-family: 'Inter', sans-serif; font-size: .72rem; letter-spacing: 3px;
                  color: rgba(255,255,255,.7); text-transform: uppercase; margin-top: 10px; }
 
-    /* ── HEADER: transparente → verde sólido al scroll ── */
+    /* ── HEADER: siempre blanco con logo real ── */
     header {
-      position: fixed; top: 0; left: 0; width: 100%; padding: 18px 40px;
+      position: fixed; top: 0; left: 0; width: 100%; padding: 10px 40px;
       display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; transition: background .3s, border-color .3s, box-shadow .3s;
-      background: transparent; border-bottom: 1px solid transparent;
+      z-index: 100; background: #fff; border-bottom: 3px solid var(--lima);
     }
-    header.solido {
-      background: rgba(255,255,255,.97);
-      border-bottom: 1px solid var(--borde);
-      box-shadow: 0 2px 10px rgba(0,0,0,.07);
-    }
-    .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
-    .logo img { height: 36px; width: auto; transition: filter .3s; }
-    header:not(.solido) .logo img { filter: brightness(0) invert(1); }
-    header.solido .logo img { filter: none; }
-    .logo-texto { font-family: 'Fraunces', serif; font-size: 1.2rem; letter-spacing: 3px;
-                  text-transform: uppercase; line-height: 1.1; color: #fff; transition: color .3s; }
-    .logo-sub { display: block; font-family: 'Inter', sans-serif; font-size: .53rem;
-                letter-spacing: 1.5px; color: rgba(255,255,255,.8); margin-top: 2px;
-                font-weight: 600; text-transform: uppercase; transition: color .3s; }
-    header.solido .logo-texto { color: var(--carbon); }
-    header.solido .logo-sub { color: var(--naranja); }
-
+    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .logo img { height: 44px; width: auto; }
     .tabs { display: flex; gap: 28px; align-items: center; }
-    .tab { background: none; border: none; color: rgba(255,255,255,.85); text-decoration: none;
-           font-family: 'Inter', sans-serif; font-size: .78rem; font-weight: 600;
-           letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer;
-           padding: 6px 0; border-bottom: 2px solid transparent; transition: all .2s; }
-    .tab:hover { color: #fff; opacity: 1; }
-    .tab.activa { color: #fff; border-bottom-color: var(--lima); }
-    header.solido .tab { color: var(--gris); }
-    header.solido .tab:hover, header.solido .tab.activa { color: var(--verde); }
-    header.solido .tab.activa { border-bottom-color: var(--verde); }
-    @media (max-width: 600px) { header { padding: 14px 18px; } .tabs { gap: 18px; } }
+    .tab { background: none; border: none; text-decoration: none; font-family: 'Inter', sans-serif;
+           font-size: .78rem; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
+           cursor: pointer; padding: 6px 0; border-bottom: 2px solid transparent;
+           color: var(--gris); transition: color .15s; }
+    .tab:hover  { color: var(--verde); }
+    .tab.activa { color: var(--verde); border-bottom-color: var(--verde); }
+    @media (max-width: 600px) { header { padding: 10px 16px; } .tabs { gap: 16px; } }
 
     /* ── PÁGINAS ── */
     .pagina { display: none; }
@@ -116,6 +97,7 @@
         url('/static/img/finca/hero.jpg'),
         linear-gradient(168deg, #9AAB6E 0%, #647E3C 38%, #3C5A22 68%, #243A14 100%);
       background-size: cover; background-position: center; background-repeat: no-repeat;
+      padding-top: 70px;  /* espacio para el header fijo blanco */
     }
     /* Placeholder si no hay hero.jpg */
     .hero-contenido { max-width: 1160px; margin: 0 auto; padding: 0 24px 100px;
@@ -649,8 +631,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
 // ── HEADER ─────────────────────────────────────────
 const cab = document.getElementById("cabecera");
-function ajustarHeader() { cab.classList.toggle("solido", window.scrollY > 60); }
-window.addEventListener("scroll", ajustarHeader);
+
+// header siempre blanco — no necesita listener de scroll
 
 // ── PESTAÑAS ───────────────────────────────────────
 function irPagina(dest) {
@@ -661,7 +643,6 @@ function irPagina(dest) {
       .classList.toggle("activa", p === dest);
   });
   window.scrollTo({ top: 0 });
-  ajustarHeader();
   if (dest === "finca") cargarFechasVisita();
 }
 
