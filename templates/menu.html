@@ -7,122 +7,85 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root {
-      --verde: #2E6B3E; --blanco: #FFFFFF; --crema: #F8F9F7;
-      --carbon: #1A1A1A; --gris: #6B7280; --lima: #7AB648;
-    }
+    :root { --verde: #2E6B3E; --blanco: #FFFFFF; --crema: #F8F9F7; --carbon: #1A1A1A; --lima: #7AB648; }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: var(--crema); color: var(--carbon); min-height: 100vh; }
 
-    /* Intro Profesional */
-    #intro { position: fixed; inset: 0; z-index: 2000; background: var(--blanco); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.8s ease; }
+    /* INTRO - Solo visible al cargar la página por primera vez */
+    #intro { position: fixed; inset: 0; z-index: 2000; background: var(--blanco); display: flex; flex-direction: column; align-items: center; justify-content: center; transition: opacity 0.5s ease; }
     #intro.hide { opacity: 0; pointer-events: none; }
     #intro img { width: 220px; margin-bottom: 24px; }
-    #intro h2 { font-size: 1.1rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--gris); font-weight: 500; }
 
-    /* Layout */
+    /* LAYOUT */
     .shell { display: grid; grid-template-rows: auto 1fr; min-height: 100vh; }
-    .topbar { background: var(--blanco); padding: 20px 40px; display: flex; align-items: center; gap: 15px; border-bottom: 2px solid var(--lima); box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-    .topbar img { height: 35px; }
+    .topbar { background: var(--blanco); padding: 20px 40px; display: flex; align-items: center; border-bottom: 2px solid var(--lima); }
     
-    /* Grid Adaptativo */
-    .modulos {
-      display: grid; padding: 40px; gap: 24px;
-      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-      align-content: start;
-    }
-    .modulo {
-      background: white; border-radius: 24px; padding: 40px;
-      display: flex; flex-direction: column; align-items: center; gap: 16px;
-      text-decoration: none; border: 1px solid rgba(0,0,0,0.05);
-      transition: all 0.3s ease; position: relative;
-    }
+    /* GRID */
+    .modulos { display: grid; padding: 40px; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); align-content: start; }
+    .modulo { background: white; border-radius: 24px; padding: 40px; display: flex; flex-direction: column; align-items: center; gap: 16px; text-decoration: none; border: 1px solid rgba(0,0,0,0.05); transition: all 0.3s ease; }
     .modulo:hover { transform: translateY(-8px); box-shadow: 0 20px 40px rgba(0,0,0,0.08); }
     .mod-nombre { font-size: 1.25rem; font-weight: 700; color: var(--carbon); }
-    .mod-tag { font-size: 0.8rem; color: var(--verde); font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; }
-    
-    /* Notificación */
-    .badge-alert { position: absolute; top: 20px; right: 20px; background: #DC2626; color: white; width: 26px; height: 26px; border-radius: 50%; font-size: 0.75rem; font-weight: 800; display: none; align-items: center; justify-content: center; }
-    .badge-alert.on { display: flex; }
-
-    @media (max-width: 600px) { .modulos { padding: 20px; grid-template-columns: 1fr; } }
+    .mod-tag { font-size: 0.8rem; color: var(--verde); font-weight: 600; text-transform: uppercase; }
   </style>
 </head>
 <body>
 
 <div id="intro">
   <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
-  <h2>Administración</h2>
 </div>
 
 <div class="shell">
   <header class="topbar">
     <a href="/menu" style="display:flex; align-items:center; gap:15px; text-decoration:none; color:inherit;">
-      <img src="/static/img/ecoltura-logo.png" alt="Logo">
-      <span style="font-weight: 800; font-size: 1.2rem;">ECOLTURA</span>
+      <img src="/static/img/ecoltura-logo.png" alt="Logo" style="height:35px;">
+      <span style="font-weight: 800; font-size: 1.2rem; color: var(--verde);">ECOLTURA</span>
     </a>
   </header>
 
   <main class="modulos">
     <a href="/clientes" class="modulo">
       <i class="bi bi-people" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Clientes</div>
-        <div class="mod-tag">Gestión</div>
-      </div>
+      <div class="mod-nombre">Clientes</div>
+      <div class="mod-tag">Gestión</div>
     </a>
     <a href="/productos" class="modulo">
       <i class="bi bi-basket3" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Productos</div>
-        <div class="mod-tag">Catálogo</div>
-      </div>
+      <div class="mod-nombre">Productos</div>
+      <div class="mod-tag">Catálogo</div>
     </a>
     <a href="/inventario" class="modulo">
       <i class="bi bi-box-seam" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Inventario</div>
-        <div class="mod-tag">Stock</div>
-      </div>
+      <div class="mod-nombre">Inventario</div>
+      <div class="mod-tag">Stock</div>
     </a>
     <a href="/ventas" class="modulo">
       <i class="bi bi-receipt-cutoff" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Ventas</div>
-        <div class="mod-tag">Facturación</div>
-      </div>
+      <div class="mod-nombre">Ventas</div>
+      <div class="mod-tag">Facturación</div>
     </a>
     <a href="/admin/pedidos" class="modulo">
-      <span class="badge-alert" id="badgePedidos">!</span>
       <i class="bi bi-bag-check" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Pedidos Web</div>
-        <div class="mod-tag">Bandeja</div>
-      </div>
+      <div class="mod-nombre">Pedidos Web</div>
+      <div class="mod-tag">Bandeja</div>
     </a>
     <a href="/admin/visitas" class="modulo">
       <i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--verde);"></i>
-      <div style="text-align:center">
-        <div class="mod-nombre">Visitas</div>
-        <div class="mod-tag">Finca</div>
-      </div>
+      <div class="mod-nombre">Visitas</div>
+      <div class="mod-tag">Finca</div>
     </a>
   </main>
 </div>
 
 <script>
-  // Quitar intro
-  setTimeout(() => document.getElementById('intro').classList.add('hide'), 1500);
-
-  // Activar badge si hay pedidos
-  fetch('/admin/api/contadores')
-    .then(r => r.json())
-    .then(d => {
-      if (d.pedidos_pendientes > 0) {
-        document.getElementById('badgePedidos').classList.add('on');
-      }
-    }).catch(() => {});
+  // Si el usuario ya entró, no mostrar intro de nuevo
+  if (sessionStorage.getItem('introMostrada')) {
+    document.getElementById('intro').style.display = 'none';
+  } else {
+    setTimeout(() => {
+      document.getElementById('intro').classList.add('hide');
+      sessionStorage.setItem('introMostrada', 'true');
+    }, 1500);
+  }
 </script>
 </body>
 </html>
-
