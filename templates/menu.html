@@ -3,102 +3,92 @@
 
 <style>
   body {
-    background: linear-gradient(135deg, #f0f7f0 0%, #fafdf8 100%) !important;
-    font-family: 'Segoe UI', sans-serif;
+    background: #f0f7f0 !important;
     margin: 0; overflow-x: hidden;
   }
 
-  .main-wrapper {
-    min-height: 90vh;
-    display: flex; flex-direction: column;
-    align-items: center; justify-content: center;
-    padding: 30px 20px;
-    animation: fadeIn .8s ease;
+  .shell {
+    display: grid;
+    grid-template-rows: auto 1fr;
+    min-height: calc(100vh - 72px); /* 72px = navbar height */
+    padding: 32px 24px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
   }
 
-  @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to   { opacity: 1; transform: translateY(0); }
+  /* ── Brand ── */
+  .brand {
+    display: flex; align-items: center; gap: 14px;
+    padding-bottom: 28px;
+    border-bottom: 1px solid rgba(45,106,79,.12);
+    margin-bottom: 28px;
+  }
+  .brand img { height: 48px; width: auto; }
+  .brand-text .name {
+    font-size: 1.4rem; font-weight: 800; letter-spacing: 4px;
+    color: #1b4332; text-transform: uppercase; line-height: 1;
+  }
+  .brand-text .sub {
+    font-size: .6rem; letter-spacing: 2px; color: #5a9a72;
+    font-weight: 600; text-transform: uppercase; margin-top: 3px;
   }
 
-  /* Logo compacto */
-  .brand-header { display: flex; align-items: center; gap: 14px; margin-bottom: 8px; }
-  .brand-header img { height: 52px; width: auto; }
-  .brand-title {
-    font-family: 'Segoe UI', sans-serif; font-size: 1.6rem;
-    font-weight: 700; letter-spacing: 3px; color: #1b4332;
-    text-transform: uppercase; line-height: 1;
-  }
-  .brand-sub {
-    font-size: .65rem; letter-spacing: 2px; text-transform: uppercase;
-    color: #5a9a72; font-weight: 600; margin-top: 3px;
-  }
-  .brand-divider {
-    width: 48px; height: 2px;
-    background: linear-gradient(to right, #6bbf6b, #a4c93c);
-    border-radius: 2px; margin: 14px auto 36px;
-  }
-
-  /* Grid de tarjetas */
-  .cards-grid {
+  /* ── Grid ── */
+  .grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
-    width: 100%;
-    max-width: 1100px;
+    grid-template-rows: repeat(2, 1fr);
+    gap: 18px;
+    flex: 1;
   }
 
-  .module-link { text-decoration: none; }
+  .card-link { text-decoration: none; display: contents; }
 
-  .module-card {
+  .card {
     background: white;
     border-radius: 20px;
-    padding: 36px 28px 30px;
-    display: flex; flex-direction: column; align-items: center; gap: 12px;
-    border: 1.5px solid rgba(107,191,107,.15);
-    box-shadow: 0 2px 12px rgba(27,67,50,.06);
-    transition: all .25s cubic-bezier(.16,1,.3,1);
-    position: relative; overflow: hidden;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 14px;
+    padding: 24px;
+    border: 1.5px solid rgba(45,106,79,.1);
+    box-shadow: 0 2px 10px rgba(27,67,50,.05);
+    transition: all .22s cubic-bezier(.16,1,.3,1);
+    cursor: pointer;
+    position: relative;
+    min-height: 160px;
   }
 
-  .module-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0;
-    height: 3px; background: linear-gradient(to right, #6bbf6b, #a4c93c);
-    transform: scaleX(0); transform-origin: left;
-    transition: transform .25s ease;
+  .card:hover {
+    transform: translateY(-5px) scale(1.01);
+    box-shadow: 0 20px 40px rgba(27,67,50,.15);
+    border-color: rgba(45,106,79,.35);
+    background: #1b4332;
   }
 
-  .module-link:hover .module-card {
-    transform: translateY(-6px);
-    box-shadow: 0 16px 36px rgba(27,67,50,.14);
-    border-color: rgba(107,191,107,.4);
-  }
-  .module-link:hover .module-card::before { transform: scaleX(1); }
+  .card:hover .icon-box { background: rgba(255,255,255,.15); }
+  .card:hover .icon-box i { color: white; }
+  .card:hover .card-name  { color: white; }
+  .card:hover .card-tag   { color: rgba(255,255,255,.6); }
 
-  .icon-wrap {
-    width: 76px; height: 76px; border-radius: 18px;
-    background: #f0f7f0;
+  .icon-box {
+    width: 68px; height: 68px; border-radius: 18px;
+    background: #eef7ee;
     display: flex; align-items: center; justify-content: center;
-    transition: background .25s;
+    transition: background .22s;
   }
-  .module-link:hover .icon-wrap { background: #1b4332; }
+  .icon-box i { font-size: 2rem; color: #2d6a4f; transition: color .22s; }
 
-  .icon-wrap i {
-    font-size: 2.2rem; color: #2d6a4f;
-    transition: color .25s;
+  .card-name {
+    font-size: 1.05rem; font-weight: 700; color: #1b4332;
+    transition: color .22s; letter-spacing: .3px;
   }
-  .module-link:hover .icon-wrap i { color: white; }
-
-  .module-name {
-    font-size: 1.1rem; font-weight: 700; color: #1b4332;
-    transition: color .25s; text-align: center;
-  }
-  .module-tag {
-    font-size: .65rem; color: #aaa; text-transform: uppercase;
+  .card-tag {
+    font-size: .62rem; color: #bbb; text-transform: uppercase;
     letter-spacing: 1.5px; font-weight: 600;
+    transition: color .22s;
   }
 
-  /* Badge de pendientes */
   .badge-dot {
     position: absolute; top: 14px; right: 14px;
     background: #e74c3c; color: white; border-radius: 999px;
@@ -106,80 +96,104 @@
     display: flex; align-items: center; justify-content: center;
     font-size: .7rem; font-weight: 700;
   }
-  .badge-dot.oculto { display: none; }
+  .badge-dot.off { display: none; }
 
-  @media (max-width: 640px) {
-    .cards-grid { grid-template-columns: repeat(2, 1fr); }
-    .brand-header img { height: 42px; }
-    .brand-title { font-size: 1.3rem; }
+  /* Desktop grande: más alto */
+  @media (min-height: 800px) {
+    .card { min-height: 200px; }
+    .icon-box { width: 80px; height: 80px; border-radius: 20px; }
+    .icon-box i { font-size: 2.4rem; }
+    .card-name { font-size: 1.15rem; }
   }
-  @media (max-width: 380px) {
-    .cards-grid { grid-template-columns: 1fr; }
+
+  /* Tablet */
+  @media (max-width: 768px) {
+    .grid { grid-template-columns: repeat(2, 1fr); grid-template-rows: repeat(3, 1fr); }
+    .shell { padding: 20px 16px; }
+  }
+
+  /* Móvil */
+  @media (max-width: 480px) {
+    .grid { grid-template-columns: 1fr; grid-template-rows: auto; }
+    .card { min-height: 100px; flex-direction: row; justify-content: flex-start; padding: 18px 20px; gap: 16px; border-radius: 14px; }
+    .icon-box { width: 52px; height: 52px; flex-shrink: 0; }
+    .icon-box i { font-size: 1.6rem; }
+    .card-info { text-align: left; }
+    .card-name { font-size: 1rem; }
   }
 </style>
 
-<div class="main-wrapper">
+<div class="shell">
 
-  <!-- Brand -->
-  <div class="brand-header">
+  <div class="brand">
     <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" alt="ECOLTURA">
-    <div>
-      <div class="brand-title">ECOLTURA</div>
-      <div class="brand-sub">Productos Orgánicos & Lácteos</div>
+    <div class="brand-text">
+      <div class="name">ECOLTURA</div>
+      <div class="sub">Productos Orgánicos &amp; Lácteos · Administración</div>
     </div>
   </div>
-  <div class="brand-divider"></div>
 
-  <!-- Módulos -->
-  <div class="cards-grid">
+  <div class="grid">
 
-    <a href="{{ url_for('clientes_bp.clientes') }}" class="module-link">
-      <div class="module-card">
-        <div class="icon-wrap"><i class="bi bi-people"></i></div>
-        <div class="module-name">Clientes</div>
-        <div class="module-tag">Gestión</div>
+    <a href="{{ url_for('clientes_bp.clientes') }}" class="card-link">
+      <div class="card">
+        <div class="icon-box"><i class="bi bi-people"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Clientes</div>
+          <div class="card-tag">Gestión</div>
+        </div>
       </div>
     </a>
 
-    <a href="{{ url_for('productos_bp.productos') }}" class="module-link">
-      <div class="module-card">
-        <div class="icon-wrap"><i class="bi bi-basket3"></i></div>
-        <div class="module-name">Productos</div>
-        <div class="module-tag">Catálogo</div>
+    <a href="{{ url_for('productos_bp.productos') }}" class="card-link">
+      <div class="card">
+        <div class="icon-box"><i class="bi bi-basket3"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Productos</div>
+          <div class="card-tag">Catálogo</div>
+        </div>
       </div>
     </a>
 
-    <a href="{{ url_for('inventario_bp.inventario_menu') }}" class="module-link">
-      <div class="module-card">
-        <div class="icon-wrap"><i class="bi bi-box-seam"></i></div>
-        <div class="module-name">Inventario</div>
-        <div class="module-tag">Stock</div>
+    <a href="{{ url_for('inventario_bp.inventario_menu') }}" class="card-link">
+      <div class="card">
+        <div class="icon-box"><i class="bi bi-box-seam"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Inventario</div>
+          <div class="card-tag">Stock</div>
+        </div>
       </div>
     </a>
 
-    <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="module-link">
-      <div class="module-card">
-        <div class="icon-wrap"><i class="bi bi-receipt-cutoff"></i></div>
-        <div class="module-name">Ventas</div>
-        <div class="module-tag">Facturación</div>
+    <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="card-link">
+      <div class="card">
+        <div class="icon-box"><i class="bi bi-receipt-cutoff"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Ventas</div>
+          <div class="card-tag">Facturación</div>
+        </div>
       </div>
     </a>
 
-    <a href="/admin/pedidos" class="module-link">
-      <div class="module-card">
-        <span class="badge-dot oculto" id="badgePedidos">0</span>
-        <div class="icon-wrap"><i class="bi bi-bag-check"></i></div>
-        <div class="module-name">Pedidos Web</div>
-        <div class="module-tag">Bandeja</div>
+    <a href="/admin/pedidos" class="card-link">
+      <div class="card">
+        <span class="badge-dot off" id="badgePedidos">0</span>
+        <div class="icon-box"><i class="bi bi-bag-check"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Pedidos Web</div>
+          <div class="card-tag">Bandeja</div>
+        </div>
       </div>
     </a>
 
-    <a href="/admin/visitas" class="module-link">
-      <div class="module-card">
-        <span class="badge-dot oculto" id="badgeVisitas">0</span>
-        <div class="icon-wrap"><i class="bi bi-calendar2-check"></i></div>
-        <div class="module-name">Visitas</div>
-        <div class="module-tag">Finca</div>
+    <a href="/admin/visitas" class="card-link">
+      <div class="card">
+        <span class="badge-dot off" id="badgeVisitas">0</span>
+        <div class="icon-box"><i class="bi bi-calendar2-check"></i></div>
+        <div class="card-info" style="text-align:center">
+          <div class="card-name">Visitas</div>
+          <div class="card-tag">Finca</div>
+        </div>
       </div>
     </a>
 
@@ -192,8 +206,8 @@
     const d = await fetch("/admin/api/contadores").then(r => r.json());
     const bp = document.getElementById("badgePedidos");
     const bv = document.getElementById("badgeVisitas");
-    if (d.pedidos_pendientes > 0) { bp.textContent = d.pedidos_pendientes; bp.classList.remove("oculto"); }
-    if (d.visitas_pendientes > 0) { bv.textContent = d.visitas_pendientes; bv.classList.remove("oculto"); }
+    if (d.pedidos_pendientes > 0) { bp.textContent = d.pedidos_pendientes; bp.classList.remove("off"); }
+    if (d.visitas_pendientes > 0) { bv.textContent = d.visitas_pendientes; bv.classList.remove("off"); }
   } catch(e) {}
 })();
 </script>
