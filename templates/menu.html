@@ -14,34 +14,41 @@
     /* INTRO */
     #intro { position: fixed; inset: 0; z-index: 2000; background: var(--blanco); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 20px; transition: opacity 0.8s ease; padding: 20px; text-align: center; }
     #intro.hide { opacity: 0; pointer-events: none; }
-    #intro img { width: 220px; }
-    #intro h1 { font-size: 1.5rem; font-weight: 800; color: var(--verde-os); text-transform: uppercase; }
+    #intro img { width: clamp(150px, 20vw, 250px); }
+    #intro h1 { font-size: clamp(1.2rem, 3vw, 2rem); font-weight: 800; color: var(--verde-os); text-transform: uppercase; }
 
     /* BARRA SUPERIOR */
-    .topbar { background: var(--blanco); padding: 15px 40px; border-bottom: 2px solid var(--lima); display: flex; align-items: center; }
+    .topbar { background: var(--blanco); padding: clamp(15px, 2vw, 25px) clamp(20px, 4vw, 40px); border-bottom: 2px solid var(--lima); display: flex; align-items: center; }
     .brand { display: flex; align-items: center; gap: 15px; text-decoration: none; }
-    .brand span { font-weight: 800; font-size: 1.3rem; color: var(--verde-os); }
+    .brand img { height: clamp(30px, 3vw, 45px); }
+    .brand span { font-weight: 800; font-size: clamp(1rem, 2vw, 1.5rem); color: var(--verde-os); }
 
-    /* GRID OPTIMIZADO PARA UX */
+    /* GRID ESCALABLE - La magia ocurre aquí */
     .modulos { 
-      display: grid; padding: 40px; gap: 24px; 
-      /* Máximo de 350px por tarjeta para evitar estiramiento en PC */
-      grid-template-columns: repeat(auto-fit, minmax(280px, 350px)); 
+      display: grid; 
+      padding: clamp(20px, 4vw, 50px); 
+      gap: clamp(15px, 2vw, 30px); 
+      /* Tarjetas mínimas 280px, máximas 380px, escalan con la pantalla */
+      grid-template-columns: repeat(auto-fit, minmax(280px, 380px)); 
       justify-content: center; 
       align-content: start;
       flex-grow: 1;
     }
     .modulo { 
-      background: white; border-radius: 20px; padding: 40px; 
-      display: flex; flex-direction: column; align-items: center; gap: 15px; 
+      background: white; border-radius: 20px; 
+      padding: clamp(20px, 3vw, 40px); 
+      display: flex; flex-direction: column; align-items: center; gap: clamp(10px, 1.5vw, 20px); 
       text-decoration: none; border: 1px solid rgba(0,0,0,0.06); transition: 0.3s;
     }
     .modulo:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-    .mod-nombre { font-size: 1.2rem; font-weight: 700; color: var(--carbon); }
-    .mod-tag { font-size: 0.7rem; color: var(--verde-os); font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; }
+    
+    /* Iconos y textos escalables */
+    .modulo i { font-size: clamp(2.5rem, 4vw, 4rem) !important; color: var(--verde-os); }
+    .mod-nombre { font-size: clamp(1rem, 1.5vw, 1.5rem); font-weight: 700; color: var(--carbon); }
+    .mod-tag { font-size: clamp(0.6rem, 0.8vw, 0.9rem); color: var(--verde-os); font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; }
     
     /* BADGE */
-    .badge-alert { position: absolute; top: 20px; right: 20px; background: #DC2626; color: white; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 0.7rem; }
+    .badge-alert { position: absolute; top: 15px; right: 15px; background: #DC2626; color: white; width: clamp(18px, 2vw, 25px); height: clamp(18px, 2vw, 25px); border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: clamp(0.6rem, 0.5vw, 0.8rem); }
     .badge-alert.on { display: flex; }
   </style>
 </head>
@@ -54,23 +61,23 @@
 
 <header class="topbar">
   <a href="/menu" class="brand">
-    <img src="/static/img/ecoltura-logo.png" alt="Logo" style="height:40px;">
+    <img src="/static/img/ecoltura-logo.png" alt="Logo">
     <span>ECOLTURA</span>
   </a>
 </header>
 
 <main class="modulos">
-  <a href="/clientes" class="modulo"><i class="bi bi-people" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Clientes</div><div class="mod-tag">Gestión</div></a>
-  <a href="/productos" class="modulo"><i class="bi bi-basket3" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Productos</div><div class="mod-tag">Catálogo</div></a>
-  <a href="/inventario" class="modulo"><i class="bi bi-box-seam" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Inventario</div><div class="mod-tag">Stock</div></a>
-  <a href="/ventas" class="modulo"><i class="bi bi-receipt-cutoff" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Ventas</div><div class="mod-tag">Facturación</div></a>
+  <a href="/clientes" class="modulo"><i class="bi bi-people"></i><div class="mod-nombre">Clientes</div><div class="mod-tag">Gestión</div></a>
+  <a href="/productos" class="modulo"><i class="bi bi-basket3"></i><div class="mod-nombre">Productos</div><div class="mod-tag">Catálogo</div></a>
+  <a href="/inventario" class="modulo"><i class="bi bi-box-seam"></i><div class="mod-nombre">Inventario</div><div class="mod-tag">Stock</div></a>
+  <a href="/ventas" class="modulo"><i class="bi bi-receipt-cutoff"></i><div class="mod-nombre">Ventas</div><div class="mod-tag">Facturación</div></a>
   <a href="/admin/pedidos" class="modulo" style="position:relative;">
     <span class="badge-alert" id="badgePedidos">!</span>
-    <i class="bi bi-bag-check" style="font-size: 3rem; color: var(--verde-os);"></i>
+    <i class="bi bi-bag-check"></i>
     <div class="mod-nombre">Pedidos Web</div>
     <div class="mod-tag">Bandeja</div>
   </a>
-  <a href="/admin/visitas" class="modulo"><i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Visitas</div><div class="mod-tag">Finca</div></a>
+  <a href="/admin/visitas" class="modulo"><i class="bi bi-calendar2-check"></i><div class="mod-nombre">Visitas</div><div class="mod-tag">Finca</div></a>
 </main>
 
 <script>
