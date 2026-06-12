@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block title %}Visitas a la Finca{% endblock %}
+{% block content %}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2 class="fw-bold text-success mb-0">
+    <i class="bi bi-calendar2-check me-2"></i>Visitas a la Finca
+    {% if pendientes > 0 %}
+      <span class="badge bg-danger ms-2" style="font-size:.75rem">{{ pendientes }} pendiente{{ 's' if pendientes != 1 }}</span>
+    {% endif %}
+  </h2>
+  <a href="{{ url_for('menu') }}" class="btn btn-outline-secondary btn-sm">← Menú</a>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' if cat == 'danger' else 'info' }} alert-dismissible">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endwith %}
+
+<div class="row g-4">
+
+  <!-- ── FECHAS HABILITADAS ── -->
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <span class="fw-bold">Fechas disponibles</span>
+        <button class="btn btn-sm btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevoFecha">
+          + Nueva fecha
+        </button>
+      </div>
+      <div class="card-body p-0">
+        {% if not fechas %}
+        <div class="text-center text-muted py-4">
+          <p>Sin fechas habilitadas aún.</p>
+        </div>
+        {% else %}
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Fecha</th><th class="text-center">Cupos</th><th class="text-center">Ocupados</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for f in fechas %}
+            <tr class="{{ '' if f[3] else 'text-muted' }}">
+              <td>
+                {% if not f[3] %}<s>{% endif %}
+                {{ f[1].strftime('%d/%m/%Y') }}
+                {% if not f[3] %}</s> <small class="text-muted">(inactiva)</small>{% endif %}
+              </td>
+              <td class="text-center">{{ f[2] }}</td>
+              <td class="text-center">
+                <span class="badge {% if f[4] >= f[2] %}bg-danger{% elif f[4] > 0 %}bg-warning text-dark{% else %}bg-success{% endif %}">
+                  {{ f[4] }}/{{ f[2] }}
+                </span>
+              </td>
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('visitas_bp.fecha_toggle', id=f[0]) }}" class="d-inline">
+                  <button type="submit" class="btn btn-sm {% if f[3] %}btn-outline-warning{% else %}btn-outline-success{% endif %}">
+                    {{ '🔴 Desactivar' if f[3] else '🟢 Activar' }}
+                  </button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- ── RESERVAS ── -->
+  <div class="col-md-7">
+    <div class="card shadow-sm">
+      <div class="card-header bg-white fw-bold">Reservaciones recibidas</div>
+      <div class="card-body p-0">
+        {% if not reservas %}
+        <div class="text-center text-muted py-4">
+          <p>Sin reservaciones todavía.</p>
+        </div>
+        {% else %}
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Fecha visita</th><th>Nombre</th><th class="text-center">Personas</th><th>Estado</th><th></th></tr>
+          </thead>
+          <tbody>
+            {% for r in reservas %}
+            <tr>
+              <td>{{ r[1].strftime('%d/%m/%Y') }}</td>
+              <td>
+                <div class="fw-bold">{{ r[2] }}</div>
+                <div class="text-muted small">{{ r[3] }}</div>
+              </td>
+              <td class="text-center">{{ r[4] }}</td>
+              <td>
+                <span class="badge {% if r[5]=='Pendiente' %}bg-warning text-dark{% elif r[5]=='Confirmada' %}bg-success{% else %}bg-secondary{% endif %}">
+                  {{ r[5] }}
+                </span>
+              </td>
+              <td class="text-end">
+                {% if r[5] == 'Pendiente' %}
+                <div class="d-flex gap-1 justify-content-end flex-wrap">
+                  <a href="https://wa.me/506{{ r[3]|replace('-','') }}?text=Hola+{{ r[2] | urlencode }}%2C+confirmamos+su+visita+a+ECOLTURA+el+{{ r[1].strftime('%d/%m/%Y') }}."
+                     target="_blank" class="btn btn-sm btn-success">
+                    <i class="bi bi-whatsapp"></i>
+                  </a>
+                  <form method="POST" action="{{ url_for('visitas_bp.reserva_confirmar', id=r[0]) }}" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-success">✓ Confirmar</button>
+                  </form>
+                  <form method="POST" action="{{ url_for('visitas_bp.reserva_cancelar', id=r[0]) }}" class="d-inline"
+                        onsubmit="return confirm('¿Cancelar esta reservación?')">
+                    <button type="submit" class="btn btn-sm btn-outline-danger">✕</button>
+                  </form>
+                </div>
+                {% elif r[5] == 'Confirmada' %}
+                <form method="POST" action="{{ url_for('visitas_bp.reserva_cancelar', id=r[0]) }}" class="d-inline"
+                      onsubmit="return confirm('¿Cancelar esta reservación?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger">✕ Cancelar</button>
+                </form>
+                {% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Modal nueva fecha -->
+<div class="modal fade" id="modalNuevoFecha" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">Habilitar nueva fecha de visita</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" action="{{ url_for('visitas_bp.fecha_crear') }}">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Fecha</label>
+            <input type="date" name="fecha" class="form-control" required
+                   min="{{ now.strftime('%Y-%m-%d') if now else '' }}">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Cupos disponibles</label>
+            <input type="number" name="cupos" class="form-control" value="10" min="1" max="100" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success fw-bold px-4">Habilitar fecha</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
