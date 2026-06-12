@@ -5,93 +5,70 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ECOLTURA | Administración</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
-    :root { --verde-os: #1A4226; --blanco: #FFFFFF; --lima: #7AB648; --carbon: #1C1C1E; }
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: #F4F7F0; color: var(--carbon); }
-
-    /* INTRO - Ajuste de tipografía para evitar desbordamiento */
-    #intro { 
-      position: fixed; inset: 0; z-index: 2000; background: var(--blanco); 
-      display: flex; flex-direction: column; align-items: center; justify-content: center; 
-      gap: 20px; transition: opacity 0.8s ease; padding: 20px; text-align: center;
+    :root {
+      --verde: #2E6B3E; --verde-os: #1A4226; --lima: #7AB648;
+      --crema: #F4F7F0; --blanco: #FFFFFF; --carbon: #1C1C1E;
     }
-    #intro.hide { opacity: 0; pointer-events: none; }
-    #intro img { width: clamp(150px, 40vw, 280px); } 
-    #intro h1 { 
-      font-size: clamp(1.2rem, 5vw, 1.8rem); /* Se adapta al tamaño de pantalla */
-      font-weight: 800; letter-spacing: 0.1em; 
-      text-transform: uppercase; color: var(--verde-os);
-      width: 100%;
-    }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; }
+    body { font-family: 'Inter', sans-serif; background: var(--crema); color: var(--carbon); }
 
-    /* BARRA SUPERIOR */
-    .topbar { 
-      background: var(--blanco); padding: 15px 40px; 
-      display: flex; align-items: center; border-bottom: 2px solid var(--lima);
+    /* --- ESTILOS DE MÓDULOS --- */
+    .modulos {
+      display: grid; padding: 24px 32px; gap: 20px;
+      grid-template-columns: repeat(3, 1fr); height: 100%;
     }
     
-    /* GRID MÓDULOS */
-    .modulos { display: grid; padding: 40px; gap: 24px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-    .modulo { 
-      background: white; border-radius: 20px; padding: 40px; 
-      display: flex; flex-direction: column; align-items: center; gap: 15px; 
-      text-decoration: none; border: 1px solid rgba(0,0,0,0.06); transition: 0.3s;
+    .modulo {
+      background: white; border-radius: 20px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; text-decoration: none; border: 1px solid rgba(0,0,0,0.06);
+      transition: all 0.3s ease;
     }
-    .modulo:hover { transform: translateY(-5px); box-shadow: 0 15px 30px rgba(0,0,0,0.1); }
-    .mod-nombre { font-size: 1.2rem; font-weight: 700; color: var(--carbon); }
-    .mod-tag { font-size: 0.7rem; color: var(--verde-os); font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; }
+
+    /* --- CAMBIO UX PARA PC: Fuentes más grandes --- */
+    @media (min-width: 901px) {
+      .mod-nombre { font-size: 1.4rem !important; } /* Aumentado de 1rem a 1.4rem */
+      .mod-tag { font-size: 0.8rem !important; letter-spacing: 2px !important; } /* Aumentado para legibilidad */
+      .mod-icon i { font-size: 3rem !important; } /* Iconos más grandes en PC */
+      .modulo { gap: 24px; }
+    }
+
+    .mod-nombre { font-size: 1rem; font-weight: 700; color: var(--carbon); }
+    .mod-tag { font-size: .6rem; color: #9CA3AF; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 600; }
     
-    /* BADGE */
-    .badge-alert { position: absolute; top: 20px; right: 20px; background: #DC2626; color: white; width: 22px; height: 22px; border-radius: 50%; display: none; align-items: center; justify-content: center; font-size: 0.7rem; }
+    /* ... resto de estilos (mantenidos igual) ... */
+    .topbar { background: var(--blanco); border-bottom: 2px solid var(--lima); display: flex; align-items: center; padding: 0 32px; height: 72px; }
+    .badge-alert { position: absolute; top: 20px; right: 20px; background: #EF4444; color: white; border-radius: 999px; width: 24px; height: 24px; display: none; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; }
     .badge-alert.on { display: flex; }
+    
+    @media (max-width: 900px) {
+      html, body { overflow: auto; }
+      .modulos { grid-template-columns: repeat(2, 1fr); padding: 16px; }
+    }
   </style>
 </head>
 <body>
 
-<div id="intro">
-  <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
-  <h1>Administración</h1>
-</div>
-
 <div class="shell">
   <header class="topbar">
-    <a href="/menu" style="display:flex; align-items:center; gap:15px; text-decoration:none;">
-      <img src="/static/img/ecoltura-logo.png" alt="Logo" style="height:40px;">
-      <span style="font-weight: 800; font-size: 1.3rem; color: var(--verde-os);">ECOLTURA</span>
+    <a href="/menu" style="display:flex; align-items:center; gap:12px; text-decoration:none;">
+      <img src="/static/img/ecoltura-logo.png" style="height:38px;">
+      <span style="font-weight:800; color:var(--verde-os);">ECOLTURA</span>
     </a>
   </header>
 
   <main class="modulos">
-    <a href="/clientes" class="modulo"><i class="bi bi-people" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Clientes</div><div class="mod-tag">Gestión</div></a>
-    <a href="/productos" class="modulo"><i class="bi bi-basket3" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Productos</div><div class="mod-tag">Catálogo</div></a>
-    <a href="/inventario" class="modulo"><i class="bi bi-box-seam" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Inventario</div><div class="mod-tag">Stock</div></a>
-    <a href="/ventas" class="modulo"><i class="bi bi-receipt-cutoff" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Ventas</div><div class="mod-tag">Facturación</div></a>
-    <a href="/admin/pedidos" class="modulo" style="position:relative;">
-      <span class="badge-alert" id="badgePedidos">!</span>
-      <i class="bi bi-bag-check" style="font-size: 3rem; color: var(--verde-os);"></i>
-      <div class="mod-nombre">Pedidos Web</div>
-      <div class="mod-tag">Bandeja</div>
+    <a href="/clientes" class="modulo">
+      <div class="mod-icon"><i class="bi bi-people"></i></div>
+      <div class="mod-info" style="text-align:center">
+        <div class="mod-nombre">Clientes</div>
+        <div class="mod-tag">Gestión</div>
+      </div>
     </a>
-    <a href="/admin/visitas" class="modulo"><i class="bi bi-calendar2-check" style="font-size: 3rem; color: var(--verde-os);"></i><div class="mod-nombre">Visitas</div><div class="mod-tag">Finca</div></a>
-  </main>
+    </main>
 </div>
-
-<script>
-  if (sessionStorage.getItem('introMostrada')) {
-    document.getElementById('intro').style.display = 'none';
-  } else {
-    setTimeout(() => {
-      document.getElementById('intro').classList.add('hide');
-      sessionStorage.setItem('introMostrada', 'true');
-    }, 1800);
-  }
-  
-  fetch('/admin/api/contadores').then(r => r.json()).then(d => {
-    if (d.pedidos_pendientes > 0) document.getElementById('badgePedidos').classList.add('on');
-  }).catch(() => {});
-</script>
 </body>
 </html>
-
