@@ -85,23 +85,15 @@
       display: flex; justify-content: space-between; align-items: center;
       z-index: 100; background: #fff; border-bottom: 3px solid var(--lima);
     }
-    .logo { display: flex; align-items: center; text-decoration: none; gap: 0; }
-    .logo-texto {
-      font-family: 'Fraunces', serif; font-size: 1.3rem; letter-spacing: 5px;
-      text-transform: uppercase; color: #3F3F41; font-weight: 300; line-height: 1;
-    }
-    .logo-sub {
-      display: block; font-family: 'Inter', sans-serif; font-size: .52rem;
-      letter-spacing: 1.8px; color: #D9742E; font-weight: 600;
-      text-transform: uppercase; margin-top: 3px;
-    }
+    .logo { display: flex; align-items: center; text-decoration: none; }
+    .logo img { height: 46px; width: auto; }
     .tabs { display: flex; gap: 28px; align-items: center; }
     .tab { background: none; border: none; text-decoration: none; font-family: 'Inter', sans-serif;
-           font-size: .78rem; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
-           cursor: pointer; padding: 6px 0; border-bottom: 2px solid transparent;
-           color: var(--gris); transition: color .15s; }
-    .tab:hover  { color: var(--verde); }
-    .tab.activa { color: var(--verde); border-bottom-color: var(--verde); }
+           font-size: .82rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+           cursor: pointer; padding: 8px 0; border-bottom: 2px solid transparent;
+           color: #888; transition: color .15s, border-color .15s; }
+    .tab:hover  { color: #3E6B22; }
+    .tab.activa { color: #3E6B22; border-bottom-color: #A4C93C; }
     @media (max-width: 600px) { header { padding: 10px 16px; } .tabs { gap: 16px; } }
 
     /* ── PÁGINAS ── */
@@ -397,9 +389,7 @@
 <!-- ── HEADER ── -->
 <header id="cabecera">
   <a class="logo" href="#" onclick="irPagina('pedido'); return false;">
-    <span class="logo-texto">ECOLTURA
-      <span class="logo-sub">Productos Orgánicos y Lácteos</span>
-    </span>
+    <img src="/static/img/ecoltura-logo.png" alt="ECOLTURA">
   </a>
   <div class="tabs">
     <button class="tab activa" id="tabPedido" onclick="irPagina('pedido')">Pedidos</button>
