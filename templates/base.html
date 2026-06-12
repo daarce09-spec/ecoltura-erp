@@ -20,9 +20,10 @@
 
   <style>
     :root {
-      --brand-green: #2d6a4f;
-      --brand-green-dark: #1b4332;
-      --brand-bg: #f8faf9;
+      --brand-green:      #3E6B22;   /* verde hoja oscura del logo */
+      --brand-green-dark: #2E5117;
+      --brand-lima:       #A4C93C;   /* hoja clara del logo */
+      --brand-bg:         #f8faf9;
     }
 
     body { 
@@ -61,14 +62,19 @@
     }
 
     .navbar { 
-      border-bottom: 3px solid var(--brand-green);
+      border-bottom: 3px solid var(--brand-lima);
       background: #ffffff;
     }
 
     .navbar-brand { 
       color: var(--brand-green) !important;
       font-family: 'Montserrat', sans-serif;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+
+    .navbar-logo { height: 36px; width: auto; }
   </style>
 </head>
 
@@ -89,7 +95,7 @@
   <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
     <div class="container">
       <a class="navbar-brand fw-bold" href="{{ url_for('menu') }}">
-        <i class="bi bi-leaf-fill me-2"></i>ECOLTURA
+        <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="navbar-logo" alt="ECOLTURA">
       </a>
     </div>
   </nav>
