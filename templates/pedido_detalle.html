@@ -2,16 +2,33 @@
 {% block title %}Pedido #{{ pedido[0] }}{% endblock %}
 {% block content %}
 
+<style>
+  .info-card { background:white; border-radius:16px; padding:24px;
+               box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
+  .dato-row { display:flex; justify-content:space-between; padding:10px 0;
+              border-bottom:1px solid #f5f5f5; font-size:.94rem; }
+  .dato-row:last-child { border-bottom:none; }
+  .dato-label { color:#888; }
+  .dato-valor { font-weight:600; color:#1b4332; }
+  .badge-est { font-size:.78rem; padding:5px 14px; border-radius:999px; font-weight:700; }
+  .badge-Pendiente  { background:#FFF3CD; color:#856404; }
+  .badge-Resuelto   { background:#D1E7DD; color:#0A4A2A; }
+  .badge-Rechazado  { background:#F8D7DA; color:#842029; }
+</style>
+
 <div class="d-flex justify-content-between align-items-center mb-4">
-  <h2 class="fw-bold text-success mb-0">
-    <i class="bi bi-bag me-2"></i>Pedido Web #{{ pedido[0] }}
-  </h2>
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332">
+      <i class="bi bi-bag me-2"></i>Pedido Web #{{ pedido[0] }}
+    </h2>
+    <small class="text-muted">Detalle del pedido recibido desde la tienda en línea</small>
+  </div>
   <a href="{{ url_for('pedidos_bp.bandeja_pedidos') }}" class="btn btn-outline-secondary btn-sm">← Bandeja</a>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
-    <div class="alert alert-{{ 'success' if cat == 'success' else 'danger' }} alert-dismissible">
+    <div class="alert alert-{{ 'success' if cat=='success' else 'danger' }} alert-dismissible">
       {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
   {% endfor %}
@@ -19,46 +36,48 @@
 
 <div class="row g-4">
 
-  <!-- Info del cliente -->
-  <div class="col-md-5">
-    <div class="card shadow-sm h-100">
-      <div class="card-header bg-white fw-bold">Datos del contacto</div>
-      <div class="card-body">
-        <table class="table table-sm mb-0">
-          <tr><td class="text-muted">Nombre</td><td class="fw-bold">{{ pedido[1] }}</td></tr>
-          <tr><td class="text-muted">Cédula</td><td>{{ pedido[3] or '—' }}</td></tr>
-          <tr><td class="text-muted">Celular</td><td>{{ pedido[2] }}</td></tr>
-          <tr><td class="text-muted">Estado</td>
-              <td><span class="badge {% if pedido[5]=='Pendiente' %}bg-warning text-dark{% elif pedido[5]=='Resuelto' %}bg-success{% else %}bg-danger{% endif %}">
-                {{ pedido[5] }}</span></td></tr>
-          <tr><td class="text-muted">Recibido</td><td>{{ pedido[6].strftime('%d/%m/%Y %I:%M %p') }}</td></tr>
-          {% if pedido[7] %}
-          <tr><td class="text-muted">Notas</td><td>{{ pedido[7] }}</td></tr>
-          {% endif %}
-          {% if pedido[9] %}
-          <tr><td class="text-muted">Venta</td>
-              <td><a href="{{ url_for('ventas_bp.ticket_venta', venta_id=pedido[9]) }}" class="text-success fw-bold">#{{ pedido[9] }}</a></td></tr>
-          {% endif %}
-        </table>
+  <!-- Info cliente -->
+  <div class="col-md-4">
+    <div class="info-card">
+      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#1b4332">
+        <i class="bi bi-person-circle me-2"></i>Datos del contacto
       </div>
-      {% if pedido[2] %}
-      <div class="card-footer bg-white">
-        <a href="https://wa.me/506{{ pedido[2]|replace('-','') }}?text=Hola+{{ pedido[1] | urlencode }}%2C+le+contactamos+de+ECOLTURA+sobre+su+pedido."
-           target="_blank" class="btn btn-success w-100 fw-bold">
-          <i class="bi bi-whatsapp me-2"></i>Escribir por WhatsApp
-        </a>
+      <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-valor">{{ pedido[1] }}</span></div>
+      <div class="dato-row"><span class="dato-label">Cédula</span><span class="dato-valor">{{ pedido[3] or '—' }}</span></div>
+      <div class="dato-row"><span class="dato-label">Celular</span><span class="dato-valor">{{ pedido[2] }}</span></div>
+      <div class="dato-row">
+        <span class="dato-label">Estado</span>
+        <span class="badge-est badge-{{ pedido[5] }}">{{ pedido[5] }}</span>
+      </div>
+      <div class="dato-row"><span class="dato-label">Recibido</span><span class="dato-valor">{{ pedido[6].strftime('%d/%m/%Y %I:%M %p') }}</span></div>
+      {% if pedido[7] %}
+      <div class="dato-row"><span class="dato-label">Notas</span><span class="dato-valor" style="max-width:60%;text-align:right">{{ pedido[7] }}</span></div>
+      {% endif %}
+      {% if pedido[9] %}
+      <div class="dato-row">
+        <span class="dato-label">Venta generada</span>
+        <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=pedido[9]) }}" class="fw-bold text-success">#{{ pedido[9] }}</a>
       </div>
       {% endif %}
     </div>
+
+    {% if pedido[2] %}
+    <a href="https://wa.me/506{{ pedido[2]|replace('-','') }}?text=Hola+{{ pedido[1]|urlencode }}%2C+le+contactamos+de+ECOLTURA+sobre+su+pedido+%23{{ pedido[0] }}+%F0%9F%8C%B1"
+       target="_blank" class="btn btn-success w-100 fw-bold mt-3" style="border-radius:12px;padding:13px">
+      <i class="bi bi-whatsapp me-2"></i>Escribir por WhatsApp
+    </a>
+    {% endif %}
   </div>
 
-  <!-- Detalle del pedido -->
-  <div class="col-md-7">
-    <div class="card shadow-sm">
-      <div class="card-header bg-white fw-bold">Productos solicitados</div>
-      <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-          <thead class="table-light">
+  <!-- Detalle productos -->
+  <div class="col-md-8">
+    <div class="info-card">
+      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#1b4332">
+        <i class="bi bi-basket me-2"></i>Productos solicitados
+      </div>
+      <div class="table-responsive">
+        <table class="table align-middle mb-0">
+          <thead style="background:#f8faf9">
             <tr>
               <th>Producto</th>
               <th class="text-center">Cantidad</th>
@@ -69,41 +88,36 @@
           <tbody>
             {% for d in detalle %}
             <tr>
-              <td>{{ d[1] }}</td>
+              <td class="fw-bold">{{ d[1] }}</td>
               <td class="text-center">{{ '%g'|format(d[3]) }} {{ d[2] }}</td>
               <td class="text-end">₡{{ "{:,.0f}".format(d[4]) }}</td>
-              <td class="text-end fw-bold">₡{{ "{:,.0f}".format(d[5]) }}</td>
+              <td class="text-end fw-bold text-success">₡{{ "{:,.0f}".format(d[5]) }}</td>
             </tr>
             {% endfor %}
           </tbody>
-          <tfoot class="table-light">
+          <tfoot style="background:#f8faf9">
             <tr>
               <td colspan="3" class="text-end fw-bold">TOTAL ESTIMADO</td>
-              <td class="text-end fw-bold text-success fs-5">₡{{ "{:,.0f}".format(pedido[4]) }}</td>
+              <td class="text-end fw-bold" style="font-size:1.2rem;color:#2d6a4f">₡{{ "{:,.0f}".format(pedido[4]) }}</td>
             </tr>
           </tfoot>
         </table>
       </div>
 
       {% if pedido[5] == 'Pendiente' %}
-      <div class="card-footer bg-white d-flex gap-2 justify-content-end">
-
-        <!-- Rechazar -->
+      <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top:1px solid #f0f0f0">
         <form method="POST" action="{{ url_for('pedidos_bp.pedido_rechazar', id=pedido[0]) }}"
               onsubmit="return confirm('¿Rechazar este pedido?')">
-          <button type="submit" class="btn btn-outline-danger fw-bold">
+          <button type="submit" class="btn btn-outline-danger fw-bold px-4" style="border-radius:10px">
             <i class="bi bi-x-circle me-1"></i>Rechazar
           </button>
         </form>
-
-        <!-- Convertir en venta -->
         <form method="POST" action="{{ url_for('pedidos_bp.pedido_convertir', id=pedido[0]) }}"
               onsubmit="return confirm('¿Convertir en venta? Se descontará del inventario.')">
-          <button type="submit" class="btn btn-success fw-bold px-4">
+          <button type="submit" class="btn fw-bold px-4" style="background:#1b4332;color:white;border-radius:10px">
             <i class="bi bi-bag-check me-1"></i>Convertir en venta
           </button>
         </form>
-
       </div>
       {% endif %}
 
@@ -111,5 +125,4 @@
   </div>
 
 </div>
-
 {% endblock %}
