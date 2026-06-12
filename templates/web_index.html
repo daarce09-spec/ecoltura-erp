@@ -35,67 +35,66 @@
            -webkit-font-smoothing: antialiased; }
     h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 300; }
 
-    /* ── INTRO ── */
+        /* ── INTRO ── */
     #intro-screen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 999; display: flex; justify-content: center; align-items: center;
-      background: var(--negro);
       transition: opacity 1.2s ease, visibility 1.2s ease;
     }
     .intro-background {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image:
+        linear-gradient(rgba(10,15,6,.65), rgba(10,15,6,.72)),
         url('https://images.unsplash.com/photo-1602943543714-cf535b048440?q=80&w=1920&auto=format&fit=crop');
       background-size: cover; background-position: center;
       transition: filter 1.2s ease, transform 2s ease;
     }
     .intro-text {
       position: relative; z-index: 1000; text-align: center;
-      opacity: 0; transform: translateY(10px);
+      opacity: 0; transform: translateY(12px);
       transition: opacity 1s ease .3s, transform 1s ease .3s;
     }
-    #intro-screen.ready .intro-text { opacity: 1; transform: translateY(0); }
-    #intro-screen.difuminar { opacity: 0; visibility: hidden; pointer-events: none; }
+    #intro-screen.ready .intro-text  { opacity: 1; transform: translateY(0); }
+    #intro-screen.difuminar           { opacity: 0; visibility: hidden; pointer-events: none; }
     #intro-screen.difuminar .intro-background { filter: blur(25px); transform: scale(1.08); }
 
-    /* Franja blanca sólida del intro */
-    .intro-franja {
-      background: #ffffff;
-      padding: 32px 64px;
-      border-top: 5px solid var(--lima);
-      border-bottom: 5px solid var(--lima);
-      display: flex; flex-direction: column; align-items: center; gap: 10px;
-      min-width: 460px;
-      box-shadow: 0 8px 40px rgba(0,0,0,.25);
+    .intro-bloque { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .intro-marca {
+      font-family: 'Fraunces', serif; font-weight: 300;
+      font-size: clamp(3.5rem, 9vw, 6.5rem);
+      letter-spacing: clamp(14px, 3vw, 28px);
+      color: #ffffff; line-height: 1; text-indent: 14px;
     }
-    .intro-logo-wrap {
-      display: flex; align-items: center; gap: 14px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid #E6E2DA;
-      width: 100%;
-      justify-content: center;
+    .intro-linea {
+      width: 70px; height: 1px;
+      background: linear-gradient(to right, transparent, #A4C93C 40%, #A4C93C 60%, transparent);
     }
-    .intro-logo-wrap img { height: 56px; width: auto; }
-    .intro-logo-nombre { font-family: 'Fraunces', serif; font-size: 2.2rem;
-                         letter-spacing: 7px; color: #3F3F41; font-weight: 400; }
-    .intro-logo-sub { font-family: 'Inter', sans-serif; font-size: .62rem; letter-spacing: 2.5px;
-                      color: #D9742E; font-weight: 600; text-transform: uppercase; margin-top: 2px; }
-    .intro-sep { width: 36px; height: 1.5px; background: var(--lima); margin: 2px auto; }
-    .intro-tagline { font-family: 'Fraunces', serif; font-size: 1.25rem;
-                     color: #3F3F41; font-weight: 300; letter-spacing: .5px; margin-top: 4px; }
-    .intro-tagline em { font-style: italic; color: #3E6B22; }
-    .intro-sub { font-family: 'Inter', sans-serif; font-size: .6rem; letter-spacing: 3.5px;
-                 color: #7A8C80; text-transform: uppercase; margin-top: 2px; }
-    @media (max-width: 560px) { .intro-franja { min-width: unset; padding: 24px 28px; } }
+    .intro-frase {
+      font-family: 'Fraunces', serif; font-style: italic; font-weight: 300;
+      font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+      color: rgba(255,255,255,.9); letter-spacing: 1px;
+    }
+    .intro-sub {
+      font-family: 'Inter', sans-serif; font-size: .6rem;
+      letter-spacing: 4px; color: rgba(255,255,255,.45); text-transform: uppercase;
+    }
 
-    /* ── HEADER: siempre blanco con logo real ── */
+/* ── HEADER: siempre blanco con logo real ── */
     header {
       position: fixed; top: 0; left: 0; width: 100%; padding: 10px 40px;
       display: flex; justify-content: space-between; align-items: center;
       z-index: 100; background: #fff; border-bottom: 3px solid var(--lima);
     }
-    .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .logo img { height: 44px; width: auto; }
+    .logo { display: flex; align-items: center; text-decoration: none; gap: 0; }
+    .logo-texto {
+      font-family: 'Fraunces', serif; font-size: 1.3rem; letter-spacing: 5px;
+      text-transform: uppercase; color: #3F3F41; font-weight: 300; line-height: 1;
+    }
+    .logo-sub {
+      display: block; font-family: 'Inter', sans-serif; font-size: .52rem;
+      letter-spacing: 1.8px; color: #D9742E; font-weight: 600;
+      text-transform: uppercase; margin-top: 3px;
+    }
     .tabs { display: flex; gap: 28px; align-items: center; }
     .tab { background: none; border: none; text-decoration: none; font-family: 'Inter', sans-serif;
            font-size: .78rem; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase;
@@ -390,7 +389,7 @@
       <div class="intro-marca">ECOLTURA</div>
       <div class="intro-linea"></div>
       <div class="intro-frase">De nuestra tierra, a su mesa.</div>
-      <div class="intro-sub">Finca familiar · Costa Rica</div>
+      <div class="intro-sub">Finca familiar &middot; Costa Rica</div>
     </div>
   </div>
 </div>
@@ -398,13 +397,16 @@
 <!-- ── HEADER ── -->
 <header id="cabecera">
   <a class="logo" href="#" onclick="irPagina('pedido'); return false;">
-    <span class="logo-texto">ECOLTURA<span class="logo-sub">Productos Orgánicos y Lácteos</span></span>
+    <span class="logo-texto">ECOLTURA
+      <span class="logo-sub">Productos Orgánicos y Lácteos</span>
+    </span>
   </a>
   <div class="tabs">
     <button class="tab activa" id="tabPedido" onclick="irPagina('pedido')">Pedidos</button>
     <button class="tab" id="tabFinca" onclick="irPagina('finca')">La finca</button>
   </div>
 </header>
+
 
 <!-- ═══════════════════════════════════════════
      PÁGINA 1 — PEDIDOS
