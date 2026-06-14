@@ -231,10 +231,16 @@
 </main>
 
 <script>
-  // Intro animada (siempre se muestra, breve)
+  // Intro animada — solo la primera vez en la sesión del navegador
   var intro = document.getElementById('intro');
-  setTimeout(function(){ intro.classList.add('show'); }, 80);
-  setTimeout(function(){ intro.classList.add('hide'); }, 1700);
+  if (sessionStorage.getItem('ecoltura_intro_vista')) {
+    // Ya se vio antes: ocultar de inmediato, sin animación
+    intro.style.display = 'none';
+  } else {
+    setTimeout(function(){ intro.classList.add('show'); }, 80);
+    setTimeout(function(){ intro.classList.add('hide'); }, 1700);
+    sessionStorage.setItem('ecoltura_intro_vista', 'true');
+  }
 
   // Reloj en vivo
   function tick() {
