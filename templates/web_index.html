@@ -450,10 +450,10 @@
       <div class="resumen-titulo">Su pedido</div>
       <div id="zonaResumen"><div class="res-vacio">Aún no ha agregado productos.</div></div>
       <div class="total-res"><span>Total</span><span id="totalRes">₡0</span></div>
-      <input type="text" id="pedNombre"   placeholder="Nombre completo">
-      <input type="text" id="pedCedula"   placeholder="Número de cédula">
-      <input type="tel"  id="pedCelular"  placeholder="Celular">
-      <input type="text" id="pedNotas"    placeholder="Notas (opcional — zona, horario...)">
+      <input type="text" id="pedNombre"    placeholder="Nombre completo">
+      <input type="tel"  id="pedCelular"   placeholder="Celular">
+      <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
+      <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
       <button class="btn-enviar-pedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
     </aside>
@@ -768,10 +768,12 @@ function renderResumen() {
 
 // ── MODAL CONFIRMACIÓN ─────────────────────────────
 function abrirModalConfirmacion() {
-  const nombre  = document.getElementById("pedNombre").value.trim();
-  const celular = document.getElementById("pedCelular").value.trim();
+  const nombre    = document.getElementById("pedNombre").value.trim();
+  const celular   = document.getElementById("pedCelular").value.trim();
+  const direccion = document.getElementById("pedDireccion").value.trim();
   if (Object.keys(pedido).length === 0) { alert("Agregue al menos un producto."); return; }
   if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
+  if (!direccion) { alert("Indique la dirección de entrega."); return; }
 
   let total = 0;
   const filas = Object.keys(pedido).map(id => {
@@ -799,10 +801,10 @@ async function enviarPedido() {
     const r = await fetch("/api/pedidos", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        nombre:  document.getElementById("pedNombre").value.trim(),
-        cedula:  document.getElementById("pedCedula").value.trim(),
-        celular: document.getElementById("pedCelular").value.trim(),
-        notas:   document.getElementById("pedNotas").value.trim(),
+        nombre:    document.getElementById("pedNombre").value.trim(),
+        celular:   document.getElementById("pedCelular").value.trim(),
+        direccion: document.getElementById("pedDireccion").value.trim(),
+        notas:     document.getElementById("pedNotas").value.trim(),
         items
       })
     });
@@ -812,13 +814,21 @@ async function enviarPedido() {
 
     if (data.ok) {
       const nombre = document.getElementById("pedNombre").value.trim();
+      // Guardar datos del cliente en el navegador para la próxima vez
+      try {
+        localStorage.setItem("ecoltura_cliente", JSON.stringify({
+          nombre:    document.getElementById("pedNombre").value.trim(),
+          celular:   document.getElementById("pedCelular").value.trim(),
+          direccion: document.getElementById("pedDireccion").value.trim()
+        }));
+      } catch(e) {}
       document.getElementById("textoExito").innerHTML =
         `Gracias, <b>${nombre}</b>. Su pedido #${data.pedido_id} ya está en nuestra bandeja.<br><br>
          Lo alistamos con producto recién cosechado y le contactaremos por WhatsApp para coordinar el pago y la entrega.`;
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
-      ["pedNombre","pedCedula","pedCelular","pedNotas"].forEach(id => document.getElementById(id).value = "");
+      document.getElementById("pedNotas").value = "";  // mantener nombre/celular/dirección para el próximo pedido
       renderProductos(); renderResumen();
     } else {
       alert("Error: " + data.error);
@@ -898,6 +908,35 @@ document.addEventListener("keydown", e => {
 });
 
 // ── INICIALIZAR ────────────────────────────────────
+// ── PRECARGA DE DATOS DEL CLIENTE ──
+// 1. Desde el navegador (mismo dispositivo)
+try {
+  const guardado = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
+  if (guardado.nombre)    document.getElementById("pedNombre").value    = guardado.nombre;
+  if (guardado.celular)   document.getElementById("pedCelular").value   = guardado.celular;
+  if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
+} catch(e) {}
+
+// 2. Al escribir el celular (8+ dígitos), buscar en la BD y precargar nombre/dirección
+let timerCelular = null;
+document.getElementById("pedCelular").addEventListener("input", function() {
+  const cel = this.value.replace(/\D/g, "");
+  clearTimeout(timerCelular);
+  if (cel.length < 8) return;
+  timerCelular = setTimeout(async () => {
+    try {
+      const r = await fetch("/api/cliente/" + cel);
+      const d = await r.json();
+      if (d.existe) {
+        const inpNombre = document.getElementById("pedNombre");
+        const inpDir    = document.getElementById("pedDireccion");
+        if (!inpNombre.value.trim() && d.nombre)    inpNombre.value = d.nombre;
+        if (!inpDir.value.trim()    && d.direccion) inpDir.value    = d.direccion;
+      }
+    } catch(e) {}
+  }, 500);
+});
+
 cargarProductos();
 </script>
 </body>

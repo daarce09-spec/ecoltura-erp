@@ -78,6 +78,29 @@ def api_productos():
 # ─────────────────────────────────────────────
 #  API: ENVIAR PEDIDO
 # ─────────────────────────────────────────────
+#  API: BUSCAR CLIENTE POR CELULAR (precarga)
+# ─────────────────────────────────────────────
+@web_bp.route("/api/cliente/<celular>")
+def api_cliente_por_celular(celular):
+    """Si el celular ya existe, devuelve nombre y dirección para precargar el formulario."""
+    celular = celular.strip()
+    if len(celular) < 8:
+        return jsonify({"existe": False})
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT nombre, direccion FROM clientes WHERE celular = %s LIMIT 1",
+            (celular,)
+        )
+        row = cur.fetchone()
+
+    if row:
+        return jsonify({"existe": True, "nombre": row[0], "direccion": row[1] or ""})
+    return jsonify({"existe": False})
+
+
+# ─────────────────────────────────────────────
 @web_bp.route("/api/pedidos", methods=["POST"])
 def api_pedidos():
     """
@@ -99,40 +122,45 @@ def api_pedidos():
     """
     data = request.get_json(force=True)
 
-    nombre  = (data.get("nombre")  or "").strip()
-    cedula  = (data.get("cedula")  or "").strip()
-    celular = (data.get("celular") or "").strip()
-    notas   = (data.get("notas")   or "").strip()
-    items   = data.get("items", [])
+    nombre    = (data.get("nombre")    or "").strip()
+    celular   = (data.get("celular")   or "").strip()
+    direccion = (data.get("direccion") or "").strip()
+    notas     = (data.get("notas")     or "").strip()
+    items     = data.get("items", [])
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
+    if not direccion:
+        return jsonify({"ok": False, "error": "La dirección de entrega es obligatoria."}), 400
     if not items:
         return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
 
     with obtener_conexion() as conn:
         cur = conn.cursor()
 
-        # 1. Buscar o crear cliente
+        # 1. Buscar o crear cliente — MATCH POR CELULAR
         cliente_id = None
-        if cedula:
-            cur.execute("SELECT id FROM clientes WHERE cedula = %s LIMIT 1", (cedula,))
-            row = cur.fetchone()
-            if row:
-                cliente_id = row[0]
-                # Actualizar celular por si cambió
-                cur.execute("UPDATE clientes SET celular=%s WHERE id=%s", (celular, cliente_id))
-            else:
-                # Crear cliente nuevo (sin modelo de venta definido)
-                cur.execute("""
-                    INSERT INTO clientes
-                        (nombre, cedula, celular, direccion,
-                         cliente_feria, cliente_domicilio,
-                         cliente_suscripcion, cliente_sin_modelo_venta)
-                    VALUES (%s, %s, %s, '', FALSE, FALSE, FALSE, FALSE)
-                    RETURNING id
-                """, (nombre, cedula, celular))
-                cliente_id = cur.fetchone()[0]
+        cur.execute("SELECT id FROM clientes WHERE celular = %s LIMIT 1", (celular,))
+        row = cur.fetchone()
+        if row:
+            cliente_id = row[0]
+            # Actualizar nombre y dirección con los datos más recientes
+            cur.execute(
+                "UPDATE clientes SET nombre=%s, direccion=%s WHERE id=%s",
+                (nombre, direccion, cliente_id)
+            )
+        else:
+            # Cliente nuevo desde la web: cédula vacía (se completa luego desde el app),
+            # marcado como cliente_domicilio = TRUE (la web siempre es entrega a domicilio)
+            cur.execute("""
+                INSERT INTO clientes
+                    (nombre, cedula, celular, direccion,
+                     cliente_feria, cliente_domicilio,
+                     cliente_suscripcion, cliente_sin_modelo_venta)
+                VALUES (%s, '', %s, %s, FALSE, TRUE, FALSE, FALSE)
+                RETURNING id
+            """, (nombre, celular, direccion))
+            cliente_id = cur.fetchone()[0]
 
         # 2. Calcular total estimado y validar precios
         producto_ids = [i["producto_id"] for i in items]
@@ -147,13 +175,14 @@ def api_pedidos():
 
         total = sum(precios[i["producto_id"]] * float(i["cantidad"]) for i in items)
 
-        # 3. Insertar pedido
+        # 3. Insertar pedido (la dirección va en notas para que el admin la vea)
+        notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
         cur.execute("""
             INSERT INTO pedidos
                 (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado)
-            VALUES (%s, %s, %s, %s, %s, %s, 'Pendiente', NOW())
+            VALUES (%s, %s, '', %s, %s, %s, 'Pendiente', NOW())
             RETURNING id
-        """, (cliente_id, nombre, cedula, celular, notas, total))
+        """, (cliente_id, nombre, celular, notas_completa, total))
         pedido_id = cur.fetchone()[0]
 
         # 4. Insertar detalle
