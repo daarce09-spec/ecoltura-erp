@@ -62,19 +62,48 @@
     }
 
     .navbar { 
-      border-bottom: 3px solid var(--brand-lima);
+      border-bottom: 2px solid var(--brand-lima);
       background: #ffffff;
+      box-shadow: 0 2px 12px rgba(0,0,0,.05);
+      padding: 10px 0;
     }
 
     .navbar-brand { 
-      color: var(--brand-green) !important;
-      font-family: 'Montserrat', sans-serif;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
+      text-decoration: none;
     }
 
-    .navbar-logo { height: 36px; width: auto; }
+    .navbar-logo { height: 42px; width: auto; }
+
+    .brand-text { display: flex; flex-direction: column; line-height: 1; }
+    .brand-name {
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700; font-size: 1.15rem; letter-spacing: 2.5px;
+      color: var(--brand-green-dark); text-transform: uppercase;
+    }
+    .brand-sub {
+      font-size: .52rem; letter-spacing: 1.4px; color: var(--brand-lima);
+      font-weight: 700; text-transform: uppercase; margin-top: 2px;
+    }
+
+    .btn-volver-menu {
+      width: 42px; height: 42px; border-radius: 12px;
+      background: var(--brand-bg); border: 1.5px solid rgba(62,107,34,.12);
+      display: flex; align-items: center; justify-content: center;
+      color: var(--brand-green); font-size: 1.2rem; text-decoration: none;
+      transition: all .2s ease;
+    }
+    .btn-volver-menu:hover {
+      background: var(--brand-green); color: white; border-color: var(--brand-green);
+    }
+
+    @media (max-width: 480px) {
+      .brand-name { font-size: .95rem; letter-spacing: 1.5px; }
+      .brand-sub { font-size: .45rem; }
+      .navbar-logo { height: 36px; }
+    }
   </style>
 </head>
 
@@ -92,10 +121,17 @@
     </div>
   </div>
 
-  <nav class="navbar navbar-expand-lg sticky-top shadow-sm">
-    <div class="container">
-      <a class="navbar-brand fw-bold" href="{{ url_for('menu') }}">
+  <nav class="navbar sticky-top">
+    <div class="container-fluid px-3 px-md-4">
+      <a class="navbar-brand" href="{{ url_for('menu') }}">
         <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="navbar-logo" alt="ECOLTURA">
+        <div class="brand-text">
+          <span class="brand-name">ECOLTURA</span>
+          <span class="brand-sub">Productos Orgánicos &amp; Lácteos</span>
+        </div>
+      </a>
+      <a href="{{ url_for('menu') }}" class="btn-volver-menu" title="Volver al menú">
+        <i class="bi bi-grid-3x3-gap-fill"></i>
       </a>
     </div>
   </nav>
