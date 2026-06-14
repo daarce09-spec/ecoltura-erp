@@ -166,7 +166,10 @@
     .chip:hover { color: var(--negro); }
 
     /* Tarjetas de producto */
-    .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(185px,1fr)); gap: 20px; }
+    .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 20px; }
+    @media (max-width: 600px) {
+      .grid-prod { grid-template-columns: 1fr 1fr; gap: 12px; }
+    }
     .prod { display: flex; flex-direction: column; cursor: default; }
     .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
                 background: linear-gradient(165deg, #E9E7DC, #C9CEB2 70%);
