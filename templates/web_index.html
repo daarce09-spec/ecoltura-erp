@@ -168,7 +168,12 @@
     /* Tarjetas de producto */
     .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 20px; }
     @media (max-width: 600px) {
-      .grid-prod { grid-template-columns: 1fr 1fr; gap: 12px; }
+      .grid-prod { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+      .prod-img { aspect-ratio: 1/1; }
+      .prod h4 { font-size: .88rem; }
+      .prod .unidad { font-size: .7rem; }
+      .precio { font-size: .85rem; }
+      .agregar { padding: 6px 12px; font-size: .68rem; }
     }
     .prod { display: flex; flex-direction: column; cursor: default; }
     .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
