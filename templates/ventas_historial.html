@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+{% block title %}Historial de Ventas{% endblock %}
+{% block content %}
+
+<style>
+  .filtro-card { background:white; border-radius:16px; padding:20px 24px;
+                 box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; margin-bottom:20px; }
+  .venta-row { transition: background .15s; }
+  .venta-row:hover { background:#f8faf9; }
+  .badge-estado { font-size:.72rem; padding:4px 10px; border-radius:999px; font-weight:700; }
+  .badge-Facturado { background:#D1E7DD; color:#0A4A2A; }
+  .badge-Anulado   { background:#F8D7DA; color:#842029; }
+  .resumen-chip { background:#f0f7f0; border-radius:12px; padding:14px 20px; display:inline-block; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332">
+      <i class="bi bi-clock-history me-2"></i>Historial de Ventas
+    </h2>
+    <small class="text-muted">Consulte ventas pasadas y reenvíe comprobantes</small>
+  </div>
+  <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="btn btn-outline-secondary btn-sm">← Ventas</a>
+</div>
+
+<!-- FILTROS -->
+<div class="filtro-card">
+  <form method="GET" action="{{ url_for('ventas_bp.ventas_historial') }}">
+    <div class="row g-3 align-items-end">
+      <div class="col-md-3">
+        <label class="form-label fw-bold small">Desde</label>
+        <input type="date" name="desde" class="form-control" value="{{ f_desde }}">
+      </div>
+      <div class="col-md-3">
+        <label class="form-label fw-bold small">Hasta</label>
+        <input type="date" name="hasta" class="form-control" value="{{ f_hasta }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-bold small"># Venta</label>
+        <input type="number" name="venta_id" class="form-control" placeholder="Ej: 332" value="{{ f_venta }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label fw-bold small">Cliente</label>
+        <input type="text" name="cliente" class="form-control" placeholder="Nombre o cédula" value="{{ f_cliente }}">
+      </div>
+      <div class="col-md-2 d-flex gap-2">
+        <button type="submit" class="btn btn-success fw-bold flex-grow-1">
+          <i class="bi bi-search"></i> Filtrar
+        </button>
+        <a href="{{ url_for('ventas_bp.ventas_historial') }}" class="btn btn-outline-secondary" title="Limpiar">
+          <i class="bi bi-x-lg"></i>
+        </a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- RESUMEN -->
+<div class="mb-3 d-flex gap-3 flex-wrap">
+  <div class="resumen-chip">
+    <span class="text-muted small">Ventas encontradas</span>
+    <div class="fw-bold fs-5" style="color:#1b4332">{{ total_ventas }}</div>
+  </div>
+  <div class="resumen-chip">
+    <span class="text-muted small">Monto total</span>
+    <div class="fw-bold fs-5" style="color:#2d6a4f">₡{{ "{:,.0f}".format(suma_total) }}</div>
+  </div>
+</div>
+
+<!-- TABLA -->
+<div class="card shadow-sm">
+  <div class="card-body p-0">
+    {% if not ventas %}
+    <div class="text-center text-muted py-5">
+      <i class="bi bi-inbox" style="font-size:3rem"></i>
+      <p class="mt-3">No se encontraron ventas con esos filtros.</p>
+    </div>
+    {% else %}
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>#</th>
+            <th>Fecha</th>
+            <th>Cliente</th>
+            <th class="text-end">Total</th>
+            <th class="text-center">Estado</th>
+            <th class="text-end">Comprobante</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for v in ventas %}
+          <tr class="venta-row">
+            <td class="fw-bold">#{{ v[0] }}</td>
+            <td>{{ v[1].strftime('%d/%m/%Y %I:%M %p') }}</td>
+            <td>{{ v[5] }}</td>
+            <td class="text-end fw-bold" style="color:#2d6a4f">₡{{ "{:,.0f}".format(v[2]) }}</td>
+            <td class="text-center">
+              <span class="badge-estado badge-{{ v[4] }}">{{ v[4] }}</span>
+            </td>
+            <td class="text-end">
+              <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=v[0]) }}"
+                 class="btn btn-sm btn-success fw-bold">
+                <i class="bi bi-receipt me-1"></i>Ver / Enviar
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% if ventas|length == 200 %}
+  <div class="card-footer text-muted small text-center">
+    Mostrando las primeras 200 ventas. Use los filtros para acotar la búsqueda.
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

@@ -19,8 +19,8 @@
 
     .ventas-grid {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 30px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
         margin-top: 40px;
     }
 
@@ -53,7 +53,12 @@
         font-weight: 700;
     }
 
-    @media(max-width: 700px) {
+    @media(max-width: 900px) {
+        .ventas-grid {
+            grid-template-columns: 1fr 1fr;
+        }
+    }
+    @media(max-width: 560px) {
         .ventas-grid {
             grid-template-columns: 1fr;
         }
@@ -76,6 +81,12 @@
         <a href="{{ url_for('ventas_bp.anular_venta') }}" class="ventas-card">
             <i class="bi bi-x-circle ventas-icon"></i>
             <div class="ventas-name">Anular venta</div>
+        </a>
+
+        <!-- HISTORIAL DE VENTAS -->
+        <a href="{{ url_for('ventas_bp.ventas_historial') }}" class="ventas-card">
+            <i class="bi bi-clock-history ventas-icon"></i>
+            <div class="ventas-name">Historial de ventas</div>
         </a>
 
     </div>

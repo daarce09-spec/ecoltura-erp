@@ -13,6 +13,7 @@ from modulos.ventas_menu import ventas_bp
 import modulos.ventas_registrar
 import modulos.ventas_anular
 import modulos.ventas_ticket
+import modulos.ventas_historial
 
 # ── Web pública ──
 from modulos.web_publica import web_bp
