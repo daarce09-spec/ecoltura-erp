@@ -99,7 +99,7 @@
     {% if venta.estado != 'Anulado' %}
     <button class="btn btn-wa" id="btnEnviarWA" style="display:none" onclick="enviarWhatsApp()">💬 Enviar por WhatsApp</button>
     {% endif %}
-    <a class="btn btn-sec" href="{{ url_for('menu') }}">Volver al menú</a>
+    <button class="btn btn-sec" onclick="volverAtras()">← Volver</button>
   </div>
 
   <script>
@@ -138,6 +138,16 @@
     async function descargarComprobante() {
       try { descargarBlob(await generarImagen()); }
       catch (e) { console.error(e); alert("No se pudo generar el comprobante."); }
+    }
+
+    // Volver a la página anterior (historial, registrar venta, etc.)
+    // Si no hay historial previo (abierto directo), va al menú como respaldo
+    function volverAtras() {
+      if (document.referrer && document.referrer !== window.location.href) {
+        history.back();
+      } else {
+        window.location.href = "{{ url_for('menu') }}";
+      }
     }
 
     // Solo celular: imagen directa a WhatsApp vía hoja nativa
