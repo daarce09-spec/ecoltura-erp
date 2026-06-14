@@ -157,7 +157,7 @@ def api_pedidos():
                     (nombre, cedula, celular, direccion,
                      cliente_feria, cliente_domicilio,
                      cliente_suscripcion, cliente_sin_modelo_venta)
-                VALUES (%s, '', %s, %s, FALSE, TRUE, FALSE, FALSE)
+                VALUES (%s, NULL, %s, %s, FALSE, TRUE, FALSE, FALSE)
                 RETURNING id
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
