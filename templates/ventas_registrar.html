@@ -138,6 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
         if (texto.length < 2) { 
             lista.style.display = "none"; 
             hiddenId.value = "";
+            actualizarBotonGuardar();
             return; 
         }
         
@@ -155,6 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         inputCliente.value = c.nombre;
                         hiddenId.value = c.id;
                         lista.style.display = "none";
+                        actualizarBotonGuardar();
                     };
                     lista.appendChild(item);
                 });
@@ -289,7 +291,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     function actualizarBotonGuardar() {
         const filas = document.querySelectorAll("#tablaProductos tbody tr");
-        btnGuardarMain.disabled = (filas.length === 0) || (erroresStock.size > 0);
+        const sinCliente = !hiddenId.value;
+        btnGuardarMain.disabled = (filas.length === 0) || (erroresStock.size > 0) || sinCliente;
     }
 
     function actualizarTotal() {
@@ -313,9 +316,32 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- PROCESO DE GUARDADO ---
     form.addEventListener("submit", function(e){
         e.preventDefault();
-        if(document.querySelectorAll("#tablaProductos tbody tr").length === 0) {
+
+        // Validar cliente seleccionado
+        if (!hiddenId.value) {
+            return alert("Debe seleccionar un cliente de la lista.");
+        }
+
+        // Validar que haya productos
+        const filas = document.querySelectorAll("#tablaProductos tbody tr");
+        if (filas.length === 0) {
             return alert("Agregue al menos un producto.");
         }
+
+        // Validar que cada fila tenga un producto válido seleccionado
+        let filasValidas = 0;
+        for (const f of filas) {
+            if (f.querySelector(".producto-id").value) filasValidas++;
+        }
+        if (filasValidas === 0) {
+            return alert("Seleccione al menos un producto válido de la lista.");
+        }
+
+        // Validar que no haya errores de stock
+        if (erroresStock.size > 0) {
+            return alert("Hay productos que exceden el stock disponible. Corríjalos antes de guardar.");
+        }
+
         modalConfirmInstance = new bootstrap.Modal(document.getElementById("modalConfirmarGuardar"));
         modalConfirmInstance.show();
     });

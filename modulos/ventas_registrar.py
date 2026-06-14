@@ -9,7 +9,7 @@ from modulos.ventas_menu import ventas_bp
 # ============================================================
 @ventas_bp.route("/ventas/registrar")
 def registrar_venta():
-    hoy = (datetime.now() - timedelta(days=1)).strftime("%Y-%m-%d")
+    hoy = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d")
     return render_template("ventas_registrar.html", hoy=hoy)
 
 # ============================================================
@@ -93,12 +93,17 @@ def guardar_venta():
     try:
         cliente_id = request.form.get("cliente_id")
         cliente_id = int(cliente_id) if cliente_id and cliente_id.strip() != "" else None
-        
+
+        # VALIDACIÓN: cliente obligatorio
+        if cliente_id is None:
+            return jsonify({"status": "error", "message": "Debe seleccionar un cliente válido"}), 400
+
         fecha_hora_exacta = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
         lineas_raw = request.form.get("lineas", "")
 
+        # VALIDACIÓN: al menos un producto
         if not lineas_raw.strip():
-            return jsonify({"status": "error", "message": "No hay productos seleccionados"}), 400
+            return jsonify({"status": "error", "message": "Debe agregar al menos un producto"}), 400
 
         # Normalización de líneas
         lineas_procesadas = []
