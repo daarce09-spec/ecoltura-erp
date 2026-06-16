@@ -303,18 +303,29 @@
     .historia-larga p { margin-bottom: 15px; font-size: .96rem; }
     @media (max-width: 880px) { .historia-larga { grid-template-columns: 1fr; } }
 
-    /* Carrusel de fotos finca */
-    .carrusel { position: relative; overflow: hidden; }
-    .carrusel-track { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-    .cfoto { aspect-ratio: 4/3; overflow: hidden; position: relative;
+    /* Galería editorial de finca */
+    .galeria-finca { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .cfoto { overflow: hidden; position: relative; border-radius: 4px;
              background: linear-gradient(160deg, #E9E7DC, #BBC49C); }
     .cfoto img { width: 100%; height: 100%; object-fit: cover; display: block;
-                 transition: transform .6s ease; }
-    .cfoto:hover img { transform: scale(1.04); }
-    .cfoto.grande { grid-column: 1/-1; aspect-ratio: 16/7; }
-    .cfoto .etq { position: absolute; bottom: 10px; left: 10px; background: rgba(255,255,255,.88);
-                  color: var(--gris); font-size: .6rem; font-weight: 600; letter-spacing: .5px;
-                  padding: 4px 10px; }
+                 transition: transform .7s cubic-bezier(.2,.8,.2,1); }
+    .cfoto:hover img { transform: scale(1.05); }
+    /* Foto principal: ocupa ancho completo, formato apaisado tipo portada */
+    .cfoto.principal { grid-column: 1 / -1; aspect-ratio: 16 / 8; }
+    /* Dos fotos secundarias: cuadradas, lado a lado */
+    .cfoto.sec { aspect-ratio: 1 / 1; }
+    .cfoto .etq { position: absolute; bottom: 12px; left: 12px;
+                  background: rgba(26,66,38,.85); backdrop-filter: blur(4px);
+                  color: #fff; font-size: .62rem; font-weight: 600;
+                  letter-spacing: 1px; text-transform: uppercase;
+                  padding: 6px 12px; border-radius: 3px; }
+    /* Sutil gradiente sobre las fotos para dar profundidad */
+    .cfoto::after { content:''; position:absolute; inset:0;
+                    background: linear-gradient(to top, rgba(0,0,0,.12), transparent 45%);
+                    pointer-events:none; }
+    @media (max-width: 880px) {
+      .cfoto.principal { aspect-ratio: 16 / 9; }
+    }
 
     .semillas { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 28px; }
     .semilla { background: var(--crema); padding: 24px 22px; border-top: 2px solid var(--verde); }
@@ -531,12 +542,20 @@
         </div>
       </div>
       <div class="carrusel" id="carruselFinca">
-        <!-- Se llena con JS desde /api/fotos-finca o con imágenes estáticas -->
-        <div class="carrusel-track">
-          <div class="cfoto grande"><img src="/static/img/finca/foto1.jpg" onerror="this.style.display='none'" alt="La finca">
-            <span class="etq">La finca</span></div>
-          <div class="cfoto"><img src="/static/img/finca/foto2.jpg" onerror="this.style.display='none'" alt="Cosecha"></div>
-          <div class="cfoto"><img src="/static/img/finca/foto3.jpg" onerror="this.style.display='none'" alt="Lácteos"></div>
+        <!-- Galería editorial: 1 foto principal + 2 secundarias -->
+        <div class="galeria-finca">
+          <div class="cfoto principal">
+            <img src="/static/img/finca/hero.jpg" onerror="this.style.display='none'" alt="Cultivos de la finca">
+            <span class="etq">Nuestros cultivos</span>
+          </div>
+          <div class="cfoto sec">
+            <img src="/static/img/finca/foto1.jpg" onerror="this.style.display='none'" alt="La huerta">
+            <span class="etq">La huerta</span>
+          </div>
+          <div class="cfoto sec">
+            <img src="/static/img/finca/foto2.jpg" onerror="this.style.display='none'" alt="Trabajo en la finca">
+            <span class="etq">El invernadero</span>
+          </div>
         </div>
       </div>
     </div>
