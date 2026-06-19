@@ -147,10 +147,22 @@
     .franja h2 { font-family: 'Fraunces', serif; font-size: clamp(1.6rem,3vw,2.3rem);
                  margin-top: 6px; color: var(--negro); font-weight: 400; }
     .franja .sub { font-size: .9rem; color: var(--gris); max-width: 52ch; margin-top: 6px; }
-    .buscador-wrap input { width: 280px; max-width: 100%; padding: 11px 15px;
-                           border: 1px solid var(--borde); font-family: 'Inter'; font-size: .92rem;
-                           background: var(--crema); outline: none; }
+    .buscador-wrap input { width: 240px; max-width: 100%; padding: 10px 15px;
+                           border: 1px solid var(--borde); border-radius: 999px;
+                           font-family: 'Inter'; font-size: .9rem;
+                           background: var(--blanco); outline: none; }
     .buscador-wrap input:focus { border-color: var(--verde); }
+
+    /* Barra de filtros: categorías + buscador en una línea */
+    .barra-filtros { display: flex; justify-content: space-between; align-items: center;
+                     gap: 16px; margin-bottom: 26px; border-bottom: 1px solid var(--borde);
+                     flex-wrap: wrap; }
+    .barra-filtros .chips { margin-bottom: 0; border-bottom: none; flex: 1; }
+    .barra-filtros .buscador-wrap { padding-bottom: 8px; }
+    @media (max-width: 600px) {
+      .barra-filtros { flex-direction: column; align-items: stretch; }
+      .barra-filtros .buscador-wrap input { width: 100%; }
+    }
 
     /* Grid tienda */
     .tienda { max-width: 1160px; margin: 0 auto; padding: 28px 24px 120px;
@@ -445,9 +457,6 @@
           recién cosechado y le contactamos para coordinar la entrega.
           El pago se realiza al recibir en efectivo o SINPE Móvil.</div>
       </div>
-      <div class="buscador-wrap">
-        <input type="text" id="buscar" placeholder="Buscar producto" oninput="renderProductos()">
-      </div>
     </div>
   </div>
 
@@ -472,7 +481,13 @@
                 cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
       </div>
 
-      <div class="chips" id="chips"></div>
+      <!-- Barra de filtros: categorías + buscador juntos -->
+      <div class="barra-filtros">
+        <div class="chips" id="chips"></div>
+        <div class="buscador-wrap">
+          <input type="text" id="buscar" placeholder="🔍 Buscar producto" oninput="renderProductos()">
+        </div>
+      </div>
       <div class="grid-prod" id="gridProductos">
         <div class="cargando-prod">Cargando la cosecha del día...</div>
       </div>
