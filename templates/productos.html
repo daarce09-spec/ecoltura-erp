@@ -19,6 +19,12 @@
   {% endfor %}
 {% endwith %}
 
+<!-- Buscador -->
+<div class="mb-3">
+  <input type="text" id="buscadorProd" class="form-control"
+         placeholder="🔍 Buscar producto por nombre...">
+</div>
+
 <div class="card shadow-sm">
   <div class="card-body p-0">
     <div class="table-responsive">
@@ -36,9 +42,9 @@
             <th></th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="tablaProductos">
           {% for p in productos %}
-          <tr>
+          <tr data-nombre="{{ p[1]|lower }}">
             <td class="fw-bold">{{ p[1] }}</td>
             <td>
               <span class="badge bg-light text-dark border">{{ p[2] or '—' }}</span>
@@ -58,9 +64,13 @@
             </td>
 
             <td class="text-end">
-              <button class="btn btn-sm btn-outline-secondary"
-                      data-bs-toggle="modal"
-                      data-bs-target="#modalEditar{{ p[0] }}">
+              <button class="btn btn-sm btn-outline-secondary btn-editar"
+                      data-id="{{ p[0] }}"
+                      data-nombre="{{ p[1] }}"
+                      data-categoria="{{ p[2] or '' }}"
+                      data-unidad="{{ p[3] }}"
+                      data-precio="{{ p[4] }}"
+                      data-action="{{ url_for('productos_bp.editar_producto', id=p[0]) }}">
                 <i class="bi bi-pencil"></i>
               </button>
               <form method="POST"
@@ -73,44 +83,6 @@
               </form>
             </td>
           </tr>
-
-          <!-- Modal editar -->
-          <div class="modal fade" id="modalEditar{{ p[0] }}" tabindex="-1">
-            <div class="modal-dialog modal-dialog-centered">
-              <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                  <h5 class="modal-title fw-bold">Editar producto</h5>
-                  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                </div>
-                <form method="POST" action="{{ url_for('productos_bp.editar_producto', id=p[0]) }}">
-                  <div class="modal-body">
-                    <div class="mb-3">
-                      <label class="form-label fw-bold">Nombre</label>
-                      <input type="text" name="nombre_edit" class="form-control" value="{{ p[1] }}" required>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label fw-bold">Categoría</label>
-                      <input type="text" name="categoria_edit" class="form-control" value="{{ p[2] or '' }}">
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label fw-bold">Unidad</label>
-                      <input type="text" name="unidad_edit" class="form-control" value="{{ p[3] }}" required>
-                    </div>
-                    <div class="mb-3">
-                      <label class="form-label fw-bold">Precio (₡)</label>
-                      <input type="number" name="precio_edit" class="form-control"
-                             value="{{ p[4] }}" step="0.01" min="0" required>
-                    </div>
-                  </div>
-                  <div class="modal-footer">
-                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-success fw-bold px-4">Guardar cambios</button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          </div>
-
           {% endfor %}
         </tbody>
       </table>
@@ -118,6 +90,43 @@
   </div>
   <div class="card-footer text-muted small">
     {{ productos|length }} productos · El switch <i class="bi bi-globe"></i> controla si el producto aparece en la tienda web pública.
+  </div>
+</div>
+
+<!-- ===== UN SOLO Modal editar (se llena dinámicamente) ===== -->
+<div class="modal fade" id="modalEditar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold">Editar producto</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formEditar">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label fw-bold">Nombre</label>
+            <input type="text" name="nombre_edit" id="edit_nombre" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Categoría</label>
+            <input type="text" name="categoria_edit" id="edit_categoria" class="form-control">
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Unidad</label>
+            <input type="text" name="unidad_edit" id="edit_unidad" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label fw-bold">Precio (₡)</label>
+            <input type="number" name="precio_edit" id="edit_precio" class="form-control"
+                   step="0.01" min="0" required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success fw-bold px-4">Guardar cambios</button>
+        </div>
+      </form>
+    </div>
   </div>
 </div>
 
@@ -158,7 +167,31 @@
 </div>
 
 <script>
-// Toggle visible_web con AJAX — sin recargar la página
+// ===== Llenar el modal único al hacer clic en editar =====
+var modalEditar = new bootstrap.Modal(document.getElementById('modalEditar'));
+var formEditar = document.getElementById('formEditar');
+
+document.querySelectorAll('.btn-editar').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.getElementById('edit_nombre').value    = this.dataset.nombre;
+    document.getElementById('edit_categoria').value = this.dataset.categoria;
+    document.getElementById('edit_unidad').value    = this.dataset.unidad;
+    document.getElementById('edit_precio').value    = this.dataset.precio;
+    formEditar.action = this.dataset.action;   // URL exacta generada por Flask
+    modalEditar.show();
+  });
+});
+
+// ===== Buscador en vivo =====
+document.getElementById('buscadorProd').addEventListener('input', function() {
+  var texto = this.value.toLowerCase().trim();
+  document.querySelectorAll('#tablaProductos tr').forEach(function(fila) {
+    var nombre = fila.dataset.nombre || '';
+    fila.style.display = nombre.includes(texto) ? '' : 'none';
+  });
+});
+
+// ===== Toggle visible_web con AJAX =====
 document.querySelectorAll('.toggle-web').forEach(function(chk) {
   chk.addEventListener('change', function() {
     var id = this.dataset.id;
@@ -169,7 +202,6 @@ document.querySelectorAll('.toggle-web').forEach(function(chk) {
         self.title = data.visible_web ? 'Visible en web' : 'Oculto en web';
       })
       .catch(function() {
-        // Revertir si hay error
         self.checked = !self.checked;
         alert('Error al actualizar. Intente de nuevo.');
       });
