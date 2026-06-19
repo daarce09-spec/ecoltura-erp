@@ -65,6 +65,7 @@
 
             <td class="text-end">
               <button class="btn btn-sm btn-outline-secondary btn-editar"
+                      data-bs-toggle="modal" data-bs-target="#modalEditar"
                       data-id="{{ p[0] }}"
                       data-nombre="{{ p[1] }}"
                       data-categoria="{{ p[2] or '' }}"
@@ -167,45 +168,49 @@
 </div>
 
 <script>
-// ===== Llenar el modal único al hacer clic en editar =====
-var modalEditar = new bootstrap.Modal(document.getElementById('modalEditar'));
-var formEditar = document.getElementById('formEditar');
+document.addEventListener('DOMContentLoaded', function() {
 
-document.querySelectorAll('.btn-editar').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    document.getElementById('edit_nombre').value    = this.dataset.nombre;
-    document.getElementById('edit_categoria').value = this.dataset.categoria;
-    document.getElementById('edit_unidad').value    = this.dataset.unidad;
-    document.getElementById('edit_precio').value    = this.dataset.precio;
-    formEditar.action = this.dataset.action;   // URL exacta generada por Flask
-    modalEditar.show();
+  // ===== Editar: llenar el modal único al hacer clic =====
+  // Bootstrap abre el modal solo (data-bs-toggle). Aquí solo llenamos los datos.
+  document.querySelectorAll('.btn-editar').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.getElementById('edit_nombre').value    = this.getAttribute('data-nombre');
+      document.getElementById('edit_categoria').value = this.getAttribute('data-categoria');
+      document.getElementById('edit_unidad').value    = this.getAttribute('data-unidad');
+      document.getElementById('edit_precio').value    = this.getAttribute('data-precio');
+      document.getElementById('formEditar').action    = this.getAttribute('data-action');
+    });
   });
-});
 
-// ===== Buscador en vivo =====
-document.getElementById('buscadorProd').addEventListener('input', function() {
-  var texto = this.value.toLowerCase().trim();
-  document.querySelectorAll('#tablaProductos tr').forEach(function(fila) {
-    var nombre = fila.dataset.nombre || '';
-    fila.style.display = nombre.includes(texto) ? '' : 'none';
-  });
-});
-
-// ===== Toggle visible_web con AJAX =====
-document.querySelectorAll('.toggle-web').forEach(function(chk) {
-  chk.addEventListener('change', function() {
-    var id = this.dataset.id;
-    var self = this;
-    fetch('/productos/toggle-web/' + id, { method: 'POST' })
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        self.title = data.visible_web ? 'Visible en web' : 'Oculto en web';
-      })
-      .catch(function() {
-        self.checked = !self.checked;
-        alert('Error al actualizar. Intente de nuevo.');
+  // ===== Buscador en vivo =====
+  var buscador = document.getElementById('buscadorProd');
+  if (buscador) {
+    buscador.addEventListener('input', function() {
+      var texto = this.value.toLowerCase().trim();
+      document.querySelectorAll('#tablaProductos tr').forEach(function(fila) {
+        var nombre = fila.getAttribute('data-nombre') || '';
+        fila.style.display = nombre.indexOf(texto) !== -1 ? '' : 'none';
       });
+    });
+  }
+
+  // ===== Toggle visible_web con AJAX =====
+  document.querySelectorAll('.toggle-web').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var id = this.dataset.id;
+      var self = this;
+      fetch('/productos/toggle-web/' + id, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          self.title = data.visible_web ? 'Visible en web' : 'Oculto en web';
+        })
+        .catch(function() {
+          self.checked = !self.checked;
+          alert('Error al actualizar. Intente de nuevo.');
+        });
+    });
   });
+
 });
 </script>
 
