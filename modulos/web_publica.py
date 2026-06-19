@@ -82,22 +82,71 @@ def api_productos():
 # ─────────────────────────────────────────────
 @web_bp.route("/api/cliente/<celular>")
 def api_cliente_por_celular(celular):
-    """Si el celular ya existe, devuelve nombre y dirección para precargar el formulario."""
+    """Si el celular ya existe, devuelve nombre, dirección Y su última compra
+    (solo productos que sigan visibles y con stock) para precargar y sugerir repetir."""
     celular = celular.strip()
     if len(celular) < 8:
         return jsonify({"existe": False})
 
     with obtener_conexion() as conn:
         cur = conn.cursor()
+
+        # 1. Datos del cliente
         cur.execute(
-            "SELECT nombre, direccion FROM clientes WHERE celular = %s LIMIT 1",
+            "SELECT id, nombre, direccion FROM clientes WHERE celular = %s LIMIT 1",
             (celular,)
         )
         row = cur.fetchone()
+        if not row:
+            return jsonify({"existe": False})
 
-    if row:
-        return jsonify({"existe": True, "nombre": row[0], "direccion": row[1] or ""})
-    return jsonify({"existe": False})
+        cliente_id, nombre, direccion = row[0], row[1], row[2] or ""
+
+        # 2. Productos de su última compra — solo visibles en web y con stock disponible
+        cur.execute("""
+            SELECT p.id, p.nombre, p.unidad, p.precio, d.cantidad,
+                   (
+                       (SELECT COALESCE(SUM(cantidad),0) FROM inventario_movimientos
+                        WHERE producto_id = p.id AND tipo = 'C')
+                       -
+                       (SELECT COALESCE(SUM(CASE WHEN tipo='F' THEN cantidad
+                                                 WHEN tipo='A' THEN -cantidad ELSE 0 END),0)
+                        FROM inventario_movimientos WHERE producto_id = p.id)
+                   ) AS stock
+            FROM ventas v
+            JOIN ventas_detalle d ON d.venta_id = v.id
+            JOIN productos p      ON p.id = d.producto_id
+            WHERE v.cliente_id = %s
+              AND v.estado != 'Anulado'
+              AND p.visible_web = TRUE
+              AND v.id = (
+                  SELECT v2.id FROM ventas v2
+                  WHERE v2.cliente_id = %s AND v2.estado != 'Anulado'
+                  ORDER BY v2.fecha_venta DESC, v2.id DESC
+                  LIMIT 1
+              )
+            ORDER BY p.nombre
+        """, (cliente_id, cliente_id))
+
+        ultima_compra = []
+        for r in cur.fetchall():
+            stock = float(r[5] or 0)
+            if stock > 0:   # solo productos que aún se pueden comprar
+                ultima_compra.append({
+                    "id": r[0],
+                    "nombre": r[1],
+                    "unidad": r[2],
+                    "precio": float(r[3]),
+                    "cantidad": float(r[4]),
+                    "stock": stock
+                })
+
+    return jsonify({
+        "existe": True,
+        "nombre": nombre,
+        "direccion": direccion,
+        "ultima_compra": ultima_compra
+    })
 
 
 # ─────────────────────────────────────────────

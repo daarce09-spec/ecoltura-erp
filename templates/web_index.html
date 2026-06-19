@@ -453,6 +453,25 @@
 
   <div class="tienda">
     <div>
+      <!-- Banner: repetir última compra -->
+      <div id="bannerRepetir" style="display:none; background:linear-gradient(135deg,#f0f7e8,#e3f0d3);
+           border:1.5px solid var(--lima); border-radius:16px; padding:18px 20px; margin-bottom:18px;
+           display:none; align-items:center; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <div class="rep-titulo" style="font-family:'Fraunces',serif; font-size:1.15rem;
+               color:var(--verde-os); font-weight:600;">¡Hola de nuevo! 🌱</div>
+          <div class="rep-detalle" style="font-size:.85rem; color:var(--gris); margin-top:3px;"></div>
+        </div>
+        <button onclick="repetirUltimaCompra()" style="background:var(--verde); color:#fff; border:none;
+                border-radius:10px; padding:12px 22px; font-weight:600; font-size:.92rem; cursor:pointer;
+                white-space:nowrap;">
+          ↻ Repetir compra
+        </button>
+        <button onclick="document.getElementById('bannerRepetir').style.display='none'"
+                style="background:transparent; border:none; color:var(--gris); font-size:1.3rem;
+                cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
+      </div>
+
       <div class="chips" id="chips"></div>
       <div class="grid-prod" id="gridProductos">
         <div class="cargando-prod">Cargando la cosecha del día...</div>
@@ -931,11 +950,13 @@ document.addEventListener("keydown", e => {
 // ── INICIALIZAR ────────────────────────────────────
 // ── PRECARGA DE DATOS DEL CLIENTE ──
 // 1. Desde el navegador (mismo dispositivo)
+let celularRecordado = "";
 try {
   const guardado = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
   if (guardado.nombre)    document.getElementById("pedNombre").value    = guardado.nombre;
   if (guardado.celular)   document.getElementById("pedCelular").value   = guardado.celular;
   if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
+  if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
 } catch(e) {}
 
 // 2. Al escribir el celular (8+ dígitos), buscar en la BD y precargar nombre/dirección
@@ -944,21 +965,59 @@ document.getElementById("pedCelular").addEventListener("input", function() {
   const cel = this.value.replace(/\D/g, "");
   clearTimeout(timerCelular);
   if (cel.length < 8) return;
-  timerCelular = setTimeout(async () => {
-    try {
-      const r = await fetch("/api/cliente/" + cel);
-      const d = await r.json();
-      if (d.existe) {
-        const inpNombre = document.getElementById("pedNombre");
-        const inpDir    = document.getElementById("pedDireccion");
-        if (!inpNombre.value.trim() && d.nombre)    inpNombre.value = d.nombre;
-        if (!inpDir.value.trim()    && d.direccion) inpDir.value    = d.direccion;
-      }
-    } catch(e) {}
-  }, 500);
+  timerCelular = setTimeout(() => consultarCliente(cel), 500);
 });
 
+// Consulta el cliente por celular: precarga datos + sugiere repetir última compra
+async function consultarCliente(cel) {
+  try {
+    const r = await fetch("/api/cliente/" + cel);
+    const d = await r.json();
+    if (d.existe) {
+      const inpNombre = document.getElementById("pedNombre");
+      const inpDir    = document.getElementById("pedDireccion");
+      if (!inpNombre.value.trim() && d.nombre)    inpNombre.value = d.nombre;
+      if (!inpDir.value.trim()    && d.direccion) inpDir.value    = d.direccion;
+      // Mostrar sugerencia de repetir si tiene última compra
+      if (d.ultima_compra && d.ultima_compra.length > 0) {
+        mostrarRepetir(d.nombre, d.ultima_compra);
+      }
+    }
+  } catch(e) {}
+}
+
+// Guarda la última compra para el botón repetir
+let ultimaCompraGuardada = [];
+
+function mostrarRepetir(nombre, items) {
+  ultimaCompraGuardada = items;
+  const cont = document.getElementById("bannerRepetir");
+  if (!cont) return;
+  const primerNombre = (nombre || "").split(" ")[0];
+  const listaTexto = items.map(i => i.nombre).join(", ");
+  cont.querySelector(".rep-titulo").textContent = "¡Hola de nuevo, " + primerNombre + "! 🌱";
+  cont.querySelector(".rep-detalle").textContent = "Su última compra: " + listaTexto;
+  cont.style.display = "block";
+}
+
+function repetirUltimaCompra() {
+  ultimaCompraGuardada.forEach(item => {
+    // Cargar la cantidad de la última vez (respetando stock disponible)
+    const cant = Math.min(item.cantidad, item.stock);
+    if (cant > 0) pedido[item.id] = cant;
+  });
+  renderProductos();
+  renderResumen();
+  document.getElementById("bannerRepetir").style.display = "none";
+  // Llevar al resumen del pedido
+  document.getElementById("resumen").scrollIntoView({ behavior: "smooth" });
+}
+
 cargarProductos();
-</script>
+
+// Si el navegador recordaba el celular, consultar para sugerir repetir compra
+if (celularRecordado && celularRecordado.length >= 8) {
+  setTimeout(() => consultarCliente(celularRecordado), 800);
+}</script>
 </body>
 </html>
