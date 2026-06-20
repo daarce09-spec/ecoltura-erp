@@ -744,7 +744,14 @@ async function cargarProductos() {
 }
 
 function renderChips() {
-  const cats = ["Todos", ...new Set(PRODUCTOS.map(p => p.categoria))];
+  // Orden preferido de categorías; las no listadas van al final
+  const ordenPreferido = ["Verduras", "Frutas", "Hierbas", "Lácteos", "Huevos", "Miel", "Hongos", "Otros"];
+  const presentes = [...new Set(PRODUCTOS.map(p => p.categoria))];
+  const ordenadas = [
+    ...ordenPreferido.filter(c => presentes.includes(c)),
+    ...presentes.filter(c => !ordenPreferido.includes(c)).sort()
+  ];
+  const cats = ["Todos", ...ordenadas];
   document.getElementById("chips").innerHTML = cats.map(c =>
     `<button class="chip ${c === filtroCat ? 'activo' : ''}" onclick="cambiarFiltro('${c}')">${c}</button>`
   ).join("");
