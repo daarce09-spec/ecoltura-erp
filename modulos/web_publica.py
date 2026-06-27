@@ -93,8 +93,8 @@ def api_productos():
 # ─────────────────────────────────────────────
 @web_bp.route("/api/cliente/<celular>")
 def api_cliente_por_celular(celular):
-    """Si el celular ya existe, devuelve nombre, dirección Y su última compra
-    (solo productos que sigan visibles y con stock) para precargar y sugerir repetir."""
+    """Si el celular ya existe, devuelve nombre, dirección Y el historial combinado
+    de TODOS los clientes que comparten ese celular (familia que comparte teléfono)."""
     celular = celular.strip()
     if len(celular) < 8:
         return jsonify({"existe": False})
@@ -102,18 +102,21 @@ def api_cliente_por_celular(celular):
     with obtener_conexion() as conn:
         cur = conn.cursor()
 
-        # 1. Datos del cliente
+        # 1. Todos los clientes con ese celular (puede haber varios: familia)
         cur.execute(
-            "SELECT id, nombre, direccion FROM clientes WHERE celular = %s LIMIT 1",
+            "SELECT id, nombre, direccion FROM clientes WHERE celular = %s ORDER BY id",
             (celular,)
         )
-        row = cur.fetchone()
-        if not row:
+        clientes = cur.fetchall()
+        if not clientes:
             return jsonify({"existe": False})
 
-        cliente_id, nombre, direccion = row[0], row[1], row[2] or ""
+        ids = [c[0] for c in clientes]
+        # Nombre y dirección: usar el del registro más reciente (último id)
+        nombre    = clientes[-1][1]
+        direccion = clientes[-1][2] or ""
 
-        # 2. Productos de su última compra — solo visibles en web y con stock disponible
+        # 2. Última compra — la venta más reciente entre TODOS los registros del celular
         cur.execute("""
             SELECT p.id, p.nombre, p.unidad, p.precio, d.cantidad,
                    (
@@ -127,17 +130,17 @@ def api_cliente_por_celular(celular):
             FROM ventas v
             JOIN ventas_detalle d ON d.venta_id = v.id
             JOIN productos p      ON p.id = d.producto_id
-            WHERE v.cliente_id = %s
+            WHERE v.cliente_id = ANY(%s)
               AND v.estado != 'Anulado'
               AND p.visible_web = TRUE
               AND v.id = (
                   SELECT v2.id FROM ventas v2
-                  WHERE v2.cliente_id = %s AND v2.estado != 'Anulado'
+                  WHERE v2.cliente_id = ANY(%s) AND v2.estado != 'Anulado'
                   ORDER BY v2.fecha_venta DESC, v2.id DESC
                   LIMIT 1
               )
             ORDER BY p.nombre
-        """, (cliente_id, cliente_id))
+        """, (ids, ids))
 
         ultima_compra = []
         for r in cur.fetchall():
@@ -152,16 +155,18 @@ def api_cliente_por_celular(celular):
                     "stock": stock
                 })
 
-        # 3. Frecuencia de compra — IDs ordenados por cuántas veces los compró (todo el historial)
+        # 3. Frecuencia de compra — historial COMBINADO, solo productos visibles en web
         cur.execute("""
             SELECT d.producto_id, COUNT(DISTINCT v.id) AS veces
             FROM ventas v
             JOIN ventas_detalle d ON d.venta_id = v.id
-            WHERE v.cliente_id = %s
+            JOIN productos p      ON p.id = d.producto_id
+            WHERE v.cliente_id = ANY(%s)
               AND v.estado != 'Anulado'
+              AND p.visible_web = TRUE
             GROUP BY d.producto_id
-            ORDER BY veces DESC
-        """, (cliente_id,))
+            ORDER BY veces DESC, d.producto_id
+        """, (ids,))
         productos_frecuentes = [r[0] for r in cur.fetchall()]
 
     return jsonify({
