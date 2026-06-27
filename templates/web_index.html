@@ -759,14 +759,31 @@ function renderChips() {
 
 function cambiarFiltro(c) { filtroCat = c; renderChips(); renderProductos(); }
 
+// IDs de productos frecuentes del cliente (vacío si no hay cliente reconocido)
+let frecuentesCliente = [];
+
 const HOJA_SVG = `<svg viewBox="0 0 60 50" fill="#3E6B22"><path d="M30 46 C30 30 30 16 30 4 C36 14 36 32 30 46Z"/><path d="M30 46 C26 32 18 20 8 14 C12 28 20 40 30 46Z"/><path d="M30 46 C34 32 42 20 52 14 C48 28 40 40 30 46Z"/></svg>`;
 
 function renderProductos() {
   const q = (document.getElementById("buscar").value || "").toLowerCase().trim();
-  const lista = PRODUCTOS.filter(p =>
+  let lista = PRODUCTOS.filter(p =>
     (filtroCat === "Todos" || p.categoria === filtroCat) &&
     (!q || p.nombre.toLowerCase().includes(q))
   );
+
+  // Si hay cliente reconocido, poner sus productos frecuentes arriba (por frecuencia).
+  // El resto mantiene el orden original (categorías + alfabético de la consulta).
+  if (frecuentesCliente.length > 0) {
+    const orden = {};
+    frecuentesCliente.forEach((id, i) => { orden[id] = i; });
+    lista = [...lista].sort((a, b) => {
+      const ra = (a.id in orden) ? orden[a.id] : Infinity;
+      const rb = (b.id in orden) ? orden[b.id] : Infinity;
+      if (ra !== rb) return ra - rb;        // ambos frecuentes: por frecuencia
+      return 0;                              // ambos no-frecuentes: conserva orden original
+    });
+  }
+
   const grid = document.getElementById("gridProductos");
   if (lista.length === 0) {
     grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda en la cosecha de hoy.</div>';
@@ -999,6 +1016,11 @@ async function consultarCliente(cel) {
       // Al reconocer el cliente por celular, SIEMPRE actualizamos nombre y dirección
       if (d.nombre)    document.getElementById("pedNombre").value    = d.nombre;
       if (d.direccion) document.getElementById("pedDireccion").value = d.direccion;
+      // Personalizar el orden de la tienda con sus productos frecuentes
+      if (d.productos_frecuentes && d.productos_frecuentes.length > 0) {
+        frecuentesCliente = d.productos_frecuentes;
+        renderProductos();
+      }
       // Mostrar sugerencia de repetir si tiene última compra
       if (d.ultima_compra && d.ultima_compra.length > 0) {
         mostrarRepetir(d.nombre, d.ultima_compra);

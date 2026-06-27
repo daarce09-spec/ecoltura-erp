@@ -56,7 +56,18 @@ def api_productos():
                 ) AS stock_real
             FROM productos p
             WHERE p.visible_web = TRUE
-            ORDER BY p.categoria, p.nombre
+            ORDER BY
+                CASE p.categoria
+                    WHEN 'Verduras' THEN 1
+                    WHEN 'Frutas'   THEN 2
+                    WHEN 'Hierbas'  THEN 3
+                    WHEN 'Lácteos'  THEN 4
+                    WHEN 'Huevos'   THEN 5
+                    WHEN 'Miel'     THEN 6
+                    WHEN 'Hongos'   THEN 7
+                    ELSE 99
+                END,
+                p.nombre
         """)
         rows = cur.fetchall()
 
@@ -141,11 +152,24 @@ def api_cliente_por_celular(celular):
                     "stock": stock
                 })
 
+        # 3. Frecuencia de compra — IDs ordenados por cuántas veces los compró (todo el historial)
+        cur.execute("""
+            SELECT d.producto_id, COUNT(DISTINCT v.id) AS veces
+            FROM ventas v
+            JOIN ventas_detalle d ON d.venta_id = v.id
+            WHERE v.cliente_id = %s
+              AND v.estado != 'Anulado'
+            GROUP BY d.producto_id
+            ORDER BY veces DESC
+        """, (cliente_id,))
+        productos_frecuentes = [r[0] for r in cur.fetchall()]
+
     return jsonify({
         "existe": True,
         "nombre": nombre,
         "direccion": direccion,
-        "ultima_compra": ultima_compra
+        "ultima_compra": ultima_compra,
+        "productos_frecuentes": productos_frecuentes
     })
 
 
