@@ -1013,9 +1013,12 @@ async function consultarCliente(cel) {
     const r = await fetch("/api/cliente/" + cel);
     const d = await r.json();
     if (d.existe) {
-      // Al reconocer el cliente por celular, SIEMPRE actualizamos nombre y dirección
-      if (d.nombre)    document.getElementById("pedNombre").value    = d.nombre;
-      if (d.direccion) document.getElementById("pedDireccion").value = d.direccion;
+      // Solo rellenar desde la BD si el campo está vacío (respetar lo que ya
+      // tenga el cliente, sea del localStorage o escrito por él mismo)
+      const inpNombre = document.getElementById("pedNombre");
+      const inpDir    = document.getElementById("pedDireccion");
+      if (!inpNombre.value.trim() && d.nombre)    inpNombre.value = d.nombre;
+      if (!inpDir.value.trim()    && d.direccion) inpDir.value    = d.direccion;
       // Personalizar el orden de la tienda con sus productos frecuentes
       if (d.productos_frecuentes && d.productos_frecuentes.length > 0) {
         frecuentesCliente = d.productos_frecuentes;
@@ -1023,7 +1026,9 @@ async function consultarCliente(cel) {
       }
       // Mostrar sugerencia de repetir si tiene última compra
       if (d.ultima_compra && d.ultima_compra.length > 0) {
-        mostrarRepetir(d.nombre, d.ultima_compra);
+        // Usar el nombre que tenga el campo (localStorage) o el de la BD como respaldo
+        const nombreMostrar = inpNombre.value.trim() || d.nombre;
+        mostrarRepetir(nombreMostrar, d.ultima_compra);
       }
     }
   } catch(e) {}
