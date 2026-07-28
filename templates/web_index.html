@@ -764,11 +764,18 @@ let frecuentesCliente = [];
 
 const HOJA_SVG = `<svg viewBox="0 0 60 50" fill="#3E6B22"><path d="M30 46 C30 30 30 16 30 4 C36 14 36 32 30 46Z"/><path d="M30 46 C26 32 18 20 8 14 C12 28 20 40 30 46Z"/><path d="M30 46 C34 32 42 20 52 14 C48 28 40 40 30 46Z"/></svg>`;
 
+function normalizarTexto(texto) {
+  return (texto || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, ""); // quita tildes/acentos
+}
+
 function renderProductos() {
-  const q = (document.getElementById("buscar").value || "").toLowerCase().trim();
+  const q = normalizarTexto(document.getElementById("buscar").value).trim();
   let lista = PRODUCTOS.filter(p =>
     (filtroCat === "Todos" || p.categoria === filtroCat) &&
-    (!q || p.nombre.toLowerCase().includes(q))
+    (!q || normalizarTexto(p.nombre).includes(q))
   );
 
   // Si hay cliente reconocido, poner sus productos frecuentes arriba (por frecuencia).
