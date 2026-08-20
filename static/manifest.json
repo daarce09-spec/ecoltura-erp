@@ -8,9 +8,9 @@
   "theme_color": "#2d6a4f",
   "icons": [
     {
-      "src": "/static/img/apple-touch-icon.jpeg",
+      "src": "/static/img/apple-touch-icon.png",
       "sizes": "180x180",
-      "type": "image/jpeg"
+      "type": "image/png"
     },
     {
       "src": "/static/img/ecoltura-logo.png",
