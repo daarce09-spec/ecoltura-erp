@@ -20,6 +20,12 @@
                   cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
   .cliente-item:hover { background: #f8faf9; }
   .cliente-item.seleccionado { border-color: var(--brand-green); background: #f0f7f3; }
+  .tabla-masivo td { padding: 10px 8px; }
+  .tabla-masivo input[type="checkbox"]:disabled { opacity: .35; }
+  @media (max-width: 576px) {
+    .tabla-masivo td { padding: 8px 4px; font-size: .82rem; }
+    .card-eco { padding: 1rem !important; }
+  }
 </style>
 
 <div class="card card-eco shadow-sm p-4">
@@ -88,6 +94,7 @@
   <!-- SECCIÓN: ENVÍO MASIVO -->
   <div id="seccion-masivo" class="seccion">
     <button class="btn btn-verde-eco mb-3" onclick="generarMasivo()">Generar recordatorios de hoy</button>
+    <p class="small text-muted mb-2">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
     <div id="resultadoMasivo"></div>
   </div>
 
@@ -172,13 +179,14 @@ async function generarMasivo() {
     return;
   }
 
-  let html = '<div class="table-responsive"><table class="table align-middle"><thead><tr><th></th><th>Cliente</th><th>Mensaje</th><th>Notif.</th></tr></thead><tbody>';
+  let html = '<div class="table-responsive"><table class="table align-middle tabla-masivo"><tbody>';
   previewMasivo.forEach((item, i) => {
     html += `<tr>
-      <td><input type="checkbox" class="chk-masivo" data-idx="${i}" ${item.suscrito ? 'checked' : 'disabled'}></td>
-      <td>${item.nombre}</td>
-      <td class="small">${item.mensaje}</td>
-      <td>${item.suscrito ? '<span class="badge-si">✓</span>' : '<span class="badge-no">Sin activar</span>'}</td>
+      <td style="width:36px;"><input type="checkbox" class="chk-masivo" data-idx="${i}" ${item.suscrito ? 'checked' : 'disabled'}></td>
+      <td>
+        <div class="fw-bold small">${item.nombre} ${item.suscrito ? '<span class="badge-si">✓</span>' : '<span class="badge-no">Sin activar</span>'}</div>
+        <div class="small text-muted mt-1">${item.mensaje}</div>
+      </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
