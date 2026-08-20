@@ -7,7 +7,10 @@ from db.conexion import obtener_conexion
 
 push_bp = Blueprint("push_bp", __name__)
 
-VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY")
+# py_vapid.Vapid.from_string() espera SOLO el contenido base64 de la llave,
+# sin los encabezados "-----BEGIN/END PRIVATE KEY-----" — si se los pasamos,
+# los trata como parte del base64 y la llave queda corrupta.
+VAPID_PRIVATE_KEY = os.environ.get("VAPID_PRIVATE_KEY_B64")
 VAPID_PUBLIC_KEY = os.environ.get("VAPID_PUBLIC_KEY")
 VAPID_EMAIL = os.environ.get("VAPID_EMAIL", "mailto:info@ecoltura.local")
 
