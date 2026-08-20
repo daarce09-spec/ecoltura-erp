@@ -1148,6 +1148,14 @@ async function suscribirPush(cel) {
   }
   try {
     const reg = await navigator.serviceWorker.ready;
+
+    // Desuscribir cualquier suscripción previa (por ejemplo, si las llaves del
+    // servidor cambiaron desde la última vez) — así siempre queda limpio.
+    const existente = await reg.pushManager.getSubscription();
+    if (existente) {
+      await existente.unsubscribe();
+    }
+
     const keyRes = await fetch('/api/push/public-key');
     const { publicKey } = await keyRes.json();
     const sub = await reg.pushManager.subscribe({

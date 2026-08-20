@@ -210,6 +210,12 @@
       }
 
       const reg = await navigator.serviceWorker.ready;
+
+      const existente = await reg.pushManager.getSubscription();
+      if (existente) {
+        await existente.unsubscribe();
+      }
+
       const keyRes = await fetch('/api/push/public-key');
       const { publicKey } = await keyRes.json();
 
