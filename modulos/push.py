@@ -34,12 +34,21 @@ def push_subscribe():
     keys = sub.get("keys", {})
     p256dh = keys.get("p256dh")
     auth = keys.get("auth")
+    celular = data.get("celular")
 
     if not endpoint or not p256dh or not auth:
         return jsonify({"ok": False, "error": "Suscripción incompleta"}), 400
 
     with obtener_conexion() as conn:
         cur = conn.cursor()
+
+        # Si viene de la tienda pública, resolver cliente_id a partir del celular
+        if celular and not cliente_id:
+            cur.execute("SELECT id FROM clientes WHERE celular = %s ORDER BY id DESC LIMIT 1", (celular,))
+            row = cur.fetchone()
+            if row:
+                cliente_id = row[0]
+
         cur.execute("""
             INSERT INTO push_subscriptions (cliente_id, endpoint, p256dh, auth, tipo)
             VALUES (%s, %s, %s, %s, %s)
@@ -73,6 +82,37 @@ def enviar_push(subscription_row, titulo, cuerpo, url="/"):
     except WebPushException as ex:
         print(f"Error enviando push: {ex}")
         return False
+
+
+# ─────────────────────────────────────────────
+#  API: enviar notificación manual a UN cliente (desde /menu)
+# ─────────────────────────────────────────────
+@push_bp.route("/api/push/enviar-cliente", methods=["POST"])
+def push_enviar_cliente():
+    data = request.get_json(force=True)
+    cliente_id = data.get("cliente_id")
+    mensaje = (data.get("mensaje") or "").strip()
+
+    if not cliente_id or not mensaje:
+        return jsonify({"ok": False, "error": "Faltan datos"}), 400
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT endpoint, p256dh, auth FROM push_subscriptions
+            WHERE cliente_id = %s AND tipo = 'cliente' AND activo = TRUE
+        """, (cliente_id,))
+        subs = cur.fetchall()
+
+    if not subs:
+        return jsonify({"ok": False, "error": "Este cliente no tiene notificaciones activadas"}), 400
+
+    enviados = 0
+    for s in subs:
+        if enviar_push(s, "ECOLTURA", mensaje):
+            enviados += 1
+
+    return jsonify({"ok": True, "enviados": enviados})
 
 
 # ─────────────────────────────────────────────

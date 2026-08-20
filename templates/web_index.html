@@ -7,6 +7,12 @@
   <meta name="description" content="Finca familiar costarricense. Productos orgánicos y lácteos artesanales, cosechados por encargo y entregados sin intermediarios.">
 
   <link rel="icon" type="image/png" href="/static/img/apple-touch-icon.png">
+  <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.jpeg">
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#3E6B22">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="ECOLTURA">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 
@@ -480,6 +486,23 @@
           ↻ Repetir compra
         </button>
         <button onclick="document.getElementById('bannerRepetir').style.display='none'"
+                style="background:transparent; border:none; color:var(--gris); font-size:1.3rem;
+                cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
+      </div>
+
+      <!-- Banner: activar notificaciones -->
+      <div id="bannerNotif" style="display:none; background:var(--blanco);
+           border:1.5px solid var(--borde); border-radius:16px; padding:16px 20px; margin-bottom:18px;
+           align-items:center; gap:16px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px; font-size:.88rem; color:var(--texto);">
+          🔔 Activá notificaciones para saber cuándo te toca volver a pedir.
+        </div>
+        <button onclick="activarNotificacionesCliente()" style="background:var(--verde); color:#fff; border:none;
+                border-radius:10px; padding:10px 18px; font-weight:600; font-size:.85rem; cursor:pointer;
+                white-space:nowrap;">
+          Activar
+        </button>
+        <button onclick="document.getElementById('bannerNotif').style.display='none'; localStorage.setItem('ecoltura_notif_cerrado','1');"
                 style="background:transparent; border:none; color:var(--gris); font-size:1.3rem;
                 cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
       </div>
@@ -1040,6 +1063,7 @@ async function consultarCliente(cel) {
         const nombreMostrar = inpNombre.value.trim() || d.nombre;
         mostrarRepetir(nombreMostrar, d.ultima_compra);
       }
+      mostrarBannerNotif();
     }
   } catch(e) {}
 }
@@ -1056,6 +1080,54 @@ function mostrarRepetir(nombre, items) {
   cont.querySelector(".rep-titulo").textContent = "¡Hola de nuevo, " + primerNombre + "! 🌱";
   cont.querySelector(".rep-detalle").textContent = "Su última compra: " + listaTexto;
   cont.style.display = "block";
+}
+
+// ── Notificaciones push (cliente) ──
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - base64String.length % 4) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const rawData = atob(base64);
+  return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+}
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/static/js/sw.js').catch(() => {});
+}
+
+function mostrarBannerNotif() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+  if (localStorage.getItem('ecoltura_notif_cerrado')) return;
+  const cont = document.getElementById('bannerNotif');
+  if (cont) cont.style.display = 'flex';
+}
+
+async function activarNotificacionesCliente() {
+  const cel = celularRecordado || document.getElementById("pedCelular").value.replace(/\D/g, "");
+  if (!cel || cel.length < 8) {
+    alert('Escribí primero tu celular en el pedido para poder asociarlo.');
+    return;
+  }
+  const permiso = await Notification.requestPermission();
+  if (permiso !== 'granted') {
+    document.getElementById('bannerNotif').style.display = 'none';
+    return;
+  }
+  try {
+    const reg = await navigator.serviceWorker.ready;
+    const keyRes = await fetch('/api/push/public-key');
+    const { publicKey } = await keyRes.json();
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+    await fetch('/api/push/subscribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subscription: sub, tipo: 'cliente', celular: cel })
+    });
+    document.getElementById('bannerNotif').style.display = 'none';
+  } catch (e) {}
 }
 
 function repetirUltimaCompra() {
