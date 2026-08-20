@@ -59,7 +59,7 @@ def push_subscribe():
         """, (cliente_id, endpoint, p256dh, auth, tipo))
         conn.commit()
 
-    return jsonify({"ok": True})
+    return jsonify({"ok": True, "vinculado": cliente_id is not None})
 
 
 # ─────────────────────────────────────────────

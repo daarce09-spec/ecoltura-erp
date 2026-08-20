@@ -1142,7 +1142,10 @@ async function confirmarCelularYActivar() {
 
 async function suscribirPush(cel) {
   const permiso = await Notification.requestPermission();
-  if (permiso !== 'granted') return;
+  if (permiso !== 'granted') {
+    mostrarToast('No se activaron las notificaciones. Podés intentarlo de nuevo cuando quieras.', 'aviso');
+    return;
+  }
   try {
     const reg = await navigator.serviceWorker.ready;
     const keyRes = await fetch('/api/push/public-key');
@@ -1151,11 +1154,13 @@ async function suscribirPush(cel) {
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(publicKey)
     });
-    await fetch('/api/push/subscribe', {
+    const r = await fetch('/api/push/subscribe', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub, tipo: 'cliente', celular: cel })
     });
+    const d = await r.json();
+
     // Guardar el celular para no volver a pedirlo la próxima vez
     celularRecordado = cel;
     try {
@@ -1164,7 +1169,28 @@ async function suscribirPush(cel) {
       localStorage.setItem("ecoltura_cliente", JSON.stringify(guardado));
     } catch(e) {}
     document.getElementById('bannerNotif').style.display = 'none';
-  } catch (e) {}
+
+    if (d.ok && d.vinculado) {
+      mostrarToast('🔔 ¡Notificaciones activadas! Te avisaremos cuándo te toque tu pedido.', 'ok');
+    } else if (d.ok && !d.vinculado) {
+      mostrarToast('Se activó el permiso, pero ese celular no coincide con ningún pedido anterior. Revisá que esté bien escrito.', 'aviso');
+    } else {
+      mostrarToast('Ocurrió un error al activar. Intentá de nuevo.', 'error');
+    }
+  } catch (e) {
+    mostrarToast('Ocurrió un error al activar. Intentá de nuevo.', 'error');
+  }
+}
+
+function mostrarToast(texto, tipo) {
+  const colores = { ok: 'var(--verde)', aviso: '#D9742E', error: '#c0392b' };
+  const div = document.createElement('div');
+  div.textContent = texto;
+  div.style.cssText = `position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+    background:${colores[tipo] || 'var(--verde)'}; color:#fff; padding:14px 20px; border-radius:12px;
+    font-size:.9rem; max-width:90%; text-align:center; z-index:9999; box-shadow:0 6px 20px rgba(0,0,0,.2);`;
+  document.body.appendChild(div);
+  setTimeout(() => div.remove(), 5000);
 }
 
 function repetirUltimaCompra() {
