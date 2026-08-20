@@ -28,6 +28,7 @@
   .cliente-item.seleccionado { border-color: var(--brand-green); background: #f0f7f3; }
   .tabla-masivo td { padding: 10px 8px; }
   .tabla-masivo input[type="checkbox"]:disabled { opacity: .35; }
+  .masivo-header { position: sticky; top: 0; background: var(--blanco, #fff); z-index: 5; padding-bottom: 6px; }
   @media (max-width: 576px) {
     .tabla-masivo td { padding: 8px 4px; font-size: .82rem; }
     .card-eco { padding: 1rem !important; }
@@ -68,39 +69,37 @@
 
   <!-- SECCIÓN: ENVÍO INDIVIDUAL -->
   <div id="seccion-individual" class="seccion">
-    <div class="row g-4">
-      <div class="col-lg-5">
-        <input type="text" id="buscadorInd" class="form-control mb-3" placeholder="Buscar cliente..." onkeyup="filtrarIndividual()">
-        <div id="listaClientesInd" style="max-height:420px; overflow-y:auto;">
-          {% for c in clientes %}
-          <div class="cliente-item item-ind" data-nombre="{{ c[1]|lower }}" onclick="seleccionarCliente({{ c[0] }}, '{{ c[1] }}', {{ 'true' if c[4] else 'false' }}, this)">
-            <div>
-              <div class="fw-bold">{{ c[1] }}</div>
-              <div class="small text-muted">{{ c[2] }}</div>
-            </div>
-            {% if c[4] %}<span class="badge-si">✓</span>{% else %}<span class="badge-no">✕</span>{% endif %}
-          </div>
-          {% endfor %}
-        </div>
+    <div id="panelEnvioInd" class="p-3 mb-3 rounded-3" style="display:none; background:#f5f8f3; border:1px solid #d8e6db;">
+      <h6 class="fw-bold" id="nombreClienteInd"></h6>
+      <div id="avisoNoSuscritoInd" class="alert alert-warning py-2 small" style="display:none;">
+        Este cliente no tiene notificaciones activadas todavía.
       </div>
-      <div class="col-lg-7">
-        <div id="panelEnvioInd" style="display:none;">
-          <h6 class="fw-bold" id="nombreClienteInd"></h6>
-          <div id="avisoNoSuscritoInd" class="alert alert-warning py-2 small" style="display:none;">
-            Este cliente no tiene notificaciones activadas todavía.
-          </div>
-          <textarea id="mensajeInd" class="form-control mb-2" rows="3" placeholder="Escribí el mensaje..."></textarea>
-          <button class="btn btn-verde-eco" onclick="enviarIndividual()">Enviar</button>
-          <div id="statusInd" class="small mt-2"></div>
+      <textarea id="mensajeInd" class="form-control mb-2" rows="3" placeholder="Escribí el mensaje..."></textarea>
+      <button class="btn btn-verde-eco" onclick="enviarIndividual()">Enviar</button>
+      <div id="statusInd" class="small mt-2"></div>
+    </div>
+    <div id="placeholderInd" class="text-muted small mb-3">👇 Elegí un cliente de la lista para escribirle</div>
+
+    <input type="text" id="buscadorInd" class="form-control mb-3" placeholder="Buscar cliente..." onkeyup="filtrarIndividual()">
+    <div id="listaClientesInd" style="max-height:420px; overflow-y:auto;">
+      {% for c in clientes %}
+      <div class="cliente-item item-ind" data-nombre="{{ c[1]|lower }}" onclick="seleccionarCliente({{ c[0] }}, '{{ c[1] }}', {{ 'true' if c[4] else 'false' }}, this)">
+        <div>
+          <div class="fw-bold">{{ c[1] }}</div>
+          <div class="small text-muted">{{ c[2] }}</div>
         </div>
+        {% if c[4] %}<span class="badge-si">✓</span>{% else %}<span class="badge-no">✕</span>{% endif %}
       </div>
+      {% endfor %}
     </div>
   </div>
 
   <!-- SECCIÓN: ENVÍO MASIVO -->
   <div id="seccion-masivo" class="seccion">
-    <button class="btn btn-verde-eco mb-3" onclick="generarMasivo()">Generar recordatorios de hoy</button>
-    <p class="small text-muted mb-2">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
+    <div class="masivo-header">
+      <button class="btn btn-verde-eco mb-2" onclick="generarMasivo()">Generar recordatorios de hoy</button>
+      <p class="small text-muted mb-2">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
+    </div>
     <div id="resultadoMasivo"></div>
   </div>
 
@@ -134,6 +133,8 @@ function mostrarSeccion(id, btn) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
   document.getElementById('seccion-' + id).classList.add('activa');
   btn.classList.add('activo');
+  btn.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  window.scrollTo({ top: document.querySelector('.card-eco').offsetTop - 10, behavior: 'smooth' });
 }
 
 function filtrarIndividual() {
@@ -150,6 +151,7 @@ function seleccionarCliente(id, nombre, suscrito, el) {
   document.querySelectorAll('.item-ind').forEach(i => i.classList.remove('seleccionado'));
   el.classList.add('seleccionado');
   document.getElementById('panelEnvioInd').style.display = 'block';
+  document.getElementById('placeholderInd').style.display = 'none';
   document.getElementById('nombreClienteInd').textContent = nombre;
   document.getElementById('avisoNoSuscritoInd').style.display = suscrito ? 'none' : 'block';
   document.getElementById('mensajeInd').value = '';
