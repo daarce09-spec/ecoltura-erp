@@ -18,7 +18,7 @@ jobs:
 
       - name: Generar el backup
         run: |
-          pg_dump "${{ secrets.DATABASE_URL }}" | gzip > backup_$(date +%Y-%m-%d).sql.gz
+          /usr/lib/postgresql/17/bin/pg_dump "${{ secrets.DATABASE_URL }}" | gzip > backup_$(date +%Y-%m-%d).sql.gz
 
       - name: Clonar repo de backups
         run: |
