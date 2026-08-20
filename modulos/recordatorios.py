@@ -76,11 +76,35 @@ def generar_mensaje(cliente_id, nombre):
 
 # ─────────────────────────────────────────────
 #  API: vista previa del envío masivo (no envía nada todavía)
+#  Optimizado: una sola consulta para TODOS los clientes, no N consultas.
 # ─────────────────────────────────────────────
 @recordatorios_bp.route("/api/recordatorios/preview")
 def recordatorios_preview():
     with obtener_conexion() as conn:
         cur = conn.cursor()
+
+        # 1. Última venta de cada cliente + sus 2 productos con más cantidad, en UNA sola consulta
+        cur.execute("""
+            WITH ultima_venta AS (
+                SELECT DISTINCT ON (cliente_id) id AS venta_id, cliente_id
+                FROM ventas
+                WHERE estado != 'Anulado'
+                ORDER BY cliente_id, fecha_venta DESC, id DESC
+            ),
+            detalle_rank AS (
+                SELECT uv.cliente_id, p.nombre AS producto_nombre,
+                       ROW_NUMBER() OVER (PARTITION BY uv.cliente_id ORDER BY d.cantidad DESC) AS rn
+                FROM ultima_venta uv
+                JOIN ventas_detalle d ON d.venta_id = uv.venta_id
+                JOIN productos p ON p.id = d.producto_id
+            )
+            SELECT cliente_id, producto_nombre FROM detalle_rank WHERE rn <= 2 ORDER BY cliente_id, rn
+        """)
+        productos_por_cliente = {}
+        for cliente_id, producto_nombre in cur.fetchall():
+            productos_por_cliente.setdefault(cliente_id, []).append(producto_nombre.strip())
+
+        # 2. Nombre y estado de suscripción de cada cliente
         cur.execute("""
             SELECT c.id, c.nombre,
                    EXISTS(
@@ -94,9 +118,16 @@ def recordatorios_preview():
 
     resultado = []
     for cid, nombre, suscrito in clientes:
-        mensaje = generar_mensaje(cid, nombre)
-        if mensaje is None:
-            continue  # sin compras, se excluye de la vista previa
+        productos = productos_por_cliente.get(cid, [])
+        if not productos:
+            continue  # sin compras, se excluye
+
+        primer_nombre = (nombre or "").split(" ")[0]
+        if len(productos) == 1:
+            mensaje = f"🍅 Hola {primer_nombre}, tu {productos[0]} de siempre ya casi se acaba — ¿armamos tu pedido de esta semana?"
+        else:
+            mensaje = f"🍅 Hola {primer_nombre}, tu {productos[0]} y {productos[1]} de siempre ya casi se acaban — ¿armamos tu pedido de esta semana?"
+
         resultado.append({
             "cliente_id": cid,
             "nombre": nombre,
