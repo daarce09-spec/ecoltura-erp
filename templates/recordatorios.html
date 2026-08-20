@@ -98,7 +98,9 @@
   <div id="seccion-masivo" class="seccion">
     <div class="masivo-header">
       <button class="btn btn-verde-eco mb-2" onclick="generarMasivo()">Generar recordatorios de hoy</button>
-      <p class="small text-muted mb-2">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
+      <button id="btnEnviarMasivo" class="btn btn-verde-eco mb-2" style="display:none;" onclick="confirmarEnvioMasivo()">Enviar a todos los seleccionados</button>
+      <p class="small text-muted mb-1">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
+      <div id="statusMasivo" class="small mb-2"></div>
     </div>
     <div id="resultadoMasivo"></div>
   </div>
@@ -179,6 +181,9 @@ let previewMasivo = [];
 async function generarMasivo() {
   const cont = document.getElementById('resultadoMasivo');
   cont.innerHTML = 'Generando...';
+  document.getElementById('btnEnviarMasivo').style.display = 'none';
+  document.getElementById('statusMasivo').innerHTML = '';
+
   const r = await fetch('/api/recordatorios/preview');
   previewMasivo = await r.json();
 
@@ -198,9 +203,8 @@ async function generarMasivo() {
     </tr>`;
   });
   html += '</tbody></table></div>';
-  html += '<button class="btn btn-verde-eco" onclick="confirmarEnvioMasivo()">Enviar a todos los seleccionados</button>';
-  html += '<div id="statusMasivo" class="small mt-2"></div>';
   cont.innerHTML = html;
+  document.getElementById('btnEnviarMasivo').style.display = 'inline-block';
 }
 
 async function confirmarEnvioMasivo() {
