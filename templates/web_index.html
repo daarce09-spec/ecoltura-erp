@@ -564,6 +564,21 @@
   </div>
 </div>
 
+<!-- Modal: pedir celular para notificaciones -->
+<div class="overlay" id="overlayNotifCel">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayNotifCel')">✕</button>
+    <div class="modal-titulo">🔔 Activar notificaciones</div>
+    <div class="modal-nota" style="margin-bottom:14px;">Indicá tu celular para avisarte cuándo te toca volver a pedir.</div>
+    <input type="tel" id="notifCelInput" class="form-control" placeholder="Ej: 88887777"
+      style="width:100%; padding:12px 14px; border:1.5px solid var(--borde); border-radius:10px; font-size:1rem; margin-bottom:16px;">
+    <div class="modal-botones">
+      <button class="btn-cancelar" onclick="cerrarModal('overlayNotifCel')">Cancelar</button>
+      <button class="btn-confirmar" onclick="confirmarCelularYActivar()">Activar</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════
      PÁGINA 2 — LA FINCA
 ═══════════════════════════════════════════ -->
@@ -1018,6 +1033,7 @@ document.addEventListener("keydown", e => {
   if (e.key === "Escape") {
     cerrarModal("overlayConfirm");
     cerrarModal("overlayExito");
+    cerrarModal("overlayNotifCel");
   }
 });
 
@@ -1107,14 +1123,26 @@ function mostrarBannerNotif() {
 async function activarNotificacionesCliente() {
   const cel = celularRecordado || document.getElementById("pedCelular").value.replace(/\D/g, "");
   if (!cel || cel.length < 8) {
-    alert('Escribí primero tu celular en el pedido para poder asociarlo.');
+    document.getElementById('notifCelInput').value = '';
+    abrirModal('overlayNotifCel');
     return;
   }
+  await suscribirPush(cel);
+}
+
+async function confirmarCelularYActivar() {
+  const cel = document.getElementById('notifCelInput').value.replace(/\D/g, "");
+  if (cel.length < 8) {
+    alert('Escribí un celular válido (8 dígitos).');
+    return;
+  }
+  cerrarModal('overlayNotifCel');
+  await suscribirPush(cel);
+}
+
+async function suscribirPush(cel) {
   const permiso = await Notification.requestPermission();
-  if (permiso !== 'granted') {
-    document.getElementById('bannerNotif').style.display = 'none';
-    return;
-  }
+  if (permiso !== 'granted') return;
   try {
     const reg = await navigator.serviceWorker.ready;
     const keyRes = await fetch('/api/push/public-key');
@@ -1128,6 +1156,13 @@ async function activarNotificacionesCliente() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ subscription: sub, tipo: 'cliente', celular: cel })
     });
+    // Guardar el celular para no volver a pedirlo la próxima vez
+    celularRecordado = cel;
+    try {
+      const guardado = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
+      guardado.celular = cel;
+      localStorage.setItem("ecoltura_cliente", JSON.stringify(guardado));
+    } catch(e) {}
     document.getElementById('bannerNotif').style.display = 'none';
   } catch (e) {}
 }
