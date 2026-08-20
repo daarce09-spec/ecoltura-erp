@@ -16,6 +16,7 @@ def clientes():
         cedula = request.form["cedula"]
         celular = request.form["celular"]
         direccion = request.form["direccion"]
+        dias_recordatorio = request.form.get("dias_recordatorio") or None
 
         # ======== Bits ========
         feria = request.form.get("cliente_feria") == "on"
@@ -42,11 +43,12 @@ def clientes():
             """
             INSERT INTO clientes
             (nombre, cedula, celular, direccion,
-             cliente_feria, cliente_domicilio, cliente_suscripcion, cliente_sin_modelo_venta)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+             cliente_feria, cliente_domicilio, cliente_suscripcion, cliente_sin_modelo_venta,
+             dias_recordatorio)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
             """,
             (nombre, cedula, celular, direccion,
-             feria, domicilio, suscripcion, sin_modelo)
+             feria, domicilio, suscripcion, sin_modelo, dias_recordatorio)
         )
 
         conn.commit()
@@ -63,7 +65,8 @@ def clientes():
     cur.execute(
         """
         SELECT id, nombre, cedula, celular, direccion,
-               cliente_feria, cliente_domicilio, cliente_suscripcion, cliente_sin_modelo_venta
+               cliente_feria, cliente_domicilio, cliente_suscripcion, cliente_sin_modelo_venta,
+               dias_recordatorio
         FROM clientes
         ORDER BY id DESC
         """
@@ -108,6 +111,7 @@ def clientes_editar(id):
     cedula = request.form["cedula_edit"]
     celular = request.form["celular_edit"]
     direccion = request.form["direccion_edit"]
+    dias_recordatorio = request.form.get("dias_recordatorio_edit") or None
 
     # ======== Bits ========
     feria = request.form.get("cliente_feria_edit") == "on"
@@ -138,12 +142,13 @@ def clientes_editar(id):
             cliente_feria=%s,
             cliente_domicilio=%s,
             cliente_suscripcion=%s,
-            cliente_sin_modelo_venta=%s
+            cliente_sin_modelo_venta=%s,
+            dias_recordatorio=%s
         WHERE id=%s
         """,
         (nombre, cedula, celular, direccion,
          feria, domicilio, suscripcion, sin_modelo,
-         id)
+         dias_recordatorio, id)
     )
 
     conn.commit()

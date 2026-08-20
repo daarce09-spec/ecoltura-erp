@@ -56,6 +56,12 @@
             <textarea name="direccion" class="form-control" rows="2" required></textarea>
           </div>
 
+          <div class="mb-3">
+            <label class="form-label small fw-bold">DÍAS ENTRE RECORDATORIOS</label>
+            <input type="number" name="dias_recordatorio" class="form-control" min="1"
+            placeholder="Ej: 7 (vacío = automático)">
+          </div>
+
           <!-- CHECKBOXES -->
           <div class="mb-3 mt-3">
             <label class="form-label small fw-bold">MODELO DE VENTA</label>
@@ -134,6 +140,13 @@
             <span class="text-dark fw-semibold d-block mt-1">{{ c[4] }}</span>
           </div>
 
+          {% if c[9] %}
+          <div class="mt-2">
+            <span class="data-label">RECORDATORIO</span>
+            <span class="data-value">Cada {{ c[9] }} días</span>
+          </div>
+          {% endif %}
+
         </div>
 
         <!-- MODAL EDITAR -->
@@ -173,6 +186,12 @@
                   <div class="mb-3">
                     <label class="form-label small fw-bold">Dirección</label>
                     <textarea name="direccion_edit" class="form-control" rows="2" required>{{ c[4] }}</textarea>
+                  </div>
+
+                  <div class="mb-3">
+                    <label class="form-label small fw-bold">Días entre recordatorios</label>
+                    <input type="number" name="dias_recordatorio_edit" class="form-control" min="1"
+                    value="{{ c[9] if c[9] is not none else '' }}" placeholder="Vacío = automático">
                   </div>
 
                   <!-- CHECKBOXES EDIT -->
