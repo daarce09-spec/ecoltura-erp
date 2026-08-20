@@ -138,6 +138,9 @@
       <a href="{{ url_for('menu') }}" class="btn-volver-menu" title="Volver al menú">
         <i class="bi bi-grid-3x3-gap-fill"></i>
       </a>
+      <button id="btn-activar-push" class="btn-volver-menu" title="Activar notificaciones" style="margin-left:8px;">
+        <i class="bi bi-bell"></i>
+      </button>
     </div>
   </nav>
 
@@ -185,6 +188,44 @@
     if (window.matchMedia('(display-mode: standalone)').matches) {
       document.getElementById('android-prompt').style.display = 'none';
     }
+
+    // ── Notificaciones push (panel admin) ──
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const rawData = atob(base64);
+      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+    }
+
+    document.getElementById('btn-activar-push')?.addEventListener('click', async () => {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+        alert('Este navegador no soporta notificaciones push.');
+        return;
+      }
+
+      const permiso = await Notification.requestPermission();
+      if (permiso !== 'granted') {
+        alert('No se activaron las notificaciones. Podés habilitarlas luego desde los ajustes del navegador.');
+        return;
+      }
+
+      const reg = await navigator.serviceWorker.ready;
+      const keyRes = await fetch('/api/push/public-key');
+      const { publicKey } = await keyRes.json();
+
+      const sub = await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicKey)
+      });
+
+      await fetch('/api/push/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ subscription: sub, tipo: 'admin' })
+      });
+
+      alert('¡Notificaciones activadas! Ya podés recibir avisos aquí.');
+    });
   </script>
 
 </body>

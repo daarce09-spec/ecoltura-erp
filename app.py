@@ -22,6 +22,9 @@ from modulos.web_publica import web_bp
 from modulos.pedidos import pedidos_bp
 from modulos.visitas import visitas_bp
 
+# ── Notificaciones push ──
+from modulos.push import push_bp
+
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "ecoltura_secret_key_2025"
 
@@ -33,6 +36,7 @@ app.register_blueprint(ventas_bp)
 app.register_blueprint(web_bp)
 app.register_blueprint(pedidos_bp)
 app.register_blueprint(visitas_bp)
+app.register_blueprint(push_bp)
 
 @app.route("/menu")
 def menu():
