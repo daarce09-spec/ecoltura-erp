@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}ECOLTURA | Recordatorios{% endblock %}
+{% block content %}
+
+<style>
+  :root { --brand-green: #2d6a4f; --brand-green-hover: #1b4332; }
+  .bg-verde-eco { background-color: var(--brand-green) !important; }
+  .text-verde-eco { color: var(--brand-green) !important; }
+  .btn-verde-eco { background-color: var(--brand-green); color: white; border: none; transition: 0.3s; }
+  .btn-verde-eco:hover { background-color: var(--brand-green-hover); color: white; }
+  .card-eco { border-radius: 15px; border: none; }
+  .tab-btn { border: none; background: transparent; padding: 10px 18px; font-weight: 600;
+             color: #888; border-bottom: 3px solid transparent; cursor: pointer; }
+  .tab-btn.activo { color: var(--brand-green); border-bottom-color: var(--brand-green); }
+  .seccion { display: none; }
+  .seccion.activa { display: block; }
+  .badge-si { background: #d4edda; color: #155724; padding: 3px 10px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
+  .badge-no { background: #f8d7da; color: #721c24; padding: 3px 10px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
+  .cliente-item { border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
+                  cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+  .cliente-item:hover { background: #f8faf9; }
+  .cliente-item.seleccionado { border-color: var(--brand-green); background: #f0f7f3; }
+</style>
+
+<div class="card card-eco shadow-sm p-4">
+  <h5 class="fw-bold text-verde-eco mb-3"><i class="bi bi-bell-fill me-2"></i>Recordatorios de Compra</h5>
+
+  <div class="d-flex gap-2 border-bottom mb-4">
+    <button class="tab-btn activo" onclick="mostrarSeccion('suscritos', this)">Clientes Suscritos</button>
+    <button class="tab-btn" onclick="mostrarSeccion('individual', this)">Envío Individual</button>
+    <button class="tab-btn" onclick="mostrarSeccion('masivo', this)">Envío Masivo</button>
+    <button class="tab-btn" onclick="mostrarSeccion('historial', this)">Historial</button>
+  </div>
+
+  <!-- SECCIÓN: SUSCRITOS -->
+  <div id="seccion-suscritos" class="seccion activa">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead>
+          <tr><th>Cliente</th><th>Celular</th><th>Notificaciones</th><th>Días configurados</th><th>Última compra</th></tr>
+        </thead>
+        <tbody>
+          {% for c in clientes %}
+          <tr>
+            <td>{{ c[1] }}</td>
+            <td>{{ c[2] }}</td>
+            <td>{% if c[4] %}<span class="badge-si">✓ Activas</span>{% else %}<span class="badge-no">Sin activar</span>{% endif %}</td>
+            <td>{{ c[3] if c[3] is not none else '—' }}</td>
+            <td>{{ c[5].strftime('%d/%m/%Y') if c[5] else 'Sin compras' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: ENVÍO INDIVIDUAL -->
+  <div id="seccion-individual" class="seccion">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <input type="text" id="buscadorInd" class="form-control mb-3" placeholder="Buscar cliente..." onkeyup="filtrarIndividual()">
+        <div id="listaClientesInd" style="max-height:420px; overflow-y:auto;">
+          {% for c in clientes %}
+          <div class="cliente-item item-ind" data-nombre="{{ c[1]|lower }}" onclick="seleccionarCliente({{ c[0] }}, '{{ c[1] }}', {{ 'true' if c[4] else 'false' }}, this)">
+            <div>
+              <div class="fw-bold">{{ c[1] }}</div>
+              <div class="small text-muted">{{ c[2] }}</div>
+            </div>
+            {% if c[4] %}<span class="badge-si">✓</span>{% else %}<span class="badge-no">✕</span>{% endif %}
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div class="col-lg-7">
+        <div id="panelEnvioInd" style="display:none;">
+          <h6 class="fw-bold" id="nombreClienteInd"></h6>
+          <div id="avisoNoSuscritoInd" class="alert alert-warning py-2 small" style="display:none;">
+            Este cliente no tiene notificaciones activadas todavía.
+          </div>
+          <textarea id="mensajeInd" class="form-control mb-2" rows="3" placeholder="Escribí el mensaje..."></textarea>
+          <button class="btn btn-verde-eco" onclick="enviarIndividual()">Enviar</button>
+          <div id="statusInd" class="small mt-2"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECCIÓN: ENVÍO MASIVO -->
+  <div id="seccion-masivo" class="seccion">
+    <button class="btn btn-verde-eco mb-3" onclick="generarMasivo()">Generar recordatorios de hoy</button>
+    <div id="resultadoMasivo"></div>
+  </div>
+
+  <!-- SECCIÓN: HISTORIAL -->
+  <div id="seccion-historial" class="seccion">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
+        <thead><tr><th>Fecha</th><th>Cliente</th><th>Mensaje</th><th>Estado</th></tr></thead>
+        <tbody>
+          {% for h in historial %}
+          <tr>
+            <td class="small">{{ h[0].strftime('%d/%m/%Y %H:%M') }}</td>
+            <td>{{ h[1] }}</td>
+            <td class="small">{{ h[2] }}</td>
+            <td>{% if h[3] %}<span class="badge-si">Enviado</span>{% else %}<span class="badge-no">Falló</span>{% endif %}</td>
+          </tr>
+          {% endfor %}
+          {% if not historial %}
+          <tr><td colspan="4" class="text-center text-muted py-4">Sin envíos todavía</td></tr>
+          {% endif %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function mostrarSeccion(id, btn) {
+  document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('activo'));
+  document.getElementById('seccion-' + id).classList.add('activa');
+  btn.classList.add('activo');
+}
+
+function filtrarIndividual() {
+  const q = document.getElementById('buscadorInd').value.toLowerCase();
+  document.querySelectorAll('.item-ind').forEach(item => {
+    item.style.display = item.dataset.nombre.includes(q) ? 'flex' : 'none';
+  });
+}
+
+let clienteSeleccionadoId = null;
+
+function seleccionarCliente(id, nombre, suscrito, el) {
+  clienteSeleccionadoId = id;
+  document.querySelectorAll('.item-ind').forEach(i => i.classList.remove('seleccionado'));
+  el.classList.add('seleccionado');
+  document.getElementById('panelEnvioInd').style.display = 'block';
+  document.getElementById('nombreClienteInd').textContent = nombre;
+  document.getElementById('avisoNoSuscritoInd').style.display = suscrito ? 'none' : 'block';
+  document.getElementById('mensajeInd').value = '';
+  document.getElementById('statusInd').innerHTML = '';
+}
+
+async function enviarIndividual() {
+  const mensaje = document.getElementById('mensajeInd').value.trim();
+  const statusEl = document.getElementById('statusInd');
+  if (!clienteSeleccionadoId || !mensaje) { statusEl.innerHTML = '<span class="text-danger">Escribí un mensaje.</span>'; return; }
+  statusEl.innerHTML = 'Enviando...';
+  try {
+    const r = await fetch('/api/recordatorios/enviar-individual', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cliente_id: clienteSeleccionadoId, mensaje })
+    });
+    const d = await r.json();
+    statusEl.innerHTML = d.ok ? '<span class="text-success">✓ Enviado</span>' : '<span class="text-danger">' + (d.error || 'Error') + '</span>';
+    if (d.ok) document.getElementById('mensajeInd').value = '';
+  } catch (e) { statusEl.innerHTML = '<span class="text-danger">Error de conexión</span>'; }
+}
+
+let previewMasivo = [];
+
+async function generarMasivo() {
+  const cont = document.getElementById('resultadoMasivo');
+  cont.innerHTML = 'Generando...';
+  const r = await fetch('/api/recordatorios/preview');
+  previewMasivo = await r.json();
+
+  if (previewMasivo.length === 0) {
+    cont.innerHTML = '<p class="text-muted">No hay clientes con compras previas para generar recordatorios.</p>';
+    return;
+  }
+
+  let html = '<div class="table-responsive"><table class="table align-middle"><thead><tr><th></th><th>Cliente</th><th>Mensaje</th><th>Notif.</th></tr></thead><tbody>';
+  previewMasivo.forEach((item, i) => {
+    html += `<tr>
+      <td><input type="checkbox" class="chk-masivo" data-idx="${i}" ${item.suscrito ? 'checked' : 'disabled'}></td>
+      <td>${item.nombre}</td>
+      <td class="small">${item.mensaje}</td>
+      <td>${item.suscrito ? '<span class="badge-si">✓</span>' : '<span class="badge-no">Sin activar</span>'}</td>
+    </tr>`;
+  });
+  html += '</tbody></table></div>';
+  html += '<button class="btn btn-verde-eco" onclick="confirmarEnvioMasivo()">Enviar a todos los seleccionados</button>';
+  html += '<div id="statusMasivo" class="small mt-2"></div>';
+  cont.innerHTML = html;
+}
+
+async function confirmarEnvioMasivo() {
+  const items = [];
+  document.querySelectorAll('.chk-masivo:checked').forEach(chk => {
+    const item = previewMasivo[chk.dataset.idx];
+    items.push({ cliente_id: item.cliente_id, mensaje: item.mensaje });
+  });
+
+  if (items.length === 0) { alert('Seleccioná al menos un cliente.'); return; }
+
+  const statusEl = document.getElementById('statusMasivo');
+  statusEl.innerHTML = 'Enviando...';
+
+  const r = await fetch('/api/recordatorios/enviar-masivo', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ items })
+  });
+  const d = await r.json();
+  statusEl.innerHTML = `<span class="text-success">✓ Enviados: ${d.enviados}</span>` + (d.fallidos ? ` — <span class="text-danger">Fallidos: ${d.fallidos}</span>` : '');
+}
+</script>
+
+{% endblock %}

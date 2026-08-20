@@ -194,17 +194,6 @@
                     value="{{ c[9] if c[9] is not none else '' }}" placeholder="Vacío = automático">
                   </div>
 
-                  <div class="mb-3 p-3 rounded-3" style="background:#f5f8f3;">
-                    <label class="form-label small fw-bold">Enviar notificación ahora</label>
-                    <textarea class="form-control mb-2" rows="2" id="notifMsg{{ c[0] }}"
-                    placeholder="Ej: ¿Ya necesitás más tomate?"></textarea>
-                    <button type="button" class="btn btn-sm btn-verde-eco w-100"
-                    onclick="enviarNotificacion({{ c[0] }})">
-                      <i class="bi bi-bell"></i> Enviar
-                    </button>
-                    <div id="notifStatus{{ c[0] }}" class="small mt-1"></div>
-                  </div>
-
                   <!-- CHECKBOXES EDIT -->
                   <div class="mb-3">
                     <label class="form-label small fw-bold">MODELO DE VENTA</label>
@@ -258,31 +247,6 @@ function buscar() {
   items.forEach(item => {
     item.style.display = item.innerText.toLowerCase().includes(filtro) ? "" : "none";
   });
-}
-
-async function enviarNotificacion(clienteId) {
-  const msgEl = document.getElementById('notifMsg' + clienteId);
-  const statusEl = document.getElementById('notifStatus' + clienteId);
-  const mensaje = msgEl.value.trim();
-  if (!mensaje) { statusEl.innerHTML = '<span class="text-danger">Escribí un mensaje.</span>'; return; }
-
-  statusEl.innerHTML = 'Enviando...';
-  try {
-    const r = await fetch('/api/push/enviar-cliente', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cliente_id: clienteId, mensaje })
-    });
-    const d = await r.json();
-    if (d.ok) {
-      statusEl.innerHTML = '<span class="text-success">✓ Enviado (' + d.enviados + ')</span>';
-      msgEl.value = '';
-    } else {
-      statusEl.innerHTML = '<span class="text-danger">' + d.error + '</span>';
-    }
-  } catch (e) {
-    statusEl.innerHTML = '<span class="text-danger">Error de conexión</span>';
-  }
 }
 </script>
 

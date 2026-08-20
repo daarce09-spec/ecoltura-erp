@@ -25,6 +25,9 @@ from modulos.visitas import visitas_bp
 # ── Notificaciones push ──
 from modulos.push import push_bp
 
+# ── Recordatorios de compra ──
+from modulos.recordatorios import recordatorios_bp
+
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "ecoltura_secret_key_2025"
 
@@ -37,6 +40,7 @@ app.register_blueprint(web_bp)
 app.register_blueprint(pedidos_bp)
 app.register_blueprint(visitas_bp)
 app.register_blueprint(push_bp)
+app.register_blueprint(recordatorios_bp)
 
 @app.route("/menu")
 def menu():
