@@ -49,6 +49,15 @@ def push_subscribe():
             if row:
                 cliente_id = row[0]
 
+        # Un único registro por cliente+tipo: borra cualquier suscripción previa
+        # de ese cliente antes de guardar la nueva (los endpoints pueden cambiar,
+        # sobre todo en iOS, cada vez que se desuscribe y vuelve a suscribir).
+        if cliente_id:
+            cur.execute("""
+                DELETE FROM push_subscriptions
+                WHERE cliente_id = %s AND tipo = %s AND endpoint != %s
+            """, (cliente_id, tipo, endpoint))
+
         cur.execute("""
             INSERT INTO push_subscriptions (cliente_id, endpoint, p256dh, auth, tipo)
             VALUES (%s, %s, %s, %s, %s)
