@@ -98,8 +98,9 @@
   <div id="seccion-masivo" class="seccion">
     <div class="masivo-header">
       <button class="btn btn-verde-eco mb-2" onclick="generarMasivo()">Generar recordatorios de hoy</button>
+      <button id="btnSeleccionarTodos" class="btn btn-outline-secondary btn-sm mb-2" style="display:none;" onclick="seleccionarTodos()">Seleccionar todos</button>
       <button id="btnEnviarMasivo" class="btn btn-verde-eco mb-2" style="display:none;" onclick="confirmarEnvioMasivo()">Enviar a todos los seleccionados</button>
-      <p class="small text-muted mb-1">Los clientes marcados "Sin activar" no pueden seleccionarse — todavía no activaron notificaciones desde la tienda.</p>
+      <div id="contadorMasivo" class="small fw-bold mb-1"></div>
       <div id="statusMasivo" class="small mb-2"></div>
     </div>
     <div id="resultadoMasivo"></div>
@@ -195,16 +196,25 @@ async function generarMasivo() {
   let html = '<div class="table-responsive"><table class="table align-middle tabla-masivo"><tbody>';
   previewMasivo.forEach((item, i) => {
     html += `<tr>
-      <td style="width:36px;"><input type="checkbox" class="chk-masivo" data-idx="${i}" ${item.suscrito ? 'checked' : 'disabled'}></td>
+      <td style="width:36px;"><input type="checkbox" class="chk-masivo" data-idx="${i}" checked></td>
       <td>
-        <div class="fw-bold small">${item.nombre} ${item.suscrito ? '<span class="badge-si">✓</span>' : '<span class="badge-no">Sin activar</span>'}</div>
+        <div class="fw-bold small">${item.nombre}</div>
         <div class="small text-muted mt-1">${item.mensaje}</div>
       </td>
     </tr>`;
   });
   html += '</tbody></table></div>';
   cont.innerHTML = html;
-  document.getElementById('btnEnviarMasivo').style.display = 'inline-block';
+
+  document.getElementById('contadorMasivo').textContent =
+    `${previewMasivo.length} cliente${previewMasivo.length !== 1 ? 's' : ''} con notificaciones activas listo${previewMasivo.length !== 1 ? 's' : ''} para recibir`;
+
+  document.getElementById('btnEnviarMasivo').style.display = previewMasivo.length > 0 ? 'inline-block' : 'none';
+  document.getElementById('btnSeleccionarTodos').style.display = previewMasivo.length > 0 ? 'inline-block' : 'none';
+}
+
+function seleccionarTodos() {
+  document.querySelectorAll('.chk-masivo').forEach(chk => chk.checked = true);
 }
 
 async function confirmarEnvioMasivo() {

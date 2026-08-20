@@ -118,6 +118,8 @@ def recordatorios_preview():
 
     resultado = []
     for cid, nombre, suscrito in clientes:
+        if not suscrito:
+            continue  # solo clientes con notificaciones activas
         productos = productos_por_cliente.get(cid, [])
         if not productos:
             continue  # sin compras, se excluye
