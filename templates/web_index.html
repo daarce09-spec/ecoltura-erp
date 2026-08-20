@@ -1109,7 +1109,7 @@ function urlBase64ToUint8Array(base64String) {
 }
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/static/js/sw.js', { scope: '/' }).catch(() => {});
+  navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
 }
 
 function mostrarBannerNotif() {

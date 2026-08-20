@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, redirect, url_for, jsonify
+from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory
 from datetime import datetime
+import os
 
 # ── Módulos del app administrativo ──
 from modulos.clientes   import clientes_bp
@@ -41,6 +42,21 @@ app.register_blueprint(pedidos_bp)
 app.register_blueprint(visitas_bp)
 app.register_blueprint(push_bp)
 app.register_blueprint(recordatorios_bp)
+
+@app.route("/sw.js")
+def service_worker():
+    """
+    Sirve el mismo archivo static/js/sw.js pero desde la raíz del sitio.
+    Necesario porque un service worker solo puede controlar (scope) carpetas
+    iguales o debajo de donde vive su archivo — si se sirve desde /static/js/,
+    nunca podría controlar la tienda pública que vive en /.
+    """
+    response = send_from_directory(
+        os.path.join(app.static_folder, "js"), "sw.js", mimetype="application/javascript"
+    )
+    response.headers["Service-Worker-Allowed"] = "/"
+    return response
+
 
 @app.route("/menu")
 def menu():

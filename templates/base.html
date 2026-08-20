@@ -154,7 +154,7 @@
     // Service Worker
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register("/static/js/sw.js", { scope: "/" })
+        navigator.serviceWorker.register("/sw.js", { scope: "/" })
         .then(reg => console.log("Service Worker Activo"))
         .catch(err => console.error("Error en SW:", err));
       });
