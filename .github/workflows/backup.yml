@@ -1,0 +1,31 @@
+name: Backup diario de base de datos
+
+on:
+  schedule:
+    - cron: '0 9 * * *'   # 3:00 AM Costa Rica = 9:00 AM UTC
+  workflow_dispatch:        # permite correrlo manualmente para probar
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Instalar cliente de PostgreSQL
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Generar el backup
+        run: |
+          pg_dump "${{ secrets.DATABASE_URL }}" | gzip > backup_$(date +%Y-%m-%d).sql.gz
+
+      - name: Clonar repo de backups
+        run: |
+          git clone https://x-access-token:${{ secrets.BACKUP_REPO_TOKEN }}@github.com/daarce09-spec/ecoltura-backups.git repo_backups
+
+      - name: Copiar y subir el backup
+        run: |
+          cp backup_*.sql.gz repo_backups/
+          cd repo_backups
+          git config user.name "Backup Bot"
+          git config user.email "backup@ecoltura.local"
+          git add .
+          git commit -m "Backup automático $(date +%Y-%m-%d)"
+          git push
