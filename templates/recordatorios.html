@@ -82,15 +82,17 @@
 
     <input type="text" id="buscadorInd" class="form-control mb-3" placeholder="Buscar cliente..." onkeyup="filtrarIndividual()">
     <div id="listaClientesInd" style="max-height:420px; overflow-y:auto;">
-      {% for c in clientes %}
-      <div class="cliente-item item-ind" data-nombre="{{ c[1]|lower }}" onclick="seleccionarCliente({{ c[0] }}, '{{ c[1] }}', {{ 'true' if c[4] else 'false' }}, this)">
+      {% for c in clientes_suscritos %}
+      <div class="cliente-item item-ind" data-nombre="{{ c[1]|lower }}" onclick="seleccionarCliente({{ c[0] }}, '{{ c[1] }}', true, this)">
         <div>
           <div class="fw-bold">{{ c[1] }}</div>
           <div class="small text-muted">{{ c[2] }}</div>
         </div>
-        {% if c[4] %}<span class="badge-si">✓</span>{% else %}<span class="badge-no">✕</span>{% endif %}
       </div>
       {% endfor %}
+      {% if not clientes_suscritos %}
+      <p class="text-muted small">Todavía no hay clientes con notificaciones activas.</p>
+      {% endif %}
     </div>
   </div>
 

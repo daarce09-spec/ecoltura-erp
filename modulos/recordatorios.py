@@ -26,6 +26,7 @@ def recordatorios():
             ORDER BY c.nombre
         """)
         clientes = cur.fetchall()
+        clientes_suscritos = [c for c in clientes if c[4]]
 
         # Historial reciente (últimos 50 envíos)
         cur.execute("""
@@ -37,7 +38,7 @@ def recordatorios():
         """)
         historial = cur.fetchall()
 
-    return render_template("recordatorios.html", clientes=clientes, historial=historial)
+    return render_template("recordatorios.html", clientes=clientes, clientes_suscritos=clientes_suscritos, historial=historial)
 
 
 # ─────────────────────────────────────────────
