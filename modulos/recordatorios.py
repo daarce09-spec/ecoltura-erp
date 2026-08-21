@@ -8,6 +8,45 @@ recordatorios_bp = Blueprint("recordatorios_bp", __name__)
 
 
 # ─────────────────────────────────────────────
+#  API: consultar si hay un recordatorio pendiente de leer, por celular
+# ─────────────────────────────────────────────
+@recordatorios_bp.route("/api/recordatorios/pendiente")
+def recordatorios_pendiente():
+    celular = (request.args.get("celular") or "").strip()
+    if not celular:
+        return jsonify({"pendiente": False})
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT nh.id, nh.mensaje
+            FROM notificaciones_historial nh
+            JOIN clientes c ON c.id = nh.cliente_id
+            WHERE c.celular = %s AND nh.enviado = TRUE AND nh.leido = FALSE
+            ORDER BY nh.creado DESC
+            LIMIT 1
+        """, (celular,))
+        row = cur.fetchone()
+
+    if not row:
+        return jsonify({"pendiente": False})
+
+    return jsonify({"pendiente": True, "id": row[0], "mensaje": row[1]})
+
+
+# ─────────────────────────────────────────────
+#  API: marcar un recordatorio como leído
+# ─────────────────────────────────────────────
+@recordatorios_bp.route("/api/recordatorios/marcar-leido/<int:notif_id>", methods=["POST"])
+def recordatorios_marcar_leido(notif_id):
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE notificaciones_historial SET leido = TRUE WHERE id = %s", (notif_id,))
+        conn.commit()
+    return jsonify({"ok": True})
+
+
+# ─────────────────────────────────────────────
 #  PÁGINA PRINCIPAL
 # ─────────────────────────────────────────────
 @recordatorios_bp.route("/recordatorios")
@@ -159,6 +198,16 @@ def recordatorios_enviar_masivo():
             cliente_id = item.get("cliente_id")
             mensaje = item.get("mensaje")
 
+            # Insertar primero para obtener el id, y así poder marcarlo
+            # como leído más adelante (sea que llegue por la notificación
+            # o que el cliente entre manualmente a la app).
+            cur.execute("""
+                INSERT INTO notificaciones_historial (cliente_id, mensaje, enviado)
+                VALUES (%s, %s, FALSE)
+                RETURNING id
+            """, (cliente_id, mensaje))
+            notif_id = cur.fetchone()[0]
+
             cur.execute("""
                 SELECT endpoint, p256dh, auth FROM push_subscriptions
                 WHERE cliente_id = %s AND tipo = 'cliente' AND activo = TRUE
@@ -166,15 +215,12 @@ def recordatorios_enviar_masivo():
             subs = cur.fetchall()
 
             exito = False
-            url_destino = f"/?recordatorio={quote(mensaje)}"
+            url_destino = f"/?recordatorio={quote(mensaje)}&notif_id={notif_id}"
             for s in subs:
                 if enviar_push(s, "ECOLTURA", mensaje, url=url_destino):
                     exito = True
 
-            cur.execute("""
-                INSERT INTO notificaciones_historial (cliente_id, mensaje, enviado)
-                VALUES (%s, %s, %s)
-            """, (cliente_id, mensaje, exito))
+            cur.execute("UPDATE notificaciones_historial SET enviado = %s WHERE id = %s", (exito, notif_id))
 
             if exito:
                 enviados += 1
@@ -209,16 +255,20 @@ def recordatorios_enviar_individual():
         if not subs:
             return jsonify({"ok": False, "error": "Este cliente no tiene notificaciones activadas"}), 400
 
+        cur.execute("""
+            INSERT INTO notificaciones_historial (cliente_id, mensaje, enviado)
+            VALUES (%s, %s, FALSE)
+            RETURNING id
+        """, (cliente_id, mensaje))
+        notif_id = cur.fetchone()[0]
+
         exito = False
-        url_destino = f"/?recordatorio={quote(mensaje)}"
+        url_destino = f"/?recordatorio={quote(mensaje)}&notif_id={notif_id}"
         for s in subs:
             if enviar_push(s, "ECOLTURA", mensaje, url=url_destino):
                 exito = True
 
-        cur.execute("""
-            INSERT INTO notificaciones_historial (cliente_id, mensaje, enviado)
-            VALUES (%s, %s, %s)
-        """, (cliente_id, mensaje, exito))
+        cur.execute("UPDATE notificaciones_historial SET enviado = %s WHERE id = %s", (exito, notif_id))
         conn.commit()
 
     return jsonify({"ok": exito})

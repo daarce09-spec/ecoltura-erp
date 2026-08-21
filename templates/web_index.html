@@ -1141,11 +1141,41 @@ function mostrarBannerNotif() {
 }
 
 // ── Banner de recordatorio recibido por notificación push ──
+let notifIdPendiente = null;
+
 function verificarRecordatorioEnURL() {
   const params = new URLSearchParams(window.location.search);
   const mensaje = params.get('recordatorio');
-  if (!mensaje) return;
+  if (!mensaje) return false;
 
+  const notifId = params.get('notif_id');
+  if (notifId) notifIdPendiente = parseInt(notifId, 10);
+
+  mostrarBannerRecordatorio(mensaje);
+
+  // Limpia los parámetros de la URL para que no reaparezcan al recargar
+  const url = new URL(window.location);
+  url.searchParams.delete('recordatorio');
+  url.searchParams.delete('notif_id');
+  window.history.replaceState({}, '', url);
+  return true;
+}
+
+// Respaldo: si el cliente entra manualmente (sin tocar la notificación),
+// igual consultamos si tiene algo pendiente sin leer guardado en la base.
+async function verificarRecordatorioPendiente() {
+  if (!celularRecordado) return;
+  try {
+    const r = await fetch('/api/recordatorios/pendiente?celular=' + celularRecordado);
+    const d = await r.json();
+    if (d.pendiente) {
+      notifIdPendiente = d.id;
+      mostrarBannerRecordatorio(d.mensaje);
+    }
+  } catch (e) {}
+}
+
+function mostrarBannerRecordatorio(mensaje) {
   document.getElementById('textoRecordatorio').textContent = mensaje;
   document.getElementById('bannerRecordatorio').style.display = 'block';
 
@@ -1158,10 +1188,10 @@ function verificarRecordatorioEnURL() {
 function cerrarRecordatorio(irAProductos) {
   document.getElementById('bannerRecordatorio').style.display = 'none';
 
-  // Limpia el parámetro de la URL para que no reaparezca al recargar
-  const url = new URL(window.location);
-  url.searchParams.delete('recordatorio');
-  window.history.replaceState({}, '', url);
+  if (notifIdPendiente) {
+    fetch('/api/recordatorios/marcar-leido/' + notifIdPendiente, { method: 'POST' }).catch(() => {});
+    notifIdPendiente = null;
+  }
 
   if (irAProductos) {
     const catalogo = document.getElementById('catalogo') || document.querySelector('.tabs');
@@ -1169,7 +1199,11 @@ function cerrarRecordatorio(irAProductos) {
   }
 }
 
-verificarRecordatorioEnURL();
+// Si llegó por notificación (URL), ya se muestra. Si no, revisamos la base
+// por si hay algo pendiente sin leer (entró manualmente a la app).
+if (!verificarRecordatorioEnURL()) {
+  setTimeout(verificarRecordatorioPendiente, 1000);
+}
 
 async function activarNotificacionesCliente() {
   const cel = celularRecordado || document.getElementById("pedCelular").value.replace(/\D/g, "");
