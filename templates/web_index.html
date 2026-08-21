@@ -509,6 +509,23 @@
                 cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
       </div>
 
+      <!-- Banner: mensaje de recordatorio recibido por notificación push -->
+      <div id="bannerRecordatorio" style="display:none; background:linear-gradient(135deg,#fff4e8,#ffe9d3);
+           border:1.5px solid #f0c896; border-radius:16px; padding:18px 20px; margin-bottom:18px;">
+        <div id="textoRecordatorio" style="font-size:.95rem; color:var(--texto); margin-bottom:14px;"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+          <button onclick="cerrarRecordatorio(true)" style="background:var(--verde); color:#fff; border:none;
+                  border-radius:10px; padding:10px 18px; font-weight:600; font-size:.85rem; cursor:pointer;">
+            Ver productos
+          </button>
+          <button onclick="cerrarRecordatorio(false)" style="background:transparent; color:var(--gris);
+                  border:1.5px solid var(--borde); border-radius:10px; padding:10px 18px;
+                  font-weight:600; font-size:.85rem; cursor:pointer;">
+            Recordarme después
+          </button>
+        </div>
+      </div>
+
       <!-- Barra de filtros: categorías + buscador juntos -->
       <div class="barra-filtros">
         <div class="chips" id="chips"></div>
@@ -1119,6 +1136,37 @@ function mostrarBannerNotif() {
   const cont = document.getElementById('bannerNotif');
   if (cont) cont.style.display = 'flex';
 }
+
+// ── Banner de recordatorio recibido por notificación push ──
+function verificarRecordatorioEnURL() {
+  const params = new URLSearchParams(window.location.search);
+  const mensaje = params.get('recordatorio');
+  if (!mensaje) return;
+
+  document.getElementById('textoRecordatorio').textContent = mensaje;
+  document.getElementById('bannerRecordatorio').style.display = 'block';
+
+  // Limpia la bolita del ícono apenas el cliente ve el mensaje
+  if ('clearAppBadge' in navigator) {
+    navigator.clearAppBadge().catch(() => {});
+  }
+}
+
+function cerrarRecordatorio(irAProductos) {
+  document.getElementById('bannerRecordatorio').style.display = 'none';
+
+  // Limpia el parámetro de la URL para que no reaparezca al recargar
+  const url = new URL(window.location);
+  url.searchParams.delete('recordatorio');
+  window.history.replaceState({}, '', url);
+
+  if (irAProductos) {
+    const catalogo = document.getElementById('catalogo') || document.querySelector('.tabs');
+    if (catalogo) catalogo.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+verificarRecordatorioEnURL();
 
 async function activarNotificacionesCliente() {
   const cel = celularRecordado || document.getElementById("pedCelular").value.replace(/\D/g, "");

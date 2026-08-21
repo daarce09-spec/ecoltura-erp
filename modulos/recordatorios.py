@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, jsonify, request
 from db.conexion import obtener_conexion
 from modulos.push import enviar_push
+from urllib.parse import quote
 
 recordatorios_bp = Blueprint("recordatorios_bp", __name__)
 
@@ -165,8 +166,9 @@ def recordatorios_enviar_masivo():
             subs = cur.fetchall()
 
             exito = False
+            url_destino = f"/?recordatorio={quote(mensaje)}"
             for s in subs:
-                if enviar_push(s, "ECOLTURA", mensaje):
+                if enviar_push(s, "ECOLTURA", mensaje, url=url_destino):
                     exito = True
 
             cur.execute("""
@@ -208,8 +210,9 @@ def recordatorios_enviar_individual():
             return jsonify({"ok": False, "error": "Este cliente no tiene notificaciones activadas"}), 400
 
         exito = False
+        url_destino = f"/?recordatorio={quote(mensaje)}"
         for s in subs:
-            if enviar_push(s, "ECOLTURA", mensaje):
+            if enviar_push(s, "ECOLTURA", mensaje, url=url_destino):
                 exito = True
 
         cur.execute("""
