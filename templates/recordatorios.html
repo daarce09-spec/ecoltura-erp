@@ -39,36 +39,13 @@
   <h5 class="fw-bold text-verde-eco mb-3"><i class="bi bi-bell-fill me-2"></i>Recordatorios de Compra</h5>
 
   <div class="tabs-row border-bottom mb-4">
-    <button class="tab-btn activo" onclick="mostrarSeccion('suscritos', this)">Suscritos</button>
-    <button class="tab-btn" onclick="mostrarSeccion('individual', this)">Individual</button>
+    <button class="tab-btn activo" onclick="mostrarSeccion('individual', this)">Individual</button>
     <button class="tab-btn" onclick="mostrarSeccion('masivo', this)">Masivo</button>
     <button class="tab-btn" onclick="mostrarSeccion('historial', this)">Historial</button>
   </div>
 
-  <!-- SECCIÓN: SUSCRITOS -->
-  <div id="seccion-suscritos" class="seccion activa">
-    <div class="table-responsive">
-      <table class="table table-hover align-middle">
-        <thead>
-          <tr><th>Cliente</th><th class="col-mobile-oculta">Celular</th><th>Notif.</th><th class="col-mobile-oculta">Días</th><th class="col-mobile-oculta">Última compra</th></tr>
-        </thead>
-        <tbody>
-          {% for c in clientes %}
-          <tr>
-            <td>{{ c[1] }}</td>
-            <td class="col-mobile-oculta">{{ c[2] }}</td>
-            <td>{% if c[4] %}<span class="badge-si">✓</span>{% else %}<span class="badge-no">Sin activar</span>{% endif %}</td>
-            <td class="col-mobile-oculta">{{ c[3] if c[3] is not none else '—' }}</td>
-            <td class="col-mobile-oculta">{{ c[5].strftime('%d/%m/%Y') if c[5] else 'Sin compras' }}</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    </div>
-  </div>
-
   <!-- SECCIÓN: ENVÍO INDIVIDUAL -->
-  <div id="seccion-individual" class="seccion">
+  <div id="seccion-individual" class="seccion activa">
     <div id="panelEnvioInd" class="p-3 mb-3 rounded-3" style="display:none; background:#f5f8f3; border:1px solid #d8e6db;">
       <h6 class="fw-bold" id="nombreClienteInd"></h6>
       <div id="avisoNoSuscritoInd" class="alert alert-warning py-2 small" style="display:none;">
