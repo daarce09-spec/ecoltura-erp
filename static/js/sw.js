@@ -25,13 +25,24 @@ self.addEventListener('push', (event) => {
     data: { url: data.url || '/' }
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  const promesas = [self.registration.showNotification(title, options)];
+
+  // Bolita de notificación en el ícono de la app (si el navegador lo soporta)
+  if ('setAppBadge' in self.navigator) {
+    promesas.push(self.navigator.setAppBadge(1).catch(() => {}));
+  }
+
+  event.waitUntil(Promise.all(promesas));
 });
 
-// Al tocar la notificación, abre (o enfoca) la app en la URL indicada
+// Al tocar la notificación, limpia la bolita del ícono
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
+
+  if ('clearAppBadge' in self.navigator) {
+    self.navigator.clearAppBadge().catch(() => {});
+  }
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
