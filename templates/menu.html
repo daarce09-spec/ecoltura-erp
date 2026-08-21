@@ -103,11 +103,11 @@
       border: 1.5px solid var(--borde);
       display: flex; flex-direction: column;
       align-items: center; justify-content: center;
-      gap: clamp(10px, 1.6vw, 22px);
+      gap: clamp(8px, 1.2vw, 14px);
       text-decoration: none; position: relative; overflow: hidden;
       box-shadow: 0 1px 4px rgba(0,0,0,.04);
       transition: transform .22s ease, box-shadow .22s ease, background .22s ease, border-color .22s ease;
-      height: clamp(120px, 20vh, 200px);
+      height: clamp(120px, 15vh, 160px);
     }
     .modulo::after {
       content: ''; position: absolute; bottom: 0; left: 0; right: 0;
@@ -125,19 +125,19 @@
     .modulo:hover .mod-nombre { color: var(--verde); }
 
     .mod-icon {
-      width: clamp(56px, 7vw, 96px); height: clamp(56px, 7vw, 96px);
-      border-radius: clamp(16px, 2vw, 24px);
+      width: clamp(48px, 5vw, 64px); height: clamp(48px, 5vw, 64px);
+      border-radius: clamp(14px, 1.5vw, 18px);
       background: var(--crema);
       display: flex; align-items: center; justify-content: center;
       transition: background .22s ease;
     }
     .mod-icon i {
-      font-size: clamp(1.8rem, 3.5vw, 3rem); color: var(--verde);
+      font-size: clamp(1.5rem, 2.5vw, 2rem); color: var(--verde);
       transition: color .22s ease; line-height: 1;
     }
     .mod-texto { text-align: center; display: flex; flex-direction: column; gap: 3px; }
     .mod-nombre {
-      font-size: clamp(1rem, 1.6vw, 1.5rem); font-weight: 700;
+      font-size: clamp(1rem, 1.3vw, 1.2rem); font-weight: 700;
       color: var(--carbon); letter-spacing: .3px; transition: color .22s ease; line-height: 1.2;
     }
     .mod-tag {
