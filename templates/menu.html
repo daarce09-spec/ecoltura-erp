@@ -250,6 +250,10 @@
   } else {
     setTimeout(function(){ intro.classList.add('show'); }, 80);
     setTimeout(function(){ intro.classList.add('hide'); }, 1700);
+    // Además de la transición de opacidad, saca el elemento del flujo por
+    // completo — evita que quede semi-transparente tapando el contenido
+    // si la transición no corre limpia (visto en iOS Safari standalone).
+    setTimeout(function(){ intro.style.display = 'none'; }, 2500);
     sessionStorage.setItem('ecoltura_intro_vista', 'true');
   }
 
