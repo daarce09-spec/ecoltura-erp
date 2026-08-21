@@ -35,7 +35,10 @@ self.addEventListener('push', (event) => {
   event.waitUntil(Promise.all(promesas));
 });
 
-// Al tocar la notificación, limpia la bolita del ícono
+// Al tocar la notificación, navega (o abre) la app en la URL indicada.
+// Importante: si ya hay una ventana abierta, hay que NAVEGARLA a la URL
+// nueva (client.navigate), no solo enfocarla — de lo contrario iOS trae
+// la app al frente con el contenido viejo, ignorando el mensaje nuevo.
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
   const url = event.notification.data?.url || '/';
@@ -46,10 +49,12 @@ self.addEventListener('notificationclick', (event) => {
 
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url.includes(url) && 'focus' in client) {
-          return client.focus();
+      const cliente = clientList[0];
+      if (cliente) {
+        if ('navigate' in cliente) {
+          return cliente.navigate(url).then((c) => c.focus());
         }
+        return cliente.focus();
       }
       if (self.clients.openWindow) {
         return self.clients.openWindow(url);
