@@ -1,6 +1,6 @@
 {
-  "name": "ECOLTURA",
-  "short_name": "ECOLTURA",
+  "name": "Mi Ecoltura",
+  "short_name": "Mi Ecoltura",
   "description": "Productos orgánicos y lácteos con entrega a domicilio",
   "start_url": "/",
   "display": "standalone",
@@ -15,8 +15,7 @@
     {
       "src": "/static/img/ecoltura-logo.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
   ]
 }
