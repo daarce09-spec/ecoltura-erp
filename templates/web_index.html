@@ -1228,7 +1228,7 @@ async function confirmarCelularYActivar() {
 async function suscribirPush(cel) {
   const permiso = await Notification.requestPermission();
   if (permiso !== 'granted') {
-    mostrarToast('No se activaron las notificaciones. Podés intentarlo de nuevo cuando quieras.', 'aviso');
+    mostrarToast('No se activaron las notificaciones (estado: ' + permiso + '). Podés intentarlo de nuevo cuando quieras.', 'aviso');
     return;
   }
   try {
