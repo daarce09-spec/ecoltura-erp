@@ -828,6 +828,21 @@ function irPagina(dest) {
 let PRODUCTOS = [];
 const pedido  = {};
 
+// Mapa plano id → producto real, incluye tanto los productos normales como
+// las variantes que quedan anidadas dentro de un grupo (ej. Miel 1.4kg).
+// El array PRODUCTOS de arriba es para RENDERIZAR la grilla (con las
+// entradas de grupo colapsadas); este mapa es para BUSCAR cualquier
+// producto real por su id, sin importar si está agrupado o no.
+let productosPorId = {};
+
+function indexarProductos(lista) {
+  productosPorId = {};
+  lista.forEach(p => {
+    if (p.esGrupo) p.variantes.forEach(v => { productosPorId[v.id] = v; });
+    else productosPorId[p.id] = p;
+  });
+}
+
 // Los pesos preestablecidos ya no viven acá — vienen del backend
 // (tabla producto_pesos) como p.pesos en cada producto.
 
@@ -893,7 +908,7 @@ let modalPesoIdActual = null;
 function renderModalPeso() {
   const id = modalPesoIdActual;
   if (id === null) return;
-  const p = PRODUCTOS.find(x => x.id === id);
+  const p = productosPorId[id];
   if (!p) return;
 
   const filas = p.pesos.map(g => {
@@ -932,6 +947,7 @@ async function cargarProductos() {
   try {
     const r = await fetch("/api/productos");
     PRODUCTOS = await r.json();
+    indexarProductos(PRODUCTOS);
     renderChips();
     renderProductos();
   } catch (e) {
@@ -1125,7 +1141,7 @@ function renderResumen() {
   } else {
     zona.innerHTML = claves.map(clave => {
       const { id, gramos } = parsearClave(clave);
-      const p    = PRODUCTOS.find(x => x.id === id);
+      const p    = productosPorId[id];
       const cant = pedido[clave];
       const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
       total += sub; unds += cant;
@@ -1161,7 +1177,7 @@ function abrirModalConfirmacion() {
   let total = 0;
   const filas = Object.keys(pedido).map(clave => {
     const { id, gramos } = parsearClave(clave);
-    const p    = PRODUCTOS.find(x => x.id === id);
+    const p    = productosPorId[id];
     const cant = pedido[clave];
     const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
     total += sub;
