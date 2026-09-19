@@ -221,16 +221,16 @@
                       font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
     .stepper button:hover { background: var(--verde); color: #fff; }
     .stepper b { min-width: 28px; text-align: center; color: var(--negro); font-size: .9rem; }
-    .pesos-preset { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
-    .btn-peso { flex: 1; min-width: 68px; background: none; border: 1.5px solid var(--verde);
-                border-radius: 8px; padding: 6px 8px; cursor: pointer; transition: all .12s;
-                display: flex; flex-direction: column; align-items: center; line-height: 1.3; }
-    .btn-peso span { font-weight: 700; font-size: .78rem; color: var(--verde); }
-    .btn-peso small { font-size: .68rem; color: var(--naranja); font-weight: 600; }
-    .btn-peso:hover { background: rgba(46,107,62,.06); }
-    .btn-peso.activo { background: var(--verde); }
-    .btn-peso.activo span { color: #fff; }
-    .btn-peso.activo small { color: #fff; }
+    .agregar.activo-peso { background: var(--verde); color: #fff; padding: 8px 10px; font-size: .68rem; }
+    .fila-peso-modal { display: flex; align-items: center; justify-content: space-between;
+                        gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--borde); }
+    .fila-peso-modal:last-of-type { border-bottom: none; }
+    .fp-nombre { font-weight: 700; font-size: .9rem; color: var(--negro); }
+    .fp-precio { font-size: .74rem; color: var(--gris); }
+    .fp-sub { min-width: 64px; text-align: right; font-size: .85rem; color: var(--naranja); }
+    .fp-total { display: flex; justify-content: space-between; align-items: center;
+                margin-top: 12px; padding-top: 12px; border-top: 2px solid var(--verde);
+                font-weight: 700; font-size: 1rem; }
     .cargando-prod { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
     .sin-resultados { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
 
@@ -609,6 +609,17 @@
   </div>
 </div>
 
+<!-- Modal: elegir cantidades por peso -->
+<div class="overlay" id="overlayPeso">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModalPeso()">✕</button>
+    <div id="modalPesoContenido"></div>
+    <div class="modal-botones" style="margin-top:16px;">
+      <button class="btn-confirmar" style="width:100%" onclick="cerrarModalPeso()">Listo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════
      PÁGINA 2 — LA FINCA
 ═══════════════════════════════════════════ -->
@@ -814,12 +825,90 @@ function formatoPeso(gramos) {
   return gramos + ' g';
 }
 
-function seleccionarPeso(id, gramos) {
-  // Tocar el mismo peso ya elegido lo deselecciona; tocar otro lo reemplaza.
-  pedido[id] = (pedido[id] === gramos) ? 0 : gramos;
-  if (pedido[id] === 0) delete pedido[id];
+// Cuenta de unidades elegidas por cada peso, por producto:
+// pesosSeleccionados[id] = { "1800": 2, "2000": 1 }
+const pesosSeleccionados = {};
+
+function totalGramosProducto(id) {
+  const sel = pesosSeleccionados[id] || {};
+  return Object.entries(sel).reduce((sum, [g, cant]) => sum + (Number(g) * cant), 0);
+}
+
+function sincronizarPedidoPeso(id) {
+  const total = totalGramosProducto(id);
+  if (total > 0) pedido[id] = total;
+  else delete pedido[id];
+}
+
+function abrirModalPeso(id) {
+  modalPesoIdActual = id;
+  renderModalPeso();
+  abrirModal('overlayPeso');
+}
+
+function cerrarModalPeso() {
+  cerrarModal('overlayPeso');
+  modalPesoIdActual = null;
+}
+
+function cambiarCantidadPeso(id, gramos, delta) {
+  if (!pesosSeleccionados[id]) pesosSeleccionados[id] = {};
+  const actual = pesosSeleccionados[id][gramos] || 0;
+  const nuevo = Math.max(0, actual + delta);
+  if (nuevo === 0) delete pesosSeleccionados[id][gramos];
+  else pesosSeleccionados[id][gramos] = nuevo;
+
+  sincronizarPedidoPeso(id);
   renderProductos();
   renderResumen();
+  renderModalPeso();
+}
+
+function quitarProductoPeso(id) {
+  delete pesosSeleccionados[id];
+  delete pedido[id];
+  renderProductos();
+  renderResumen();
+}
+
+let modalPesoIdActual = null;
+
+function renderModalPeso() {
+  const id = modalPesoIdActual;
+  if (id === null) return;
+  const p = PRODUCTOS.find(x => x.id === id);
+  if (!p) return;
+
+  const sel = pesosSeleccionados[id] || {};
+  const filas = p.pesos.map(g => {
+    const cant = sel[g] || 0;
+    const subtotal = Math.round(p.precio * g * cant);
+    return `<div class="fila-peso-modal">
+      <div>
+        <div class="fp-nombre">${formatoPeso(g)}</div>
+        <div class="fp-precio">₡${Math.round(p.precio * g).toLocaleString('es-CR')} c/u</div>
+      </div>
+      <div class="stepper">
+        <button onclick="cambiarCantidadPeso(${id},${g},-1)">−</button>
+        <b>${cant}</b>
+        <button onclick="cambiarCantidadPeso(${id},${g},1)">+</button>
+      </div>
+      <b class="fp-sub">₡${subtotal.toLocaleString('es-CR')}</b>
+    </div>`;
+  }).join('');
+
+  const totalG = totalGramosProducto(id);
+  const totalPrecio = Math.round(p.precio * totalG);
+
+  document.getElementById('modalPesoContenido').innerHTML = `
+    <div class="modal-titulo">${p.nombre}</div>
+    <div class="modal-nota">Elegí cuántas unidades de cada peso querés</div>
+    ${filas}
+    <div class="fp-total">
+      <span>Total${totalG > 0 ? ' — ' + formatoPeso(totalG) : ''}</span>
+      <b>₡${totalPrecio.toLocaleString('es-CR')}</b>
+    </div>
+  `;
 }
 let filtroCat = "Todos";
 
@@ -894,11 +983,9 @@ function renderProductos() {
 
     let control;
     if (pesos) {
-      control = `<div class="pesos-preset">${pesos.map(g => `
-        <button class="btn-peso ${cant === g ? 'activo' : ''}" onclick="seleccionarPeso(${p.id},${g})">
-          <span>${formatoPeso(g)}</span>
-          <small>₡${Math.round(p.precio * g).toLocaleString('es-CR')}</small>
-        </button>`).join('')}</div>`;
+      control = cant === 0
+        ? `<button class="agregar" onclick="abrirModalPeso(${p.id})">Añadir</button>`
+        : `<button class="agregar activo-peso" onclick="abrirModalPeso(${p.id})">${formatoPeso(cant)} · Editar</button>`;
     } else if (cant === 0) {
       control = `<button class="agregar" onclick="actualizarPedido(${p.id},1)">Añadir</button>`;
     } else {
@@ -914,7 +1001,10 @@ function renderProductos() {
       <div class="prod-body">
         <h4>${p.nombre}</h4>
         <div class="unidad">${p.unidad}</div>
-        ${pesos ? control : `<div class="fila-precio"><span class="precio">₡${p.precio.toLocaleString('es-CR')}</span>${control}</div>`}
+        <div class="fila-precio">
+          <span class="precio">₡${p.precio.toLocaleString('es-CR')}${pesos ? '/g' : ''}</span>
+          ${control}
+        </div>
       </div>
     </div>`;
   }).join("");
@@ -940,7 +1030,7 @@ function renderResumen() {
       total += sub; unds += pedido[id];
       const esPeso = !!(p.pesos && p.pesos.length > 0);
       const controles = esPeso
-        ? `<button onclick="seleccionarPeso(${p.id},${pedido[id]})" title="Quitar">✕</button><b>${formatoPeso(pedido[id])}</b>`
+        ? `<button onclick="quitarProductoPeso(${p.id})" title="Quitar">✕</button><b onclick="abrirModalPeso(${p.id})" style="cursor:pointer;text-decoration:underline">${formatoPeso(pedido[id])}</b>`
         : `<button onclick="actualizarPedido(${p.id},-1)">−</button><b>${pedido[id]}</b><button onclick="actualizarPedido(${p.id},1)">+</button>`;
       return `<div class="item-res">
         <span class="nombre-it">${p.nombre}</span>
