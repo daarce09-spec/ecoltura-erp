@@ -53,7 +53,10 @@ def api_productos():
                     ), 0)
                     FROM inventario_movimientos
                     WHERE producto_id = p.id
-                ) AS stock_real
+                ) AS stock_real,
+                p.grupo_id,
+                p.grupo_nombre,
+                p.nombre_variante
             FROM productos p
             WHERE p.visible_web = TRUE
             ORDER BY
@@ -88,11 +91,40 @@ def api_productos():
             "precio":    float(r[4]),
             "stock":     float(r[5]),
             "pesos":     pesos_por_producto.get(r[0], []),
+            "grupo_id":       r[6],
+            "grupo_nombre":   r[7],
+            "nombre_variante": r[8],
         }
         for r in rows
         if float(r[5]) > 0          # solo productos con stock disponible
     ]
-    return jsonify(productos)
+
+    # Agrupar productos que comparten grupo_id en una sola tarjeta con
+    # variantes (ej. "Miel de abeja" con 1.4kg / 750g / 360g) — parametrizable
+    # desde las columnas grupo_id/grupo_nombre/nombre_variante, sin tocar código.
+    grupos = {}
+    resultado = []
+    for p in productos:
+        gid = p.pop("grupo_id")
+        gnom = p.pop("grupo_nombre")
+        p["nombre_variante"] = p.pop("nombre_variante")
+        if gid:
+            if gid not in grupos:
+                entrada = {
+                    "esGrupo": True,
+                    "id": f"g{gid}",
+                    "nombre": gnom or p["nombre"],
+                    "categoria": p["categoria"],
+                    "variantes": [],
+                }
+                grupos[gid] = entrada
+                resultado.append(entrada)
+            grupos[gid]["variantes"].append(p)
+        else:
+            del p["nombre_variante"]
+            resultado.append(p)
+
+    return jsonify(resultado)
 
 
 # ─────────────────────────────────────────────

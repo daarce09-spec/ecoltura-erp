@@ -209,6 +209,9 @@
     .prod-body { padding: 13px 2px 0; display: flex; flex-direction: column; gap: 2px; }
     .prod h4 { font-family: 'Fraunces', serif; font-size: 1rem; font-weight: 500; color: var(--negro); }
     .prod .unidad { color: var(--gris); font-size: .74rem; }
+    .selector-variante { width: 100%; margin-top: 8px; padding: 7px 8px; border-radius: 8px;
+                          border: 1.5px solid var(--borde); font-family: 'Inter'; font-size: .78rem;
+                          color: var(--negro); background: var(--blanco); }
     .prod .fila-precio { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
     .precio { font-weight: 700; color: var(--naranja); font-size: .95rem; }
     .sin-stock { font-size: .74rem; color: var(--gris); font-style: italic; }
@@ -954,6 +957,44 @@ function normalizarTexto(texto) {
     .replace(/[\u0300-\u036f]/g, ""); // quita tildes/acentos
 }
 
+// Variante actualmente elegida por cada grupo (ej. varianteSel["g1"] = 64)
+const varianteSel = {};
+
+function cambiarVariante(grupoId, nuevoId) {
+  varianteSel[grupoId] = Number(nuevoId);
+  renderProductos();
+}
+
+function renderTarjetaGrupo(g) {
+  if (!varianteSel[g.id]) varianteSel[g.id] = g.variantes[0].id;
+  const v = g.variantes.find(x => x.id === varianteSel[g.id]) || g.variantes[0];
+  const cant = pedido[v.id] || 0;
+
+  const control = cant === 0
+    ? `<button class="agregar" onclick="actualizarPedido(${v.id},1)">Añadir</button>`
+    : `<div class="stepper"><button onclick="actualizarPedido(${v.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${v.id},1)">+</button></div>`;
+
+  const opciones = g.variantes.map(x =>
+    `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${x.nombre_variante} — ₡${x.precio.toLocaleString('es-CR')}</option>`
+  ).join('');
+
+  return `<div class="prod">
+    <div class="prod-img">
+      <img src="/static/img/productos/${v.id}.jpg" alt="${g.nombre}"
+           onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
+      <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
+    </div>
+    <div class="prod-body">
+      <h4>${g.nombre}</h4>
+      <select class="selector-variante" onchange="cambiarVariante('${g.id}', this.value)">${opciones}</select>
+      <div class="fila-precio">
+        <span class="precio">₡${v.precio.toLocaleString('es-CR')}</span>
+        ${control}
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderProductos() {
   const q = normalizarTexto(document.getElementById("buscar").value).trim();
   let lista = PRODUCTOS.filter(p =>
@@ -980,6 +1021,8 @@ function renderProductos() {
     return;
   }
   grid.innerHTML = lista.map(p => {
+    if (p.esGrupo) return renderTarjetaGrupo(p);
+
     const pesos = (p.pesos && p.pesos.length > 0) ? p.pesos : null;
     const cant = pesos ? totalGramosProducto(p.id) : (pedido[p.id] || 0);
 
