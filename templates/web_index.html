@@ -623,6 +623,17 @@
   </div>
 </div>
 
+<!-- Modal: elegir cantidades por variante (ej. tamaños de Miel) -->
+<div class="overlay" id="overlayVariante">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModalVariante()">✕</button>
+    <div id="modalVarianteContenido"></div>
+    <div class="modal-botones" style="margin-top:16px;">
+      <button class="btn-confirmar" style="width:100%" onclick="cerrarModalVariante()">Listo</button>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════
      PÁGINA 2 — LA FINCA
 ═══════════════════════════════════════════ -->
@@ -957,39 +968,81 @@ function normalizarTexto(texto) {
     .replace(/[\u0300-\u036f]/g, ""); // quita tildes/acentos
 }
 
-// Variante actualmente elegida por cada grupo (ej. varianteSel["g1"] = 64)
-const varianteSel = {};
+// Modal de variantes (ej. tamaños de Miel) — mismo patrón visual y de
+// interacción que el modal de pesos: un solo "Añadir" en la tarjeta,
+// y ahí adentro un stepper por cada opción.
+let modalVarianteGrupoId = null;
 
-function cambiarVariante(grupoId, nuevoId) {
-  varianteSel[grupoId] = Number(nuevoId);
-  renderProductos();
+function abrirModalVariante(grupoId) {
+  modalVarianteGrupoId = grupoId;
+  renderModalVariante();
+  abrirModal('overlayVariante');
+}
+
+function cerrarModalVariante() {
+  cerrarModal('overlayVariante');
+  modalVarianteGrupoId = null;
+}
+
+function cambiarCantidadVariante(id, delta) {
+  actualizarPedido(id, delta);
+  renderModalVariante();
+}
+
+function renderModalVariante() {
+  const g = PRODUCTOS.find(p => p.id === modalVarianteGrupoId);
+  if (!g) return;
+
+  const filas = g.variantes.map(v => {
+    const cant = pedido[v.id] || 0;
+    const subtotal = Math.round(v.precio * cant);
+    return `<div class="fila-peso-modal">
+      <div>
+        <div class="fp-nombre">${v.nombre_variante}</div>
+        <div class="fp-precio">₡${v.precio.toLocaleString('es-CR')} c/u</div>
+      </div>
+      <div class="stepper">
+        <button onclick="cambiarCantidadVariante(${v.id},-1)">−</button>
+        <b>${cant}</b>
+        <button onclick="cambiarCantidadVariante(${v.id},1)">+</button>
+      </div>
+      <b class="fp-sub">₡${subtotal.toLocaleString('es-CR')}</b>
+    </div>`;
+  }).join('');
+
+  const total = g.variantes.reduce((s, v) => s + v.precio * (pedido[v.id] || 0), 0);
+
+  document.getElementById('modalVarianteContenido').innerHTML = `
+    <div class="modal-titulo">${g.nombre}</div>
+    <div class="modal-nota">Elegí cuántas unidades de cada tamaño querés</div>
+    ${filas}
+    <div class="fp-total">
+      <span>Total</span>
+      <b>₡${Math.round(total).toLocaleString('es-CR')}</b>
+    </div>
+  `;
 }
 
 function renderTarjetaGrupo(g) {
-  if (!varianteSel[g.id]) varianteSel[g.id] = g.variantes[0].id;
-  const v = g.variantes.find(x => x.id === varianteSel[g.id]) || g.variantes[0];
-  const cant = pedido[v.id] || 0;
+  const totalUnidades = g.variantes.reduce((s, v) => s + (pedido[v.id] || 0), 0);
+  const control = totalUnidades === 0
+    ? `<button class="agregar" onclick="abrirModalVariante('${g.id}')">Añadir</button>`
+    : `<button class="agregar activo-peso" onclick="abrirModalVariante('${g.id}')">${totalUnidades} · Editar</button>`;
 
-  const control = cant === 0
-    ? `<button class="agregar" onclick="actualizarPedido(${v.id},1)">Añadir</button>`
-    : `<div class="stepper"><button onclick="actualizarPedido(${v.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${v.id},1)">+</button></div>`;
-
-  const opciones = g.variantes.map(x =>
-    `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${x.nombre_variante}</option>`
-  ).join('');
+  const desde = Math.min(...g.variantes.map(v => v.precio));
+  const imgId = g.variantes[0].id;
 
   return `<div class="prod">
     <div class="prod-img">
-      <img src="/static/img/productos/${v.id}.jpg" alt="${g.nombre}"
+      <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
            onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
       <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
     </div>
     <div class="prod-body">
       <h4>${g.nombre}</h4>
-      <div class="unidad">Elegí el tamaño</div>
-      <select class="selector-variante" onchange="cambiarVariante('${g.id}', this.value)">${opciones}</select>
+      <div class="unidad">${g.variantes.length} tamaños</div>
       <div class="fila-precio">
-        <span class="precio">₡${v.precio.toLocaleString('es-CR')}</span>
+        <span class="precio">Desde ₡${desde.toLocaleString('es-CR')}</span>
         ${control}
       </div>
     </div>
