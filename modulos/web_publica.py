@@ -257,7 +257,7 @@ def api_pedidos():
         )
         precios = {r[0]: float(r[1]) for r in cur.fetchall()}
 
-        if len(precios) != len(producto_ids):
+        if not set(producto_ids).issubset(precios.keys()):
             return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
 
         total = sum(precios[i["producto_id"]] * float(i["cantidad"]) for i in items)

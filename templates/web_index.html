@@ -825,19 +825,24 @@ function formatoPeso(gramos) {
   return gramos + ' g';
 }
 
-// Cuenta de unidades elegidas por cada peso, por producto:
-// pesosSeleccionados[id] = { "1800": 2, "2000": 1 }
-const pesosSeleccionados = {};
-
-function totalGramosProducto(id) {
-  const sel = pesosSeleccionados[id] || {};
-  return Object.entries(sel).reduce((sum, [g, cant]) => sum + (Number(g) * cant), 0);
+// Los productos que se venden por peso usan una clave compuesta "id_gramos"
+// dentro de `pedido`, en vez de una sola cantidad — así cada tamaño elegido
+// queda como su propia línea en el resumen, la confirmación y el pedido final,
+// sin sumarse entre sí. El valor guardado es la CANTIDAD DE UNIDADES de ese
+// tamaño (ej. "70_1800": 2 → dos papayas de 1.8 kg).
+function esClavePeso(clave) { return String(clave).includes('_'); }
+function parsearClave(clave) {
+  if (esClavePeso(clave)) {
+    const [id, gramos] = String(clave).split('_').map(Number);
+    return { id, gramos };
+  }
+  return { id: Number(clave), gramos: null };
 }
 
-function sincronizarPedidoPeso(id) {
-  const total = totalGramosProducto(id);
-  if (total > 0) pedido[id] = total;
-  else delete pedido[id];
+function totalGramosProducto(id) {
+  return Object.keys(pedido)
+    .filter(k => esClavePeso(k) && parsearClave(k).id === id)
+    .reduce((sum, k) => sum + parsearClave(k).gramos * pedido[k], 0);
 }
 
 function abrirModalPeso(id) {
@@ -852,21 +857,19 @@ function cerrarModalPeso() {
 }
 
 function cambiarCantidadPeso(id, gramos, delta) {
-  if (!pesosSeleccionados[id]) pesosSeleccionados[id] = {};
-  const actual = pesosSeleccionados[id][gramos] || 0;
-  const nuevo = Math.max(0, actual + delta);
-  if (nuevo === 0) delete pesosSeleccionados[id][gramos];
-  else pesosSeleccionados[id][gramos] = nuevo;
+  const clave = `${id}_${gramos}`;
+  const nuevo = Math.max(0, (pedido[clave] || 0) + delta);
+  if (nuevo === 0) delete pedido[clave];
+  else pedido[clave] = nuevo;
 
-  sincronizarPedidoPeso(id);
   renderProductos();
   renderResumen();
   renderModalPeso();
 }
 
 function quitarProductoPeso(id) {
-  delete pesosSeleccionados[id];
-  delete pedido[id];
+  Object.keys(pedido).filter(k => esClavePeso(k) && parsearClave(k).id === id)
+    .forEach(k => delete pedido[k]);
   renderProductos();
   renderResumen();
 }
@@ -879,9 +882,8 @@ function renderModalPeso() {
   const p = PRODUCTOS.find(x => x.id === id);
   if (!p) return;
 
-  const sel = pesosSeleccionados[id] || {};
   const filas = p.pesos.map(g => {
-    const cant = sel[g] || 0;
+    const cant = pedido[`${id}_${g}`] || 0;
     const subtotal = Math.round(p.precio * g * cant);
     return `<div class="fila-peso-modal">
       <div>
@@ -978,8 +980,8 @@ function renderProductos() {
     return;
   }
   grid.innerHTML = lista.map(p => {
-    const cant = pedido[p.id] || 0;
     const pesos = (p.pesos && p.pesos.length > 0) ? p.pesos : null;
+    const cant = pesos ? totalGramosProducto(p.id) : (pedido[p.id] || 0);
 
     let control;
     if (pesos) {
@@ -1018,22 +1020,26 @@ function actualizarPedido(id, delta) {
 }
 
 function renderResumen() {
-  const ids  = Object.keys(pedido);
+  const claves = Object.keys(pedido);
   const zona = document.getElementById("zonaResumen");
   let total = 0, unds = 0;
-  if (ids.length === 0) {
+  if (claves.length === 0) {
     zona.innerHTML = '<div class="res-vacio">Aún no ha agregado productos.</div>';
   } else {
-    zona.innerHTML = ids.map(id => {
-      const p   = PRODUCTOS.find(x => x.id == id);
-      const sub = p.precio * pedido[id];
-      total += sub; unds += pedido[id];
-      const esPeso = !!(p.pesos && p.pesos.length > 0);
-      const controles = esPeso
-        ? `<button onclick="quitarProductoPeso(${p.id})" title="Quitar">✕</button><b onclick="abrirModalPeso(${p.id})" style="cursor:pointer;text-decoration:underline">${formatoPeso(pedido[id])}</b>`
-        : `<button onclick="actualizarPedido(${p.id},-1)">−</button><b>${pedido[id]}</b><button onclick="actualizarPedido(${p.id},1)">+</button>`;
+    zona.innerHTML = claves.map(clave => {
+      const { id, gramos } = parsearClave(clave);
+      const p    = PRODUCTOS.find(x => x.id === id);
+      const cant = pedido[clave];
+      const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
+      total += sub; unds += cant;
+
+      const nombreLinea = gramos ? `${p.nombre} — ${formatoPeso(gramos)}` : p.nombre;
+      const controles = gramos
+        ? `<button onclick="cambiarCantidadPeso(${id},${gramos},-1)">−</button><b>${cant}</b><button onclick="cambiarCantidadPeso(${id},${gramos},1)">+</button>`
+        : `<button onclick="actualizarPedido(${id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${id},1)">+</button>`;
+
       return `<div class="item-res">
-        <span class="nombre-it">${p.nombre}</span>
+        <span class="nombre-it">${nombreLinea}</span>
         <span class="controles-mini">
           ${controles}
           <b style="min-width:60px;text-align:right">₡${sub.toLocaleString('es-CR')}</b>
@@ -1056,11 +1062,14 @@ function abrirModalConfirmacion() {
   if (!direccion) { alert("Indique la dirección de entrega."); return; }
 
   let total = 0;
-  const filas = Object.keys(pedido).map(id => {
-    const p   = PRODUCTOS.find(x => x.id == id);
-    const sub = p.precio * pedido[id];
+  const filas = Object.keys(pedido).map(clave => {
+    const { id, gramos } = parsearClave(clave);
+    const p    = PRODUCTOS.find(x => x.id === id);
+    const cant = pedido[clave];
+    const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
     total += sub;
-    return `<tr><td>${p.nombre} × ${pedido[id]} ${p.unidad}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
+    const etiqueta = gramos ? `${p.nombre} (${formatoPeso(gramos)}) × ${cant}` : `${p.nombre} × ${cant} ${p.unidad}`;
+    return `<tr><td>${etiqueta}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
   }).join("");
 
   document.getElementById("modalDetalle").innerHTML = `
@@ -1073,9 +1082,11 @@ async function enviarPedido() {
   const btn = document.getElementById("btnConfirmar");
   btn.disabled = true; btn.textContent = "Enviando...";
 
-  const items = Object.keys(pedido).map(id => ({
-    producto_id: parseInt(id), cantidad: pedido[id]
-  }));
+  const items = Object.keys(pedido).map(clave => {
+    const { id, gramos } = parsearClave(clave);
+    const cant = pedido[clave];
+    return { producto_id: id, cantidad: gramos ? gramos * cant : cant };
+  });
 
   try {
     const r = await fetch("/api/pedidos", {
