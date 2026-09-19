@@ -975,7 +975,7 @@ function renderTarjetaGrupo(g) {
     : `<div class="stepper"><button onclick="actualizarPedido(${v.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${v.id},1)">+</button></div>`;
 
   const opciones = g.variantes.map(x =>
-    `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${x.nombre_variante} — ₡${x.precio.toLocaleString('es-CR')}</option>`
+    `<option value="${x.id}" ${x.id === v.id ? 'selected' : ''}>${x.nombre_variante}</option>`
   ).join('');
 
   return `<div class="prod">
@@ -986,6 +986,7 @@ function renderTarjetaGrupo(g) {
     </div>
     <div class="prod-body">
       <h4>${g.nombre}</h4>
+      <div class="unidad">Elegí el tamaño</div>
       <select class="selector-variante" onchange="cambiarVariante('${g.id}', this.value)">${opciones}</select>
       <div class="fila-precio">
         <span class="precio">₡${v.precio.toLocaleString('es-CR')}</span>
