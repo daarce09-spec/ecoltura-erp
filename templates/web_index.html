@@ -221,6 +221,16 @@
                       font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
     .stepper button:hover { background: var(--verde); color: #fff; }
     .stepper b { min-width: 28px; text-align: center; color: var(--negro); font-size: .9rem; }
+    .pesos-preset { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 9px; }
+    .btn-peso { flex: 1; min-width: 68px; background: none; border: 1.5px solid var(--verde);
+                border-radius: 8px; padding: 6px 8px; cursor: pointer; transition: all .12s;
+                display: flex; flex-direction: column; align-items: center; line-height: 1.3; }
+    .btn-peso span { font-weight: 700; font-size: .78rem; color: var(--verde); }
+    .btn-peso small { font-size: .68rem; color: var(--naranja); font-weight: 600; }
+    .btn-peso:hover { background: rgba(46,107,62,.06); }
+    .btn-peso.activo { background: var(--verde); }
+    .btn-peso.activo span { color: #fff; }
+    .btn-peso.activo small { color: #fff; }
     .cargando-prod { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
     .sin-resultados { grid-column: 1/-1; color: var(--gris); font-size: .9rem; padding: 30px 0; }
 
@@ -792,6 +802,25 @@ function irPagina(dest) {
 // ── PRODUCTOS ──────────────────────────────────────
 let PRODUCTOS = [];
 const pedido  = {};
+
+// Los pesos preestablecidos ya no viven acá — vienen del backend
+// (tabla producto_pesos) como p.pesos en cada producto.
+
+function formatoPeso(gramos) {
+  if (gramos >= 1000) {
+    const kg = gramos / 1000;
+    return (kg % 1 === 0 ? kg : kg.toFixed(1)) + ' kg';
+  }
+  return gramos + ' g';
+}
+
+function seleccionarPeso(id, gramos) {
+  // Tocar el mismo peso ya elegido lo deselecciona; tocar otro lo reemplaza.
+  pedido[id] = (pedido[id] === gramos) ? 0 : gramos;
+  if (pedido[id] === 0) delete pedido[id];
+  renderProductos();
+  renderResumen();
+}
 let filtroCat = "Todos";
 
 async function cargarProductos() {
@@ -861,9 +890,21 @@ function renderProductos() {
   }
   grid.innerHTML = lista.map(p => {
     const cant = pedido[p.id] || 0;
-    const control = cant === 0
-      ? `<button class="agregar" onclick="actualizarPedido(${p.id},1)">Añadir</button>`
-      : `<div class="stepper"><button onclick="actualizarPedido(${p.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${p.id},1)">+</button></div>`;
+    const pesos = (p.pesos && p.pesos.length > 0) ? p.pesos : null;
+
+    let control;
+    if (pesos) {
+      control = `<div class="pesos-preset">${pesos.map(g => `
+        <button class="btn-peso ${cant === g ? 'activo' : ''}" onclick="seleccionarPeso(${p.id},${g})">
+          <span>${formatoPeso(g)}</span>
+          <small>₡${Math.round(p.precio * g).toLocaleString('es-CR')}</small>
+        </button>`).join('')}</div>`;
+    } else if (cant === 0) {
+      control = `<button class="agregar" onclick="actualizarPedido(${p.id},1)">Añadir</button>`;
+    } else {
+      control = `<div class="stepper"><button onclick="actualizarPedido(${p.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${p.id},1)">+</button></div>`;
+    }
+
     return `<div class="prod">
       <div class="prod-img">
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
@@ -873,10 +914,7 @@ function renderProductos() {
       <div class="prod-body">
         <h4>${p.nombre}</h4>
         <div class="unidad">${p.unidad}</div>
-        <div class="fila-precio">
-          <span class="precio">₡${p.precio.toLocaleString('es-CR')}</span>
-          ${control}
-        </div>
+        ${pesos ? control : `<div class="fila-precio"><span class="precio">₡${p.precio.toLocaleString('es-CR')}</span>${control}</div>`}
       </div>
     </div>`;
   }).join("");
@@ -900,11 +938,14 @@ function renderResumen() {
       const p   = PRODUCTOS.find(x => x.id == id);
       const sub = p.precio * pedido[id];
       total += sub; unds += pedido[id];
+      const esPeso = !!(p.pesos && p.pesos.length > 0);
+      const controles = esPeso
+        ? `<button onclick="seleccionarPeso(${p.id},${pedido[id]})" title="Quitar">✕</button><b>${formatoPeso(pedido[id])}</b>`
+        : `<button onclick="actualizarPedido(${p.id},-1)">−</button><b>${pedido[id]}</b><button onclick="actualizarPedido(${p.id},1)">+</button>`;
       return `<div class="item-res">
         <span class="nombre-it">${p.nombre}</span>
         <span class="controles-mini">
-          <button onclick="actualizarPedido(${p.id},-1)">−</button><b>${pedido[id]}</b>
-          <button onclick="actualizarPedido(${p.id},1)">+</button>
+          ${controles}
           <b style="min-width:60px;text-align:right">₡${sub.toLocaleString('es-CR')}</b>
         </span>
       </div>`;

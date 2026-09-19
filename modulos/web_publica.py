@@ -71,6 +71,14 @@ def api_productos():
         """)
         rows = cur.fetchall()
 
+        # Pesos preestablecidos (kg/g) por producto — parametrizables desde
+        # la tabla producto_pesos, sin necesidad de tocar código para
+        # agregar o quitar opciones.
+        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, orden")
+        pesos_por_producto = {}
+        for producto_id, gramos in cur.fetchall():
+            pesos_por_producto.setdefault(producto_id, []).append(gramos)
+
     productos = [
         {
             "id":        r[0],
@@ -79,6 +87,7 @@ def api_productos():
             "unidad":    r[3],
             "precio":    float(r[4]),
             "stock":     float(r[5]),
+            "pesos":     pesos_por_producto.get(r[0], []),
         }
         for r in rows
         if float(r[5]) > 0          # solo productos con stock disponible
