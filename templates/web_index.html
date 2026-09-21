@@ -735,6 +735,16 @@
       </div>
       <div class="form-visita">
         <div class="form-titulo">Agendar una visita</div>
+        <div style="text-align:center; padding:30px 10px;">
+          <div style="font-size:2.4rem; margin-bottom:10px;">🚧</div>
+          <div style="font-weight:700; font-size:1.15rem; color:var(--verde); margin-bottom:8px;">
+            Próximamente
+          </div>
+          <p style="color:var(--gris); font-size:.9rem; margin:0;">
+            Estamos ajustando el proceso de reservación. Muy pronto vas a poder agendar tu visita desde acá.
+          </p>
+        </div>
+        <!-- Formulario original, oculto temporalmente — reactivar quitando este comentario
         <label>Nombre completo</label>
         <input type="text" id="visNombre" placeholder="Su nombre">
         <label>Celular</label>
@@ -753,6 +763,7 @@
           <div class="sin-fechas">Cargando fechas...</div>
         </div>
         <button class="btn-visita" onclick="enviarReserva()">Solicitar reservación</button>
+        -->
       </div>
     </div>
   </section>
@@ -814,7 +825,9 @@ function irPagina(dest) {
       .classList.toggle("activa", p === dest);
   });
   window.scrollTo({ top: 0 });
-  if (dest === "finca") cargarFechasVisita();
+  // Formulario de visitas desactivado temporalmente ("Próximamente") —
+  // reactivar esta línea cuando se restaure el formulario.
+  // if (dest === "finca") cargarFechasVisita();
 }
 
 // ── FECHA HOY ──────────────────────────────────────
