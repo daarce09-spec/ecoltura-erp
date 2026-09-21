@@ -637,6 +637,14 @@
   </div>
 </div>
 
+<!-- Modal: explicación previa o guía si ya está bloqueado -->
+<div class="overlay" id="overlayPermiso">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayPermiso')">✕</button>
+    <div id="modalPermisoContenido"></div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════
      PÁGINA 2 — LA FINCA
 ═══════════════════════════════════════════ -->
@@ -1503,9 +1511,58 @@ async function confirmarCelularYActivar() {
 }
 
 async function suscribirPush(cel) {
+  const estado = Notification.permission;
+
+  if (estado === 'denied') {
+    mostrarModalPermisoBloqueado();
+    return;
+  }
+
+  if (estado === 'default') {
+    mostrarModalExplicacionPermiso(cel);
+    return;
+  }
+
+  // estado === 'granted' — ya tiene el permiso, no hace falta explicar nada
+  await continuarSuscripcion(cel);
+}
+
+function mostrarModalExplicacionPermiso(cel) {
+  document.getElementById('modalPermisoContenido').innerHTML = `
+    <div class="modal-titulo">🔔 Activar notificaciones</div>
+    <p style="font-size:.9rem; color:var(--texto); line-height:1.6; margin-bottom:18px;">
+      Tu navegador te va a preguntar si permitís notificaciones.<br><br>
+      Tocá <b>"Permitir"</b> para que te avisemos cuándo te toca tu pedido.
+    </p>
+    <button class="btn-confirmar" style="width:100%"
+      onclick="cerrarModal('overlayPermiso'); continuarSuscripcion('${cel}')">
+      Entendido, continuar
+    </button>
+  `;
+  abrirModal('overlayPermiso');
+}
+
+function mostrarModalPermisoBloqueado() {
+  document.getElementById('modalPermisoContenido').innerHTML = `
+    <div class="modal-titulo">🔕 Notificaciones bloqueadas</div>
+    <p style="font-size:.88rem; color:var(--texto); line-height:1.6; margin-bottom:14px;">
+      Parece que bloqueaste las notificaciones antes. Para activarlas de nuevo:
+    </p>
+    <ol style="font-size:.85rem; color:var(--texto); line-height:1.9; padding-left:20px; margin-bottom:18px;">
+      <li>Tocá los <b>tres puntos ⋮</b> arriba a la derecha del navegador</li>
+      <li><b>Configuración</b> → <b>Configuración del sitio</b></li>
+      <li><b>Notificaciones</b> → buscá este sitio en "Bloqueados"</li>
+      <li>Cambialo a <b>Permitir</b> y volvé a tocar la campanita</li>
+    </ol>
+    <button class="btn-confirmar" style="width:100%" onclick="cerrarModal('overlayPermiso')">Entendido</button>
+  `;
+  abrirModal('overlayPermiso');
+}
+
+async function continuarSuscripcion(cel) {
   const permiso = await Notification.requestPermission();
   if (permiso !== 'granted') {
-    mostrarToast('No se activaron las notificaciones (estado: ' + permiso + '). Podés intentarlo de nuevo cuando quieras.', 'aviso');
+    mostrarToast('No se activaron las notificaciones. Podés intentarlo de nuevo cuando quieras.', 'aviso');
     return;
   }
   try {
