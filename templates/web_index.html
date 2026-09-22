@@ -889,6 +889,19 @@ function indexarProductos(lista) {
 // Los pesos preestablecidos ya no viven acá — vienen del backend
 // (tabla producto_pesos) como p.pesos en cada producto.
 
+// Conversión SOLO VISUAL: muestra "por gramo" como "por kg" en las tarjetas
+// (precio × 1000, etiqueta "kg") — el precio real (p.precio) y todo el
+// carrito/pedido siguen funcionando en gramos exactamente igual que antes.
+function esUnidadGramo(unidad) {
+  return ['gramo', 'gramos'].includes((unidad || '').toLowerCase().trim());
+}
+function precioVisual(p) {
+  if (esUnidadGramo(p.unidad)) {
+    return { texto: '₡' + Math.round(p.precio * 1000).toLocaleString('es-CR') + '/kg', unidad: 'kg' };
+  }
+  return { texto: '₡' + p.precio.toLocaleString('es-CR'), unidad: p.unidad };
+}
+
 function formatoPeso(gramos) {
   if (gramos >= 1000) {
     const kg = gramos / 1000;
@@ -1150,6 +1163,8 @@ function renderProductos() {
       control = `<div class="stepper"><button onclick="actualizarPedido(${p.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${p.id},1)">+</button></div>`;
     }
 
+    const pv = precioVisual(p);
+
     return `<div class="prod">
       <div class="prod-img">
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
@@ -1158,9 +1173,9 @@ function renderProductos() {
       </div>
       <div class="prod-body">
         <h4>${p.nombre}</h4>
-        <div class="unidad">${p.unidad}</div>
+        <div class="unidad">${pv.unidad}</div>
         <div class="fila-precio">
-          <span class="precio">₡${p.precio.toLocaleString('es-CR')}${pesos ? '/g' : ''}</span>
+          <span class="precio">${pv.texto}</span>
           ${control}
         </div>
       </div>
