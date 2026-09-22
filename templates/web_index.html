@@ -902,6 +902,18 @@ function precioVisual(p) {
   return { texto: '₡' + p.precio.toLocaleString('es-CR'), unidad: p.unidad };
 }
 
+// Costo de Express (₡1000) por defecto — se agrega una sola vez al cargar
+// la tienda; si el cliente lo quita del pedido, no vuelve a aparecer solo.
+const ID_EXPRESS = 118;
+let expressInicializado = false;
+function inicializarExpress() {
+  if (expressInicializado) return;
+  expressInicializado = true;
+  if (productosPorId[ID_EXPRESS] && !pedido[ID_EXPRESS]) {
+    pedido[ID_EXPRESS] = 1;
+  }
+}
+
 function formatoPeso(gramos) {
   if (gramos >= 1000) {
     const kg = gramos / 1000;
@@ -1004,6 +1016,7 @@ async function cargarProductos() {
     const r = await fetch("/api/productos");
     PRODUCTOS = await r.json();
     indexarProductos(PRODUCTOS);
+    inicializarExpress();
     renderChips();
     renderProductos();
   } catch (e) {
@@ -1124,6 +1137,7 @@ function renderTarjetaGrupo(g) {
 function renderProductos() {
   const q = normalizarTexto(document.getElementById("buscar").value).trim();
   let lista = PRODUCTOS.filter(p =>
+    p.id !== ID_EXPRESS &&
     (filtroCat === "Todos" || p.categoria === filtroCat) &&
     (!q || normalizarTexto(p.nombre).includes(q))
   );
