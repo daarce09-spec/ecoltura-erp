@@ -6,6 +6,12 @@
   .info-card { background:white; border-radius:16px; padding:24px;
                box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
   .item-producto { background:#f8faf9; border:1px solid #f0f0f0; border-radius:12px; padding:14px 16px; }
+  .resultados-producto-lista { position:absolute; top:100%; left:0; right:0; z-index:20;
+      background:white; border:1px solid #e0e0e0; border-top:none; border-radius:0 0 10px 10px;
+      max-height:220px; overflow-y:auto; box-shadow:0 8px 20px rgba(0,0,0,.1); display:none; }
+  .resultado-producto { padding:9px 12px; cursor:pointer; font-size:.88rem; border-bottom:1px solid #f5f5f5; }
+  .resultado-producto:last-child { border-bottom:none; }
+  .resultado-producto:hover { background:#f0f7f3; }
   .dato-row { display:flex; justify-content:space-between; padding:10px 0;
               border-bottom:1px solid #f5f5f5; font-size:.94rem; }
   .dato-row:last-child { border-bottom:none; }
@@ -136,12 +142,13 @@
       <form method="POST" action="{{ url_for('pedidos_bp.detalle_agregar', id=pedido[0]) }}"
             class="d-flex flex-column gap-2 mt-4 pt-3" style="border-top:1px solid #f0f0f0">
         <label class="form-label small fw-bold text-muted mb-0">Agregar producto</label>
-        <select name="producto_id" class="form-select form-select-sm" required>
-          <option value="">Seleccionar producto...</option>
-          {% for p in catalogo %}
-          <option value="{{ p[0] }}">{{ p[1] }} — ₡{{ "{:,.2f}".format(p[3]) }}/{{ p[2] }}</option>
-          {% endfor %}
-        </select>
+        <div style="position:relative">
+          <input type="text" id="buscarProducto" class="form-control form-control-sm" autocomplete="off"
+                 placeholder="Escribí el nombre del producto..." oninput="buscarProductoInput()"
+                 onfocus="buscarProductoInput()">
+          <input type="hidden" name="producto_id" id="productoIdSeleccionado">
+          <div id="listaProductoResultados" class="resultados-producto-lista"></div>
+        </div>
         <div class="d-flex gap-2">
           <input type="number" step="any" min="0.01" name="cantidad" placeholder="Cantidad"
                  class="form-control form-control-sm" required>
@@ -225,6 +232,48 @@
 window.addEventListener('pageshow', function(event) {
   if (event.persisted) {
     window.location.reload();
+  }
+});
+
+// ── Buscador de "Agregar producto" — filtra por nombre mientras se escribe ──
+const CATALOGO_PRODUCTOS = {{ catalogo|tojson }};
+
+function buscarProductoInput() {
+  const q = document.getElementById('buscarProducto').value.toLowerCase().trim();
+  const cont = document.getElementById('listaProductoResultados');
+  document.getElementById('productoIdSeleccionado').value = '';
+
+  if (!q) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
+
+  const coincidencias = CATALOGO_PRODUCTOS
+    .filter(p => p[1].toLowerCase().includes(q))
+    .slice(0, 10);
+
+  if (coincidencias.length === 0) {
+    cont.innerHTML = '<div class="resultado-producto text-muted">Sin resultados</div>';
+  } else {
+    cont.innerHTML = coincidencias.map(p => {
+      const nombre = p[1].replace(/'/g, "\\'");
+      return `<div class="resultado-producto" onclick="seleccionarProducto(${p[0]}, '${nombre}', ${p[3]}, '${p[2]}')">
+        <b>${p[1]}</b> <span class="text-muted">— ₡${Number(p[3]).toLocaleString('es-CR')}/${p[2]}</span>
+      </div>`;
+    }).join('');
+  }
+  cont.style.display = 'block';
+}
+
+function seleccionarProducto(id, nombre, precio, unidad) {
+  document.getElementById('productoIdSeleccionado').value = id;
+  document.getElementById('buscarProducto').value = nombre;
+  document.getElementById('listaProductoResultados').style.display = 'none';
+}
+
+// Cerrar la lista de resultados al tocar afuera
+document.addEventListener('click', function(e) {
+  const cont  = document.getElementById('listaProductoResultados');
+  const input = document.getElementById('buscarProducto');
+  if (cont && e.target !== input && !cont.contains(e.target)) {
+    cont.style.display = 'none';
   }
 });
 </script>

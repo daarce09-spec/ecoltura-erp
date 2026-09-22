@@ -59,9 +59,10 @@ def pedido_detalle(id):
         detalle = cur.fetchall()
 
         # Catálogo completo (no solo visible_web) para poder agregar
-        # cualquier producto al pedido desde el admin.
+        # cualquier producto al pedido desde el admin. precio se convierte
+        # a float porque Decimal no es serializable directo a JSON.
         cur.execute("SELECT id, nombre, unidad, precio FROM productos ORDER BY nombre")
-        catalogo = cur.fetchall()
+        catalogo = [(r[0], r[1], r[2], float(r[3])) for r in cur.fetchall()]
 
     return render_template("pedido_detalle.html",
                            pedido=pedido, detalle=detalle, catalogo=catalogo)
