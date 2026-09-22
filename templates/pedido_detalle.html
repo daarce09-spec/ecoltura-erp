@@ -98,15 +98,40 @@
               <th class="text-center">Cantidad</th>
               <th class="text-end">Precio u.</th>
               <th class="text-end">Subtotal</th>
+              {% if pedido[5] == 'Pendiente' %}<th></th>{% endif %}
             </tr>
           </thead>
           <tbody>
             {% for d in detalle %}
             <tr>
-              <td class="fw-bold">{{ d[1] }}</td>
-              <td class="text-center">{{ '%g'|format(d[3]) }} {{ d[2] }}</td>
-              <td class="text-end">₡{{ "{:,.0f}".format(d[4]) }}</td>
-              <td class="text-end fw-bold text-success">₡{{ "{:,.0f}".format(d[5]) }}</td>
+              <td class="fw-bold">{{ d[2] }}</td>
+              <td class="text-center">
+                {% if pedido[5] == 'Pendiente' %}
+                <form method="POST" action="{{ url_for('pedidos_bp.detalle_actualizar', id=pedido[0], detalle_id=d[0]) }}"
+                      class="d-flex align-items-center justify-content-center gap-1">
+                  <input type="number" step="any" min="0" name="cantidad" value="{{ '%g'|format(d[4]) }}"
+                         style="width:80px" class="form-control form-control-sm text-center">
+                  <span class="text-muted small">{{ d[3] }}</span>
+                  <button type="submit" class="btn btn-sm btn-outline-success" title="Guardar cambio">
+                    <i class="bi bi-check-lg"></i>
+                  </button>
+                </form>
+                {% else %}
+                {{ '%g'|format(d[4]) }} {{ d[3] }}
+                {% endif %}
+              </td>
+              <td class="text-end">₡{{ "{:,.0f}".format(d[5]) }}</td>
+              <td class="text-end fw-bold text-success">₡{{ "{:,.0f}".format(d[6]) }}</td>
+              {% if pedido[5] == 'Pendiente' %}
+              <td class="text-end">
+                <form method="POST" action="{{ url_for('pedidos_bp.detalle_eliminar', id=pedido[0], detalle_id=d[0]) }}"
+                      onsubmit="return confirm('¿Quitar {{ d[2] }} del pedido?')">
+                  <button type="submit" class="btn btn-sm btn-outline-danger" title="Quitar del pedido">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
@@ -114,10 +139,34 @@
             <tr>
               <td colspan="3" class="text-end fw-bold">TOTAL ESTIMADO</td>
               <td class="text-end fw-bold" style="font-size:1.2rem;color:#2d6a4f">₡{{ "{:,.0f}".format(pedido[4]) }}</td>
+              {% if pedido[5] == 'Pendiente' %}<td></td>{% endif %}
             </tr>
           </tfoot>
         </table>
       </div>
+
+      {% if pedido[5] == 'Pendiente' %}
+      <!-- Agregar producto al pedido -->
+      <form method="POST" action="{{ url_for('pedidos_bp.detalle_agregar', id=pedido[0]) }}"
+            class="d-flex gap-2 align-items-end mt-4 pt-3" style="border-top:1px solid #f0f0f0">
+        <div class="flex-grow-1">
+          <label class="form-label small fw-bold text-muted mb-1">Agregar producto</label>
+          <select name="producto_id" class="form-select form-select-sm" required>
+            <option value="">Seleccionar producto...</option>
+            {% for p in catalogo %}
+            <option value="{{ p[0] }}">{{ p[1] }} — ₡{{ "{:,.2f}".format(p[3]) }}/{{ p[2] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div style="width:110px">
+          <label class="form-label small fw-bold text-muted mb-1">Cantidad</label>
+          <input type="number" step="any" min="0.01" name="cantidad" class="form-control form-control-sm" required>
+        </div>
+        <button type="submit" class="btn btn-sm fw-bold" style="background:#2d6a4f;color:white">
+          <i class="bi bi-plus-lg me-1"></i>Agregar
+        </button>
+      </form>
+      {% endif %}
 
       {% if pedido[5] == 'Pendiente' %}
       <div class="d-flex gap-3 justify-content-end mt-4 pt-3" style="border-top:1px solid #f0f0f0">

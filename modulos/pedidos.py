@@ -48,7 +48,7 @@ def pedido_detalle(id):
         pedido = cur.fetchone()
 
         cur.execute("""
-            SELECT pd.producto_id, pr.nombre, pr.unidad,
+            SELECT pd.id, pd.producto_id, pr.nombre, pr.unidad,
                    pd.cantidad, pd.precio_unitario,
                    pd.cantidad * pd.precio_unitario AS subtotal
             FROM pedidos_detalle pd
@@ -58,8 +58,127 @@ def pedido_detalle(id):
         """, (id,))
         detalle = cur.fetchall()
 
+        # Catálogo completo (no solo visible_web) para poder agregar
+        # cualquier producto al pedido desde el admin.
+        cur.execute("SELECT id, nombre, unidad, precio FROM productos ORDER BY nombre")
+        catalogo = cur.fetchall()
+
     return render_template("pedido_detalle.html",
-                           pedido=pedido, detalle=detalle)
+                           pedido=pedido, detalle=detalle, catalogo=catalogo)
+
+
+# ─────────────────────────────────────────────
+#  Helper: recalcular el total estimado tras cualquier edición
+# ─────────────────────────────────────────────
+def _recalcular_total(cur, pedido_id):
+    cur.execute("""
+        UPDATE pedidos SET total_estimado = (
+            SELECT COALESCE(SUM(cantidad * precio_unitario), 0)
+            FROM pedidos_detalle WHERE pedido_id = %s
+        ) WHERE id = %s
+    """, (pedido_id, pedido_id))
+
+
+def _pedido_editable(cur, id):
+    """Solo se puede editar mientras el pedido siga Pendiente."""
+    cur.execute("SELECT estado FROM pedidos WHERE id = %s", (id,))
+    row = cur.fetchone()
+    return row and row[0] == 'Pendiente'
+
+
+# ─────────────────────────────────────────────
+#  EDITAR CANTIDAD DE UNA LÍNEA (0 o menos = eliminarla)
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/detalle/<int:detalle_id>/actualizar", methods=["POST"])
+def detalle_actualizar(id, detalle_id):
+    nueva_cantidad = float(request.form.get("cantidad", 0))
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            flash("Este pedido ya no se puede editar.", "warning")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+        if nueva_cantidad <= 0:
+            cur.execute("DELETE FROM pedidos_detalle WHERE id=%s AND pedido_id=%s", (detalle_id, id))
+            flash("Producto eliminado del pedido.", "success")
+        else:
+            cur.execute("UPDATE pedidos_detalle SET cantidad=%s WHERE id=%s AND pedido_id=%s",
+                        (nueva_cantidad, detalle_id, id))
+            flash("Cantidad actualizada.", "success")
+
+        _recalcular_total(cur, id)
+        conn.commit()
+
+    return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+
+# ─────────────────────────────────────────────
+#  ELIMINAR UNA LÍNEA DEL PEDIDO
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/detalle/<int:detalle_id>/eliminar", methods=["POST"])
+def detalle_eliminar(id, detalle_id):
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            flash("Este pedido ya no se puede editar.", "warning")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+        cur.execute("DELETE FROM pedidos_detalle WHERE id=%s AND pedido_id=%s", (detalle_id, id))
+        _recalcular_total(cur, id)
+        conn.commit()
+
+    flash("Producto eliminado del pedido.", "success")
+    return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+
+# ─────────────────────────────────────────────
+#  AGREGAR UN PRODUCTO NUEVO AL PEDIDO
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/detalle/agregar", methods=["POST"])
+def detalle_agregar(id):
+    try:
+        producto_id = int(request.form.get("producto_id", 0))
+        cantidad    = float(request.form.get("cantidad", 0))
+    except ValueError:
+        flash("Datos inválidos.", "danger")
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+    if not producto_id or cantidad <= 0:
+        flash("Elegí un producto y una cantidad válida.", "warning")
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            flash("Este pedido ya no se puede editar.", "warning")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+        cur.execute("SELECT precio FROM productos WHERE id = %s", (producto_id,))
+        row = cur.fetchone()
+        if not row:
+            flash("Producto no encontrado.", "danger")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+        precio = float(row[0])
+
+        # Si el producto ya está en el pedido, suma la cantidad en vez de duplicar la línea
+        cur.execute("SELECT id FROM pedidos_detalle WHERE pedido_id=%s AND producto_id=%s",
+                    (id, producto_id))
+        existente = cur.fetchone()
+        if existente:
+            cur.execute("UPDATE pedidos_detalle SET cantidad = cantidad + %s WHERE id = %s",
+                        (cantidad, existente[0]))
+        else:
+            cur.execute("""
+                INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
+                VALUES (%s, %s, %s, %s)
+            """, (id, producto_id, cantidad, precio))
+
+        _recalcular_total(cur, id)
+        conn.commit()
+
+    flash("Producto agregado al pedido.", "success")
+    return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
 
 
 # ─────────────────────────────────────────────
