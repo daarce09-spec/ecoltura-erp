@@ -65,6 +65,11 @@
     #intro-screen.difuminar .intro-background { filter: blur(25px); transform: scale(1.08); }
 
     .intro-bloque { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .intro-logo {
+      width: clamp(220px, 40vw, 420px);
+      height: auto;
+      filter: drop-shadow(0 4px 20px rgba(0,0,0,.35));
+    }
     .intro-marca {
       font-family: 'Fraunces', serif; font-weight: 300;
       font-size: clamp(2.2rem, 8vw, 6rem);
@@ -436,10 +441,7 @@
   <div class="intro-background"></div>
   <div class="intro-text">
     <div class="intro-bloque">
-      <div class="intro-marca">ECOLTURA</div>
-      <div class="intro-linea"></div>
-      <div class="intro-frase">De nuestra tierra, a su mesa.</div>
-      <div class="intro-sub">Finca familiar &middot; Costa Rica</div>
+      <img src="/static/img/ecoltura-logo-blanco.png" alt="ECOLTURA — Agricultura Regenerativa" class="intro-logo">
     </div>
   </div>
 </div>
