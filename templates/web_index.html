@@ -147,6 +147,12 @@
                    animation: flotar 2s ease-in-out infinite; }
     @keyframes flotar { 0%,100%{transform:translate(-50%,0)} 50%{transform:translate(-50%,8px)} }
     @media (prefers-reduced-motion:reduce) { .scroll-hint { animation: none; } }
+    .hero-marca-agua {
+      position: absolute; bottom: 24px; right: 24px;
+      width: clamp(50px, 8vw, 90px); height: auto;
+      opacity: .18; pointer-events: none; user-select: none;
+    }
+    @media (max-width: 640px) { .hero-marca-agua { display: none; } }
 
     /* Franja tienda */
     .franja { background: var(--blanco); border-bottom: 1px solid var(--borde); }
@@ -499,6 +505,7 @@
       -->
     </div>
     <div class="scroll-hint">↓</div>
+    <img src="/static/img/ecoltura-logo.png" alt="" class="hero-marca-agua">
   </div>
 
   <div class="franja" id="tienda">
