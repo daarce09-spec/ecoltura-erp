@@ -288,7 +288,7 @@ function seleccionarProducto(id, nombre, precio, unidad) {
 
   const pesos = PESOS_POR_PRODUCTO[id];
   if (pesos && pesos.length > 0) {
-    mostrarZonaPesos(pesos);
+    mostrarZonaPesos(pesos, precio);
   } else {
     mostrarZonaSimple();
   }
@@ -301,7 +301,7 @@ function mostrarZonaSimple() {
   document.getElementById('cantidadPeso').disabled = true;
 }
 
-function mostrarZonaPesos(pesos) {
+function mostrarZonaPesos(pesos, precio) {
   document.getElementById('zonaCantidadSimple').style.display = 'none';
   document.getElementById('cantidadSimple').disabled = true;
   document.getElementById('zonaPesos').style.display = 'block';
@@ -309,9 +309,14 @@ function mostrarZonaPesos(pesos) {
   document.getElementById('cantidadPeso').value = '';
   document.getElementById('btnAgregarPeso').disabled = true;
 
-  document.getElementById('botonesPeso').innerHTML = pesos.map(g =>
-    `<button type="button" class="btn btn-sm btn-outline-success" onclick="elegirPeso(${g}, this)">${formatoPesoAdmin(g)}</button>`
-  ).join('');
+  document.getElementById('botonesPeso').innerHTML = pesos.map(g => {
+    const costo = Math.round(precio * g);
+    return `<button type="button" class="btn btn-sm btn-outline-success d-flex flex-column align-items-center px-3 py-2"
+              onclick="elegirPeso(${g}, this)">
+              <span>${formatoPesoAdmin(g)}</span>
+              <span class="small text-muted" style="font-size:.72rem">₡${costo.toLocaleString('es-CR')}</span>
+            </button>`;
+  }).join('');
 }
 
 function elegirPeso(gramos, btn) {
