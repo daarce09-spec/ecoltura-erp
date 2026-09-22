@@ -1219,9 +1219,11 @@ function renderResumen() {
       total += sub; unds += cant;
 
       const nombreLinea = gramos ? `${p.nombre} — ${formatoPeso(gramos)}` : p.nombre;
-      const controles = gramos
-        ? `<button onclick="cambiarCantidadPeso(${id},${gramos},-1)">−</button><b>${cant}</b><button onclick="cambiarCantidadPeso(${id},${gramos},1)">+</button>`
-        : `<button onclick="actualizarPedido(${id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${id},1)">+</button>`;
+      const controles = id === ID_EXPRESS
+        ? `<span style="color:var(--gris); font-size:.72rem;">incluido</span>`
+        : gramos
+          ? `<button onclick="cambiarCantidadPeso(${id},${gramos},-1)">−</button><b>${cant}</b><button onclick="cambiarCantidadPeso(${id},${gramos},1)">+</button>`
+          : `<button onclick="actualizarPedido(${id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${id},1)">+</button>`;
 
       return `<div class="item-res">
         <span class="nombre-it">${nombreLinea}</span>
