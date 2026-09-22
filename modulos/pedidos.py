@@ -64,8 +64,16 @@ def pedido_detalle(id):
         cur.execute("SELECT id, nombre, unidad, precio FROM productos ORDER BY nombre")
         catalogo = [(r[0], r[1], r[2], float(r[3])) for r in cur.fetchall()]
 
+        # Pesos preestablecidos por producto (los mismos botones "1 kg / 500 g"
+        # que usa la tienda pública), para poder elegirlos igual desde el admin.
+        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, orden")
+        pesos_por_producto = {}
+        for producto_id, gramos in cur.fetchall():
+            pesos_por_producto.setdefault(producto_id, []).append(gramos)
+
     return render_template("pedido_detalle.html",
-                           pedido=pedido, detalle=detalle, catalogo=catalogo)
+                           pedido=pedido, detalle=detalle, catalogo=catalogo,
+                           pesos_por_producto=pesos_por_producto)
 
 
 # ─────────────────────────────────────────────

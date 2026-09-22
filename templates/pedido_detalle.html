@@ -149,10 +149,19 @@
           <input type="hidden" name="producto_id" id="productoIdSeleccionado">
           <div id="listaProductoResultados" class="resultados-producto-lista"></div>
         </div>
-        <div class="d-flex gap-2">
-          <input type="number" step="any" min="0.01" name="cantidad" placeholder="Cantidad"
-                 class="form-control form-control-sm" required>
+        <div class="d-flex gap-2" id="zonaCantidadSimple">
+          <input type="number" step="any" min="0.01" name="cantidad" id="cantidadSimple" placeholder="Cantidad"
+                 class="form-control form-control-sm">
           <button type="submit" class="btn btn-sm fw-bold px-4" style="background:#2d6a4f;color:white;white-space:nowrap">
+            <i class="bi bi-plus-lg me-1"></i>Agregar
+          </button>
+        </div>
+
+        <div id="zonaPesos" style="display:none;">
+          <div class="text-muted small mb-2">Elegí el peso:</div>
+          <div id="botonesPeso" class="d-flex flex-wrap gap-2 mb-2"></div>
+          <input type="hidden" name="cantidad" id="cantidadPeso">
+          <button type="submit" class="btn btn-sm fw-bold px-4 w-100" style="background:#2d6a4f;color:white" disabled id="btnAgregarPeso">
             <i class="bi bi-plus-lg me-1"></i>Agregar
           </button>
         </div>
@@ -237,11 +246,21 @@ window.addEventListener('pageshow', function(event) {
 
 // ── Buscador de "Agregar producto" — filtra por nombre mientras se escribe ──
 const CATALOGO_PRODUCTOS = {{ catalogo|tojson }};
+const PESOS_POR_PRODUCTO = {{ pesos_por_producto|tojson }};
+
+function formatoPesoAdmin(gramos) {
+  if (gramos >= 1000) {
+    const kg = gramos / 1000;
+    return (kg % 1 === 0 ? kg : kg.toFixed(1)) + ' kg';
+  }
+  return gramos + ' g';
+}
 
 function buscarProductoInput() {
   const q = document.getElementById('buscarProducto').value.toLowerCase().trim();
   const cont = document.getElementById('listaProductoResultados');
   document.getElementById('productoIdSeleccionado').value = '';
+  ocultarSeleccionPeso();
 
   if (!q) { cont.style.display = 'none'; cont.innerHTML = ''; return; }
 
@@ -266,6 +285,47 @@ function seleccionarProducto(id, nombre, precio, unidad) {
   document.getElementById('productoIdSeleccionado').value = id;
   document.getElementById('buscarProducto').value = nombre;
   document.getElementById('listaProductoResultados').style.display = 'none';
+
+  const pesos = PESOS_POR_PRODUCTO[id];
+  if (pesos && pesos.length > 0) {
+    mostrarZonaPesos(pesos);
+  } else {
+    mostrarZonaSimple();
+  }
+}
+
+function mostrarZonaSimple() {
+  document.getElementById('zonaCantidadSimple').style.display = 'flex';
+  document.getElementById('cantidadSimple').disabled = false;
+  document.getElementById('zonaPesos').style.display = 'none';
+  document.getElementById('cantidadPeso').disabled = true;
+}
+
+function mostrarZonaPesos(pesos) {
+  document.getElementById('zonaCantidadSimple').style.display = 'none';
+  document.getElementById('cantidadSimple').disabled = true;
+  document.getElementById('zonaPesos').style.display = 'block';
+  document.getElementById('cantidadPeso').disabled = false;
+  document.getElementById('cantidadPeso').value = '';
+  document.getElementById('btnAgregarPeso').disabled = true;
+
+  document.getElementById('botonesPeso').innerHTML = pesos.map(g =>
+    `<button type="button" class="btn btn-sm btn-outline-success" onclick="elegirPeso(${g}, this)">${formatoPesoAdmin(g)}</button>`
+  ).join('');
+}
+
+function elegirPeso(gramos, btn) {
+  document.getElementById('cantidadPeso').value = gramos;
+  document.getElementById('btnAgregarPeso').disabled = false;
+  document.querySelectorAll('#botonesPeso button').forEach(b => b.classList.remove('btn-success', 'text-white'));
+  btn.classList.add('btn-success', 'text-white');
+}
+
+function ocultarSeleccionPeso() {
+  document.getElementById('zonaCantidadSimple').style.display = 'flex';
+  document.getElementById('cantidadSimple').disabled = false;
+  document.getElementById('zonaPesos').style.display = 'none';
+  document.getElementById('cantidadPeso').disabled = true;
 }
 
 // Cerrar la lista de resultados al tocar afuera
