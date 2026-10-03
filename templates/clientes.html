@@ -252,7 +252,14 @@ function buscar() {
 
 <!-- LÓGICA DE CHECKBOXES FINAL Y ESTRICTA -->
 <script>
-document.addEventListener("DOMContentLoaded", () => {
+// Antes esto esperaba "DOMContentLoaded", pero con la navegación boosted
+// de htmx esa pantalla solo se dispara UNA vez en toda la sesión (la
+// primera carga). Si entrás a otro módulo y volvés a Clientes vía htmx,
+// este script se vuelve a ejecutar pero el evento ya pasó hace rato —
+// nunca se vuelve a disparar — y los checkboxes quedan sin su lógica.
+// Por eso ahora corre de inmediato (IIFE), ya que para cuando htmx
+// ejecuta este <script> los elementos de arriba ya existen en el DOM.
+(() => {
 
     function aplicarReglas(feria, domicilio, suscripcion, sinModelo) {
 
@@ -306,7 +313,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     });
 
-});
+})();
 </script>
 
 {% endblock %}
