@@ -70,6 +70,19 @@ def ventas_historial():
         f_desde = inicio_mes_actual
         f_hasta = datetime.now().strftime("%Y-%m-%d")
 
+    # Variante sin anuladas, para los gráficos (tendencia, top clientes,
+    # top productos). Al anular una venta solo se resetea ventas.total a 0
+    # y se marca estado='Anulado' — las filas de ventas_detalle (cantidad,
+    # total_linea de cada producto) NUNCA se tocan y quedan con sus
+    # valores originales para siempre. Por eso Top Productos, que suma
+    # directo desde ventas_detalle, seguía contando ventas anuladas de
+    # pleno, mientras que los totales de arriba (que usan ventas.total, sí
+    # reseteado) no las contaban — de ahí números que no cuadraban entre
+    # sí. La tabla de abajo y el chip "Anuladas" sí deben seguir mostrando
+    # TODAS las ventas (para eso existen), así que esta variante solo se
+    # usa en los gráficos.
+    where_sin_anuladas = where + " AND v.estado != 'Anulado'"
+
     sql = f"""
         SELECT v.id, v.fecha_venta, v.total, v.metodo_pago, v.estado,
                COALESCE(c.nombre, 'Cliente general') AS cliente,
@@ -104,7 +117,7 @@ def ventas_historial():
         SELECT v.fecha_venta::date AS dia, COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
         FROM ventas v
         LEFT JOIN clientes c ON c.id = v.cliente_id
-        {where}
+        {where_sin_anuladas}
         GROUP BY dia
         ORDER BY dia
     """
@@ -115,7 +128,7 @@ def ventas_historial():
                COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
         FROM ventas v
         LEFT JOIN clientes c ON c.id = v.cliente_id
-        {where}
+        {where_sin_anuladas}
         GROUP BY cliente
         ORDER BY monto DESC
         LIMIT 8
@@ -130,7 +143,7 @@ def ventas_historial():
                COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
         FROM ventas v
         LEFT JOIN clientes c ON c.id = v.cliente_id
-        {where}
+        {where_sin_anuladas}
         GROUP BY cliente
         ORDER BY cantidad DESC
         LIMIT 8
@@ -148,7 +161,7 @@ def ventas_historial():
         JOIN ventas v ON v.id = vd.venta_id
         JOIN productos pr ON pr.id = vd.producto_id
         LEFT JOIN clientes c ON c.id = v.cliente_id
-        {where}
+        {where_sin_anuladas}
         GROUP BY pr.id, pr.nombre, pr.unidad
         ORDER BY cantidad DESC
         LIMIT 8
@@ -161,7 +174,7 @@ def ventas_historial():
         JOIN ventas v ON v.id = vd.venta_id
         JOIN productos pr ON pr.id = vd.producto_id
         LEFT JOIN clientes c ON c.id = v.cliente_id
-        {where}
+        {where_sin_anuladas}
         GROUP BY pr.id, pr.nombre, pr.unidad
         ORDER BY monto DESC
         LIMIT 8
