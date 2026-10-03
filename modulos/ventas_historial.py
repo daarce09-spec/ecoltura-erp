@@ -96,6 +96,7 @@ def ventas_historial():
 
     hoy = datetime.now().strftime("%Y-%m-%d")
     hace_7 = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    hace_30 = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
     inicio_mes = datetime.now().strftime("%Y-%m-01")
 
     return render_template("ventas_historial.html",
@@ -107,6 +108,6 @@ def ventas_historial():
                            mostrando_limitado=mostrando_limitado,
                            filas_mostradas=len(ventas),
                            rango_por_defecto=rango_por_defecto,
-                           hoy=hoy, hace_7=hace_7, inicio_mes=inicio_mes,
+                           hoy=hoy, hace_7=hace_7, hace_30=hace_30, inicio_mes=inicio_mes,
                            f_desde=f_desde, f_hasta=f_hasta,
                            f_venta=f_venta, f_cliente=f_cliente)
