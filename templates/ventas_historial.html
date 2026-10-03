@@ -207,8 +207,10 @@
   {% endif %}
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
+  // Chart.js ahora se carga una sola vez desde base.html (ver comentario
+  // ahí) para que siempre esté listo sin importar si se entra por primera
+  // vez o por navegación boosted de htmx.
   const DATA_TENDENCIA   = {{ tendencia_json|safe }};
   const DATA_CLIENTES    = {{ top_clientes_json|safe }};
   const DATA_PRODUCTOS   = {{ top_productos_json|safe }};

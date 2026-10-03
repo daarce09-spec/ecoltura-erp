@@ -168,7 +168,13 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
+// "DOMContentLoaded" solo se dispara UNA vez por sesión del navegador.
+// Con la navegación boosted de htmx este módulo se reinserta cada vez
+// que se entra, pero ese evento no vuelve a dispararse -> el modal de
+// editar, el buscador y el toggle de "visible en web" dejaban de
+// funcionar desde la segunda visita en adelante. Por eso corre de
+// inmediato (IIFE).
+(function() {
 
   // ===== Editar: llenar el modal único al hacer clic =====
   // Bootstrap abre el modal solo (data-bs-toggle). Aquí solo llenamos los datos.
@@ -211,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-});
+})();
 </script>
 
 {% endblock %}

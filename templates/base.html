@@ -22,6 +22,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12"></script>
+  <!-- Chart.js vive aquí (no dentro de un módulo) a propósito: el <head>
+       nunca se vuelve a insertar en una navegación boosted de htmx, así
+       que queda cargado una sola vez y siempre disponible. Si estuviera
+       dentro de ventas_historial.html, cada vez que htmx reinyecta ese
+       <script src> se descarga en segundo plano (async) y el script que
+       crea los gráficos se ejecutaba antes de que Chart.js terminara de
+       cargar -> "Chart is not defined" silencioso y el canvas quedaba
+       vacío (solo funcionaba en la primera carga normal del navegador). -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 
   <style>
     :root {

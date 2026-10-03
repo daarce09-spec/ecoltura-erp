@@ -115,7 +115,12 @@
 </style>
 
 <script>
-document.addEventListener("DOMContentLoaded", function () {
+// "DOMContentLoaded" solo se dispara UNA vez por sesión del navegador.
+// Con la navegación boosted de htmx, este módulo se vuelve a insertar
+// cada vez que se entra, pero ese evento ya pasó hace rato y nunca se
+// vuelve a disparar -> todo este script quedaba muerto desde la segunda
+// visita en adelante. Por eso corre de inmediato (IIFE).
+(function () {
     const form = document.getElementById("form-venta");
     const btnGuardarMain = document.getElementById("btnGuardar");
     const inputCliente = document.getElementById("cliente_nombre");
@@ -386,7 +391,7 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("No se pudo obtener el ID de la venta.");
         }
     });
-});
+})();
 </script>
 
 {% endblock %}

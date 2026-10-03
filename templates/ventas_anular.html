@@ -184,13 +184,18 @@
         new bootstrap.Modal(document.getElementById('modalConfirmar')).show();
     }
 
-    document.addEventListener("DOMContentLoaded", function() {
+    // "DOMContentLoaded" solo se dispara UNA vez por sesión del navegador;
+    // tras un POST boosted por htmx (el formulario de anular) este script
+    // se reinserta pero ese evento nunca se repite, así que el modal de
+    // éxito dejaba de aparecer a partir de la segunda anulación. Por eso
+    // corre de inmediato (IIFE) en vez de esperar el evento.
+    (function() {
         {% with messages = get_flashed_messages(category_filter=["exito_anulacion"]) %}
             {% if messages %}
                 new bootstrap.Modal(document.getElementById('modalExito')).show();
             {% endif %}
         {% endwith %}
-    });
+    })();
 </script>
 
 {% endblock %}
