@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>{% block title %}ECOLTURA | Administración{% endblock %}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
@@ -21,6 +21,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
+  <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12"></script>
+
   <style>
     :root {
       --brand-green:      #3E6B22;   /* verde hoja oscura del logo */
@@ -29,9 +31,9 @@
       --brand-bg:         #f8faf9;
     }
 
-    body { 
-      background-color: var(--brand-bg); 
-      font-family: 'Segoe UI', sans-serif; 
+    body {
+      background-color: var(--brand-bg);
+      font-family: 'Segoe UI', sans-serif;
     }
 
     .btn-verde-eco {
@@ -49,7 +51,7 @@
     }
 
     .install-prompt {
-      display: none; 
+      display: none;
       position: fixed;
       bottom: 20px;
       left: 50%;
@@ -64,7 +66,7 @@
       border-left: 5px solid var(--brand-green);
     }
 
-    .navbar { 
+    .navbar {
       border-bottom: 2px solid var(--brand-lima);
       background: #ffffff;
       box-shadow: 0 2px 12px rgba(0,0,0,.05);
@@ -77,7 +79,13 @@
       content-visibility: auto;
     }
 
-    .navbar-brand { 
+    .navbar .container-fluid {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .navbar-brand {
       display: flex;
       align-items: center;
       gap: 12px;
@@ -95,12 +103,18 @@
       font-weight: 700; text-transform: uppercase; margin-top: 2px;
     }
 
+    .navbar-right { display: flex; align-items: center; gap: 8px; }
+    .topbar-hora {
+      font-size: .74rem; color: #6B7280; font-weight: 500;
+      text-align: right; margin-right: 6px; white-space: nowrap;
+    }
+
     .btn-volver-menu {
       width: 42px; height: 42px; border-radius: 12px;
       background: var(--brand-bg); border: 1.5px solid rgba(62,107,34,.12);
       display: flex; align-items: center; justify-content: center;
       color: var(--brand-green); font-size: 1.2rem; text-decoration: none;
-      transition: all .2s ease;
+      transition: all .2s ease; flex-shrink: 0;
     }
     .btn-volver-menu:hover {
       background: var(--brand-green); color: white; border-color: var(--brand-green);
@@ -111,10 +125,17 @@
       .brand-sub { font-size: .45rem; }
       .navbar-logo { height: 36px; }
     }
+    @media (max-width: 820px) {
+      .topbar-hora { display: none; }
+    }
+
+    {% block extra_css %}{% endblock %}
   </style>
 </head>
 
-<body>
+<body hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">
+
+  {% block before_content %}{% endblock %}
 
   <div id="android-prompt" class="install-prompt">
     <div class="d-flex align-items-center">
@@ -137,16 +158,19 @@
           <span class="brand-sub">Agricultura Regenerativa</span>
         </div>
       </a>
-      <a href="{{ url_for('menu') }}" class="btn-volver-menu" title="Volver al menú">
-        <i class="bi bi-grid-3x3-gap-fill"></i>
-      </a>
-      <button id="btn-activar-push" class="btn-volver-menu" title="Activar notificaciones" style="margin-left:8px;">
-        <i class="bi bi-bell"></i>
-      </button>
+      <div class="navbar-right">
+        <span class="topbar-hora" id="reloj-admin"></span>
+        <a href="{{ url_for('menu') }}" class="btn-volver-menu" title="Volver al menú">
+          <i class="bi bi-grid-3x3-gap-fill"></i>
+        </a>
+        <button id="btn-activar-push" class="btn-volver-menu" title="Activar notificaciones">
+          <i class="bi bi-bell"></i>
+        </button>
+      </div>
     </div>
   </nav>
 
-  <main class="container py-4">
+  <main id="main-content" class="container py-4">
     {% block content %}{% endblock %}
   </main>
 
@@ -170,7 +194,7 @@
       deferredPrompt = e;
 
       const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-      
+
       if (isMobile) {
         document.getElementById('android-prompt').style.display = 'block';
       }
@@ -234,7 +258,26 @@
 
       alert('¡Notificaciones activadas! Ya podés recibir avisos aquí.');
     });
+
+    // ── Reloj en vivo (header, siempre visible) ──
+    function tickRelojAdmin() {
+      var el = document.getElementById('reloj-admin');
+      if (!el) return;
+      var n = new Date();
+      var f = n.toLocaleDateString('es-CR', { weekday: 'long', day: 'numeric', month: 'long' });
+      var h = n.toLocaleTimeString('es-CR', { hour: '2-digit', minute: '2-digit' });
+      el.textContent = f.charAt(0).toUpperCase() + f.slice(1) + '  ·  ' + h;
+    }
+    tickRelojAdmin();
+    setInterval(tickRelojAdmin, 30000);
+
+    // ── htmx: re-ejecutar scripts de cada módulo tras una navegación boosted ──
+    document.body.addEventListener('htmx:afterSettle', function () {
+      tickRelojAdmin();
+    });
   </script>
+
+  {% block extra_scripts %}{% endblock %}
 
 </body>
 </html>
