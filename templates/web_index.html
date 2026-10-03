@@ -54,12 +54,10 @@
       background-image:
         linear-gradient(rgba(10,15,6,.65), rgba(10,15,6,.72)),
         url('/static/img/finca/hero.jpg');
-      background-color: #0A0F06;
+      background-color: #0A0F06; /* respaldo real: solo se ve si la foto tarda */
       background-size: cover; background-position: center;
-      opacity: 0; /* la foto entra con fade sobre el fondo sólido, no de golpe */
-      transition: opacity .8s ease, filter 1.2s ease, transform 2s ease;
+      transition: filter 1.2s ease, transform 2s ease;
     }
-    #intro-screen.ready .intro-background { opacity: 1; }
     .intro-text {
       position: relative; z-index: 1000; text-align: center;
       opacity: 0; transform: translateY(12px);
@@ -841,10 +839,11 @@ window.addEventListener("DOMContentLoaded", () => {
   const intro = document.getElementById("intro-screen");
 
   // La pantalla de intro (fondo sólido oscuro) tapa la página real desde
-  // el primer instante — eso nunca espera a nada. Lo único que espera es
-  // la FOTO: no se revela (fade-in) hasta que terminó de descargar y
-  // decodificar, y el logo aparece en ese mismo momento, junto con ella.
-  // Tope de 700ms por si la conexión es lenta.
+  // el primer instante. La FOTO se muestra tal cual el navegador la vaya
+  // teniendo lista (ya no espera nada — es local y liviana, aparece casi
+  // de inmediato). Lo único que espera un toque es el LOGO/texto, para
+  // que no aparezca de golpe antes que la foto. Tope de 700ms por si la
+  // conexión es lenta.
   let revelado = false;
   function revelarIntro() {
     if (revelado) return;
