@@ -34,14 +34,8 @@
     body {
       background-color: var(--brand-bg);
       font-family: 'Segoe UI', sans-serif;
-      padding-top: env(safe-area-inset-top);
       padding-bottom: env(safe-area-inset-bottom);
     }
-
-    /* El navbar es sticky-top: en PWA/instalada, el padding-top de arriba
-       ya empuja todo por debajo de la barra de estado del celular (reloj,
-       batería, wifi), así que el navbar nunca queda tapado ni inclickeable. */
-    .navbar.sticky-top { top: 0; }
 
     .btn-verde-eco {
       background-color: var(--brand-green) !important;
@@ -73,12 +67,25 @@
       border-left: 5px solid var(--brand-green);
     }
 
+    /* Header FIJO de verdad (no "sticky") — nunca se mueve ni se pierde con
+       el scroll, pase lo que pase con el contenido de abajo. El padding-top
+       incluye el área segura del celular (barra de estado), así que el
+       propio fondo blanco del header cubre esa franja en vez de dejarla
+       transparente, y nunca tapa el logo/botones. */
     .navbar {
+      position: fixed; top: 0; left: 0; right: 0; width: 100%;
+      z-index: 1030;
       border-bottom: 2px solid var(--brand-lima);
       background: #ffffff;
       box-shadow: 0 2px 12px rgba(0,0,0,.05);
       padding: 10px 0;
+      padding-top: calc(10px + env(safe-area-inset-top));
       min-height: 64px;          /* reserva altura fija: el header no salta */
+    }
+    /* Empuja el contenido por debajo del header fijo (su altura real
+       incluye el área segura de arriba). */
+    main#main-content {
+      margin-top: calc(86px + env(safe-area-inset-top));
     }
     /* El logo aparece de inmediato sin parpadeo de reflow */
     .navbar-logo {
@@ -156,7 +163,7 @@
     </div>
   </div>
 
-  <nav class="navbar sticky-top">
+  <nav class="navbar">
     <div class="container-fluid px-3 px-md-4">
       <a class="navbar-brand" href="{{ url_for('menu') }}">
         <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="navbar-logo" alt="ECOLTURA">
