@@ -282,6 +282,19 @@
     document.body.addEventListener('htmx:afterSettle', function () {
       tickRelojAdmin();
     });
+
+    // ── htmx: forzar scroll arriba del todo al entrar a un módulo ──
+    // Evita que un mini-scroll (de un campo con foco, un layout que
+    // todavía se está acomodando, etc.) deje el header fuera de vista.
+    document.body.addEventListener('htmx:beforeSwap', function () {
+      window.scrollTo(0, 0);
+    });
+    document.body.addEventListener('htmx:afterSettle', function () {
+      window.scrollTo(0, 0);
+    });
+    document.body.addEventListener('htmx:load', function () {
+      window.scrollTo(0, 0);
+    });
   </script>
 
   {% block extra_scripts %}{% endblock %}
