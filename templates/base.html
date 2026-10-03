@@ -31,25 +31,22 @@
       --brand-bg:         #f8faf9;
     }
 
+    /* El documento raíz (html/body) NUNCA hace scroll — ni un pixel, de
+       forma permanente. En iOS, cuando una pantalla (standalone/PWA)
+       recalcula el "inset" de la barra de estado justo después de pintar
+       contenido alto, mueve el scroll del DOCUMENTO por su cuenta — eso
+       era el mini scroll-down, y pasaba pese a bloquearlo solo un rato
+       porque entonces SÍ había algo que mover. La solución real es que
+       el documento no tenga scroll que mover: todo el scroll pasa adentro
+       de #main-content, que es su propio contenedor independiente. */
     html, body {
-      /* Evita que Safari/Chrome reajusten el scroll solos cuando algo
-         arriba del contenido visible cambia de tamaño después del primer
-         pintado (típicamente una tipografía web que termina de cargar un
-         instante después) — eso es lo que causaba el mini scroll-down. */
-      overflow-anchor: none;
-    }
-    /* Bloqueo real de scroll: se activa un instante al entrar a un módulo
-       (ver JS) para que sea FÍSICAMENTE imposible que la página se mueva
-       sola — sin importar qué lo esté causando (autocompletado, fuentes
-       cargando tarde, etc.) — y se libera apenas todo se acomodó. */
-    html.scroll-lock, html.scroll-lock body {
-      overflow: hidden !important;
-      height: 100% !important;
+      height: 100%;
+      overflow: hidden;
+      overscroll-behavior: none;
     }
     body {
       background-color: var(--brand-bg);
       font-family: 'Segoe UI', sans-serif;
-      padding-bottom: env(safe-area-inset-bottom);
     }
 
     .btn-verde-eco {
@@ -97,10 +94,17 @@
       padding-top: calc(10px + env(safe-area-inset-top));
       min-height: 64px;          /* reserva altura fija: el header no salta */
     }
-    /* Empuja el contenido por debajo del header fijo (su altura real
-       incluye el área segura de arriba). */
+    /* #main-content es su propio contenedor con scroll (ver html,body
+       arriba) — empieza debajo del header fijo (su altura real incluye
+       el área segura de arriba) y ocupa el resto de la pantalla. */
     main#main-content {
-      margin-top: calc(86px + env(safe-area-inset-top));
+      position: fixed;
+      top: calc(86px + env(safe-area-inset-top));
+      left: 0; right: 0; bottom: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
+      padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     }
     /* El logo aparece de inmediato sin parpadeo de reflow */
     .navbar-logo {
@@ -305,43 +309,18 @@
       tickRelojAdmin();
     });
 
-    // ── htmx: bloquear el scroll de verdad al entrar a un módulo ──
-    // En vez de corregir el scroll después de que ya se movió (eso se
-    // sentía como un "rebote"), se bloquea el scroll por completo
-    // (overflow:hidden real) justo antes de insertar el contenido nuevo,
-    // y se libera 500ms después — tiempo de sobra para que cualquier cosa
-    // que estuviera moviendo la vista sola (autocompletado, fuentes, etc.)
-    // ya haya terminado. Mientras está bloqueado es físicamente imposible
-    // que la página se desplace, sin importar la causa.
-    document.body.addEventListener('htmx:beforeSwap', function () {
-      window.scrollTo(0, 0);
-      document.documentElement.classList.add('scroll-lock');
-    });
+    // ── htmx: resetear el scroll del contenedor (no el del documento) ──
+    // html/body ya no pueden hacer scroll en absoluto (ver CSS arriba),
+    // así que lo único que hay que resetear al entrar a un módulo es el
+    // scrollTop del propio #main-content.
+    function resetScrollContenido() {
+      var main = document.getElementById('main-content');
+      if (main) main.scrollTop = 0;
+    }
     document.body.addEventListener('htmx:afterSettle', function () {
-      window.scrollTo(0, 0);
-      // Si algo (autocompletado, un input, etc.) agarró el foco solo,
-      // se lo quitamos — en iOS eso es lo que mueve la vista por fuera
-      // del scroll normal, y por eso el overflow:hidden no lo frenaba.
-      if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-      }
-      setTimeout(function () {
-        document.documentElement.classList.remove('scroll-lock');
-        window.scrollTo(0, 0);
-      }, 500);
+      resetScrollContenido();
     });
-
-    // Mismo bloqueo para la primera carga de la app (no pasa por htmx:
-    // abrir el acceso directo del celular, refrescar, escribir la URL).
-    document.documentElement.classList.add('scroll-lock');
-    window.scrollTo(0, 0);
-    setTimeout(function () {
-      if (document.activeElement && document.activeElement !== document.body) {
-        document.activeElement.blur();
-      }
-      document.documentElement.classList.remove('scroll-lock');
-      window.scrollTo(0, 0);
-    }, 500);
+    resetScrollContenido();
   </script>
 
   {% block extra_scripts %}{% endblock %}
