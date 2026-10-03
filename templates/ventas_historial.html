@@ -232,9 +232,14 @@
   // gráfico quedaba en blanco — aunque los números de arriba (que
   // renderiza el servidor, no JS) sí se actualizaban bien. El IIFE aísla
   // cada ejecución en su propio scope.
-  const DATA_TENDENCIA   = {{ tendencia_json|safe }};
-  const DATA_CLIENTES    = {{ top_clientes_json|safe }};
-  const DATA_PRODUCTOS   = {{ top_productos_json|safe }};
+  const DATA_TENDENCIA = {{ tendencia_json|safe }};
+  // Top Clientes trae DOS listas ya ordenadas, una por cada métrica —no
+  // una sola lista reordenada— porque el cliente que más compra en monto
+  // no es necesariamente el que más veces compra: cada vista del gráfico
+  // necesita su propio top de mayor a menor.
+  const DATA_CLIENTES_MONTO    = {{ top_clientes_monto_json|safe }};
+  const DATA_CLIENTES_CANTIDAD = {{ top_clientes_cantidad_json|safe }};
+  const DATA_PRODUCTOS = {{ top_productos_json|safe }};
 
   const VERDE = '#2d6a4f';
   const VERDE_OSC = '#1b4332';
@@ -290,10 +295,13 @@
   const chartClientes = new Chart(document.getElementById('chartClientes'), {
     type: 'bar',
     data: {
-      labels: DATA_CLIENTES.map(d => d.nombre),
+      // Arranca con el top por MONTO porque esa es la métrica activa
+      // por defecto (ver cambiarMetrica más abajo para el top por
+      // cantidad de ventas).
+      labels: DATA_CLIENTES_MONTO.map(d => d.nombre),
       datasets: [{
         label: 'Monto',
-        data: DATA_CLIENTES.map(d => d.monto),
+        data: DATA_CLIENTES_MONTO.map(d => d.monto),
         backgroundColor: VERDE,
         borderRadius: 6
       }]
@@ -381,7 +389,14 @@
     chartTendencia.data.datasets[0].label = etiqueta;
     chartTendencia.update();
 
-    chartClientes.data.datasets[0].data = DATA_CLIENTES.map(d => d[campo]);
+    // Top Clientes no solo cambia los valores: cambia de LISTA. El top 8
+    // por monto y el top 8 por # de ventas pueden tener clientes distintos
+    // y en otro orden, así que hay que reemplazar labels + data juntos
+    // (antes solo se remapeaban los valores sobre el mismo top-por-monto,
+    // por eso "# Ventas" no quedaba de mayor a menor).
+    const topClientes = metrica === 'monto' ? DATA_CLIENTES_MONTO : DATA_CLIENTES_CANTIDAD;
+    chartClientes.data.labels = topClientes.map(d => d.nombre);
+    chartClientes.data.datasets[0].data = topClientes.map(d => d[campo]);
     chartClientes.data.datasets[0].label = etiqueta;
     chartClientes.update();
   }

@@ -89,8 +89,8 @@ def ventas_historial():
         ORDER BY dia
     """
 
-    # Top clientes (sobre el conjunto completo filtrado)
-    sql_top_clientes = f"""
+    # Top clientes por MONTO (sobre el conjunto completo filtrado)
+    sql_top_clientes_monto = f"""
         SELECT COALESCE(c.nombre, 'Cliente general') AS cliente,
                COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
         FROM ventas v
@@ -98,6 +98,21 @@ def ventas_historial():
         {where}
         GROUP BY cliente
         ORDER BY monto DESC
+        LIMIT 8
+    """
+
+    # Top clientes por # DE VENTAS — es una lista aparte (y no la misma
+    # reordenada) porque el cliente que más compra en monto no es
+    # necesariamente el que más veces compra: cada vista del gráfico debe
+    # mostrar su propio top, de mayor a menor según esa métrica.
+    sql_top_clientes_cantidad = f"""
+        SELECT COALESCE(c.nombre, 'Cliente general') AS cliente,
+               COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
+        FROM ventas v
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+        GROUP BY cliente
+        ORDER BY cantidad DESC
         LIMIT 8
     """
 
@@ -132,9 +147,13 @@ def ventas_historial():
         tendencia = [{"fecha": fila[0].strftime("%d %b"), "cantidad": fila[1], "monto": float(fila[2] or 0)}
                      for fila in cur.fetchall()]
 
-        cur.execute(sql_top_clientes, params)
-        top_clientes = [{"nombre": fila[0], "cantidad": fila[1], "monto": float(fila[2] or 0)}
-                        for fila in cur.fetchall()]
+        cur.execute(sql_top_clientes_monto, params)
+        top_clientes_monto = [{"nombre": fila[0], "cantidad": fila[1], "monto": float(fila[2] or 0)}
+                              for fila in cur.fetchall()]
+
+        cur.execute(sql_top_clientes_cantidad, params)
+        top_clientes_cantidad = [{"nombre": fila[0], "cantidad": fila[1], "monto": float(fila[2] or 0)}
+                                 for fila in cur.fetchall()]
 
         cur.execute(sql_top_productos, params)
         top_productos = []
@@ -167,7 +186,8 @@ def ventas_historial():
                            filas_mostradas=len(ventas),
                            rango_por_defecto=rango_por_defecto,
                            tendencia_json=json.dumps(tendencia),
-                           top_clientes_json=json.dumps(top_clientes),
+                           top_clientes_monto_json=json.dumps(top_clientes_monto),
+                           top_clientes_cantidad_json=json.dumps(top_clientes_cantidad),
                            top_productos_json=json.dumps(top_productos),
                            hoy=hoy, hace_7=hace_7, hace_30=hace_30, inicio_mes=inicio_mes,
                            f_desde=f_desde, f_hasta=f_hasta,
