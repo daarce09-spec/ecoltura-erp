@@ -40,13 +40,13 @@ def ventas_historial():
 
     where = ("WHERE " + " AND ".join(condiciones)) if condiciones else ""
 
-    # Si no hay ningún filtro, mostrar últimos 30 días por defecto
+    # Si no hay ningún filtro, mostrar el mes actual por defecto
     rango_por_defecto = not condiciones
     if rango_por_defecto:
-        hace_30 = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+        inicio_mes_actual = datetime.now().strftime("%Y-%m-01")
         where = "WHERE v.fecha_venta::date >= %s"
-        params = [hace_30]
-        f_desde = hace_30
+        params = [inicio_mes_actual]
+        f_desde = inicio_mes_actual
         f_hasta = datetime.now().strftime("%Y-%m-%d")
 
     sql = f"""

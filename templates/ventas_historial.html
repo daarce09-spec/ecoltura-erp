@@ -37,8 +37,11 @@
     </h2>
     <small class="text-muted">Consulte ventas pasadas y reenvíe comprobantes</small>
     <div class="rango-activo">
-      Mostrando: <strong>{{ f_desde }}</strong> al <strong>{{ f_hasta }}</strong>
-      {% if rango_por_defecto %}<span>(últimos 30 días por defecto)</span>{% endif %}
+      {% if rango_por_defecto %}
+        Mostrando: <strong>ventas del mes actual</strong>
+      {% else %}
+        Mostrando: <strong>{{ f_desde }}</strong> al <strong>{{ f_hasta }}</strong>
+      {% endif %}
     </div>
   </div>
   <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="btn btn-outline-secondary btn-sm">← Ventas</a>
