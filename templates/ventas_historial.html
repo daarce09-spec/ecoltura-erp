@@ -49,10 +49,10 @@
 
 <!-- VISTAS RÁPIDAS -->
 <div class="vistas-rapidas">
-  <a href="{{ url_for('ventas_bp.ventas_historial') }}" class="{{ 'activa' if rango_por_defecto else '' }}">Últimos 30 días</a>
+  <a href="{{ url_for('ventas_bp.ventas_historial') }}" class="{{ 'activa' if rango_por_defecto else '' }}">Mes actual</a>
   <a href="{{ url_for('ventas_bp.ventas_historial', desde=hoy, hasta=hoy) }}" class="{{ 'activa' if f_desde == hoy and f_hasta == hoy else '' }}">Hoy</a>
   <a href="{{ url_for('ventas_bp.ventas_historial', desde=hace_7, hasta=hoy) }}" class="{{ 'activa' if f_desde == hace_7 and f_hasta == hoy else '' }}">7 días</a>
-  <a href="{{ url_for('ventas_bp.ventas_historial', desde=inicio_mes, hasta=hoy) }}" class="{{ 'activa' if f_desde == inicio_mes and f_hasta == hoy else '' }}">Mes actual</a>
+  <a href="{{ url_for('ventas_bp.ventas_historial', desde=hace_30, hasta=hoy) }}" class="{{ 'activa' if f_desde == hace_30 and f_hasta == hoy else '' }}">30 días</a>
 </div>
 
 <!-- FILTROS -->
