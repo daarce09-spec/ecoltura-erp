@@ -319,6 +319,12 @@
     });
     document.body.addEventListener('htmx:afterSettle', function () {
       window.scrollTo(0, 0);
+      // Si algo (autocompletado, un input, etc.) agarró el foco solo,
+      // se lo quitamos — en iOS eso es lo que mueve la vista por fuera
+      // del scroll normal, y por eso el overflow:hidden no lo frenaba.
+      if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
       setTimeout(function () {
         document.documentElement.classList.remove('scroll-lock');
         window.scrollTo(0, 0);
@@ -330,6 +336,9 @@
     document.documentElement.classList.add('scroll-lock');
     window.scrollTo(0, 0);
     setTimeout(function () {
+      if (document.activeElement && document.activeElement !== document.body) {
+        document.activeElement.blur();
+      }
       document.documentElement.classList.remove('scroll-lock');
       window.scrollTo(0, 0);
     }, 500);
