@@ -46,10 +46,9 @@
     #intro-screen {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 999; display: flex; justify-content: center; align-items: center;
-      opacity: 0; /* se revela de una sola vez (fondo + logo juntos) cuando la foto ya está lista */
+      background: #0A0F06; /* tapa la página real desde el primer instante, sin esperar nada */
       transition: opacity .9s ease, visibility .9s ease;
     }
-    #intro-screen.visible { opacity: 1; }
     .intro-background {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image:
@@ -57,8 +56,10 @@
         url('/static/img/finca/hero.jpg');
       background-color: #0A0F06;
       background-size: cover; background-position: center;
-      transition: filter 1.2s ease, transform 2s ease;
+      opacity: 0; /* la foto entra con fade sobre el fondo sólido, no de golpe */
+      transition: opacity .8s ease, filter 1.2s ease, transform 2s ease;
     }
+    #intro-screen.ready .intro-background { opacity: 1; }
     .intro-text {
       position: relative; z-index: 1000; text-align: center;
       opacity: 0; transform: translateY(12px);
@@ -839,18 +840,16 @@
 window.addEventListener("DOMContentLoaded", () => {
   const intro = document.getElementById("intro-screen");
 
-  // El intro entero arranca invisible (opacity:0, ver CSS) y se revela de
-  // una sola vez — fondo y logo juntos — solo cuando la foto ya terminó de
-  // descargar Y decodificar. Así se evita el negro -> foto -> logo en
-  // etapas separadas. Con un tope de 700ms para no quedarse pegado en
-  // conexiones lentas (en ese caso se revela igual, con la foto entrando
-  // un poco después pero ya con el logo encima, nunca al revés).
+  // La pantalla de intro (fondo sólido oscuro) tapa la página real desde
+  // el primer instante — eso nunca espera a nada. Lo único que espera es
+  // la FOTO: no se revela (fade-in) hasta que terminó de descargar y
+  // decodificar, y el logo aparece en ese mismo momento, junto con ella.
+  // Tope de 700ms por si la conexión es lenta.
   let revelado = false;
   function revelarIntro() {
     if (revelado) return;
     revelado = true;
-    intro.classList.add("visible");
-    requestAnimationFrame(() => intro.classList.add("ready"));
+    intro.classList.add("ready");
   }
   const fotoIntro = new Image();
   fotoIntro.src = "/static/img/finca/hero.jpg";
