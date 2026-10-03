@@ -836,7 +836,22 @@
 // ── INTRO ──────────────────────────────────────────
 window.addEventListener("DOMContentLoaded", () => {
   const intro = document.getElementById("intro-screen");
-  setTimeout(() => intro.classList.add("ready"), 100);
+
+  // Espera a que la foto de fondo esté lista antes de revelar el texto/logo,
+  // para que no aparezcan en momentos distintos (negro -> foto -> logo).
+  // Con un tope de 600ms para no quedarse pegado en conexiones lentas.
+  let revelado = false;
+  function revelarIntro() {
+    if (revelado) return;
+    revelado = true;
+    intro.classList.add("ready");
+  }
+  const fotoIntro = new Image();
+  fotoIntro.onload = revelarIntro;
+  fotoIntro.onerror = revelarIntro;
+  fotoIntro.src = "/static/img/finca/hero.jpg";
+  setTimeout(revelarIntro, 600);
+
   function quitarIntro() {
     if (!intro.classList.contains("difuminar")) intro.classList.add("difuminar");
   }
