@@ -11,16 +11,45 @@
   .badge-Facturado { background:#D1E7DD; color:#0A4A2A; }
   .badge-Anulado   { background:#F8D7DA; color:#842029; }
   .resumen-chip { background:#f0f7f0; border-radius:12px; padding:14px 20px; display:inline-block; }
+  .resumen-chip.chip-warn { background:#fdeceb; }
+
+  .rango-activo { font-size:.82rem; color:#6c757d; margin-top:2px; }
+
+  .vistas-rapidas { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
+  .vistas-rapidas a {
+    text-decoration:none; font-size:.82rem; font-weight:600;
+    padding:6px 14px; border-radius:999px; border:1px solid #d8e6dc;
+    color:#2d6a4f; background:#fff; transition:all .15s;
+  }
+  .vistas-rapidas a:hover { background:#e9f5ee; border-color:#2d6a4f; }
+  .vistas-rapidas a.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+
+  .aviso-limite {
+    font-size:.82rem; color:#8a6d00; background:#fff8e6;
+    border:1px solid #ffe69c; border-radius:10px; padding:10px 16px; margin-bottom:16px;
+  }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <div>
     <h2 class="fw-bold mb-1" style="color:#1b4332">
       <i class="bi bi-clock-history me-2"></i>Historial de Ventas
     </h2>
     <small class="text-muted">Consulte ventas pasadas y reenvíe comprobantes</small>
+    <div class="rango-activo">
+      Mostrando: <strong>{{ f_desde }}</strong> al <strong>{{ f_hasta }}</strong>
+      {% if rango_por_defecto %}<span>(últimos 30 días por defecto)</span>{% endif %}
+    </div>
   </div>
   <a href="{{ url_for('ventas_bp.ventas_menu') }}" class="btn btn-outline-secondary btn-sm">← Ventas</a>
+</div>
+
+<!-- VISTAS RÁPIDAS -->
+<div class="vistas-rapidas">
+  <a href="{{ url_for('ventas_bp.ventas_historial') }}" class="{{ 'activa' if rango_por_defecto else '' }}">Últimos 30 días</a>
+  <a href="{{ url_for('ventas_bp.ventas_historial', desde=hoy, hasta=hoy) }}" class="{{ 'activa' if f_desde == hoy and f_hasta == hoy else '' }}">Hoy</a>
+  <a href="{{ url_for('ventas_bp.ventas_historial', desde=hace_7, hasta=hoy) }}" class="{{ 'activa' if f_desde == hace_7 and f_hasta == hoy else '' }}">7 días</a>
+  <a href="{{ url_for('ventas_bp.ventas_historial', desde=inicio_mes, hasta=hoy) }}" class="{{ 'activa' if f_desde == inicio_mes and f_hasta == hoy else '' }}">Mes actual</a>
 </div>
 
 <!-- FILTROS -->
@@ -65,7 +94,25 @@
     <span class="text-muted small">Monto total</span>
     <div class="fw-bold fs-5" style="color:#2d6a4f">₡{{ "{:,.0f}".format(suma_total) }}</div>
   </div>
+  <div class="resumen-chip">
+    <span class="text-muted small">Ticket promedio</span>
+    <div class="fw-bold fs-5" style="color:#2d6a4f">₡{{ "{:,.0f}".format(ticket_promedio) }}</div>
+  </div>
+  {% if estados.get('Anulado') %}
+  <div class="resumen-chip chip-warn">
+    <span class="text-muted small">Anuladas</span>
+    <div class="fw-bold fs-5" style="color:#842029">{{ estados['Anulado']['cantidad'] }}</div>
+  </div>
+  {% endif %}
 </div>
+
+{% if mostrando_limitado %}
+<div class="aviso-limite">
+  Se están mostrando las {{ filas_mostradas }} ventas más recientes de un total de {{ total_ventas }}
+  que cumplen el filtro. Los totales de arriba sí corresponden a las {{ total_ventas }} ventas completas —
+  para ver el detalle de todas, acorta el rango de fechas o filtra por cliente.
+</div>
+{% endif %}
 
 <!-- TABLA -->
 <div class="card shadow-sm">
@@ -111,9 +158,9 @@
     </div>
     {% endif %}
   </div>
-  {% if ventas|length == 200 %}
+  {% if mostrando_limitado %}
   <div class="card-footer text-muted small text-center">
-    Mostrando las primeras 200 ventas. Use los filtros para acotar la búsqueda.
+    Mostrando las primeras {{ filas_mostradas }} ventas. Use los filtros para acotar la búsqueda.
   </div>
   {% endif %}
 </div>
