@@ -57,14 +57,23 @@ def ventas_historial():
         LIMIT 200
     """
 
+    # Totales reales sobre TODO el conjunto filtrado (sin el LIMIT de arriba,
+    # que es solo para no sobrecargar la tabla que se muestra en pantalla)
+    sql_totales = f"""
+        SELECT COUNT(*), COALESCE(SUM(v.total), 0)
+        FROM ventas v
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+    """
+
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
         ventas = cur.fetchall()
 
-        # Totales del resultado
-        total_ventas = len(ventas)
-        suma_total   = sum(float(v[2] or 0) for v in ventas)
+        cur.execute(sql_totales, params)
+        total_ventas, suma_total = cur.fetchone()
+        suma_total = float(suma_total or 0)
 
     return render_template("ventas_historial.html",
                            ventas=ventas,
