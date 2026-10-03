@@ -135,7 +135,7 @@
     </div>
 
     <div id="panel-productos" class="panel-grafico d-none">
-      <div class="text-muted small mb-2">Top 8 productos por cantidad vendida — rango filtrado</div>
+      <div class="text-muted small mb-2" id="subtitulo-productos">Top 8 productos por monto — rango filtrado</div>
       <div class="grafico-wrap"><canvas id="chartProductos"></canvas></div>
     </div>
   </div>
@@ -239,7 +239,10 @@
   // necesita su propio top de mayor a menor.
   const DATA_CLIENTES_MONTO    = {{ top_clientes_monto_json|safe }};
   const DATA_CLIENTES_CANTIDAD = {{ top_clientes_cantidad_json|safe }};
-  const DATA_PRODUCTOS = {{ top_productos_json|safe }};
+  // Mismo criterio para Top Productos: top por monto y top por cantidad
+  // vendida son listas independientes.
+  const DATA_PRODUCTOS_MONTO    = {{ top_productos_monto_json|safe }};
+  const DATA_PRODUCTOS_CANTIDAD = {{ top_productos_cantidad_json|safe }};
 
   const VERDE = '#2d6a4f';
   const VERDE_OSC = '#1b4332';
@@ -332,13 +335,21 @@
     }
   });
 
+  // Lista actualmente mostrada en el gráfico de productos — cambia entre
+  // DATA_PRODUCTOS_MONTO y DATA_PRODUCTOS_CANTIDAD en cambiarMetrica().
+  // La necesita el tooltip para saber a qué producto corresponde cada
+  // barra con el top vigente (no el original de la carga de la página).
+  let topProductosActual = DATA_PRODUCTOS_MONTO;
+
   const chartProductos = new Chart(document.getElementById('chartProductos'), {
     type: 'bar',
     data: {
-      labels: DATA_PRODUCTOS.map(d => d.nombre),
+      // Arranca con el top por MONTO porque esa es la métrica activa por
+      // defecto (igual que Top Clientes).
+      labels: DATA_PRODUCTOS_MONTO.map(d => d.nombre),
       datasets: [{
-        label: 'Cantidad',
-        data: DATA_PRODUCTOS.map(d => d.cantidad),
+        label: 'Monto',
+        data: DATA_PRODUCTOS_MONTO.map(d => d.monto),
         backgroundColor: VERDE_CLARO,
         borderRadius: 6
       }]
@@ -351,11 +362,21 @@
         legend: { display: false },
         tooltip: {
           callbacks: {
-            label: ctx => DATA_PRODUCTOS[ctx.dataIndex].etiqueta
+            label: ctx => metricaActual === 'monto'
+              ? formatoColones(topProductosActual[ctx.dataIndex].monto)
+              : topProductosActual[ctx.dataIndex].etiqueta
           }
         }
       },
-      scales: { x: { beginAtZero: true } }
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            precision: 0,
+            callback: v => metricaActual === 'monto' ? formatoColones(v) : v
+          }
+        }
+      }
     }
   });
 
@@ -365,8 +386,8 @@
     document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('activa'));
     document.querySelector(`.btn-tab[data-tab="${tab}"]`).classList.add('activa');
 
-    const toggle = document.getElementById('toggle-metrica');
-    toggle.style.display = (tab === 'productos') ? 'none' : '';
+    // El toggle Monto/# Ventas ahora aplica a las tres pestañas (antes se
+    // ocultaba en Productos porque ese gráfico solo mostraba cantidad).
 
     // Los canvas ocultos (d-none) miden 0x0 al crearse, así que hay que
     // forzar un resize justo cuando se muestra el panel por primera vez.
@@ -399,6 +420,20 @@
     chartClientes.data.datasets[0].data = topClientes.map(d => d[campo]);
     chartClientes.data.datasets[0].label = etiqueta;
     chartClientes.update();
+
+    // Mismo criterio para Top Productos: cambia de lista (no solo de
+    // valores), y topProductosActual se actualiza para que el tooltip
+    // (que indexa por posición de barra) muestre el producto correcto.
+    topProductosActual = metrica === 'monto' ? DATA_PRODUCTOS_MONTO : DATA_PRODUCTOS_CANTIDAD;
+    chartProductos.data.labels = topProductosActual.map(d => d.nombre);
+    chartProductos.data.datasets[0].data = topProductosActual.map(d => d[campo]);
+    chartProductos.data.datasets[0].label = etiqueta;
+    chartProductos.update();
+
+    document.getElementById('subtitulo-productos').textContent =
+      metrica === 'monto'
+        ? 'Top 8 productos por monto — rango filtrado'
+        : 'Top 8 productos por cantidad vendida — rango filtrado';
   }
 
   // Los botones de pestaña/métrica usan onclick="..." en el HTML, que

@@ -12,6 +12,26 @@ from datetime import datetime, timedelta
 from modulos.ventas_menu import ventas_bp
 
 
+def _filas_a_top_productos(filas):
+    """Convierte filas (nombre, unidad, cantidad, monto) al formato que
+    usa el gráfico de Top Productos, con la etiqueta de unidades (kg/u)
+    ya calculada. Se usa dos veces: una para el top por cantidad vendida
+    y otra para el top por monto — mismas filas de entrada, mismo formato
+    de salida."""
+    top = []
+    for fila in filas:
+        nombre, unidad, cantidad, monto = fila
+        cantidad = float(cantidad or 0)
+        unidad_low = (unidad or "").strip().lower()
+        if unidad_low in ("gramo", "gramos"):
+            etiqueta_cant = f"{cantidad/1000:.1f} kg"
+        else:
+            etiqueta_cant = f"{cantidad:.0f} u"
+        top.append({"nombre": nombre, "cantidad": cantidad,
+                    "etiqueta": etiqueta_cant, "monto": float(monto or 0)})
+    return top
+
+
 @ventas_bp.route("/ventas/historial")
 def ventas_historial():
     # Filtros opcionales por querystring
@@ -116,8 +136,12 @@ def ventas_historial():
         LIMIT 8
     """
 
-    # Top productos (usa ventas_detalle, con el mismo filtro aplicado a la venta)
-    sql_top_productos = f"""
+    # Top productos — dos listas por separado (misma razón que Top
+    # Clientes): el producto más vendido en unidades no es necesariamente
+    # el que más plata genera, así que cada vista del gráfico necesita su
+    # propio top de mayor a menor (usa ventas_detalle, con el mismo filtro
+    # aplicado a la venta).
+    sql_top_productos_cantidad = f"""
         SELECT pr.nombre, pr.unidad,
                SUM(vd.cantidad) AS cantidad, COALESCE(SUM(vd.total_linea), 0) AS monto
         FROM ventas_detalle vd
@@ -127,6 +151,19 @@ def ventas_historial():
         {where}
         GROUP BY pr.id, pr.nombre, pr.unidad
         ORDER BY cantidad DESC
+        LIMIT 8
+    """
+
+    sql_top_productos_monto = f"""
+        SELECT pr.nombre, pr.unidad,
+               SUM(vd.cantidad) AS cantidad, COALESCE(SUM(vd.total_linea), 0) AS monto
+        FROM ventas_detalle vd
+        JOIN ventas v ON v.id = vd.venta_id
+        JOIN productos pr ON pr.id = vd.producto_id
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+        GROUP BY pr.id, pr.nombre, pr.unidad
+        ORDER BY monto DESC
         LIMIT 8
     """
 
@@ -155,18 +192,11 @@ def ventas_historial():
         top_clientes_cantidad = [{"nombre": fila[0], "cantidad": fila[1], "monto": float(fila[2] or 0)}
                                  for fila in cur.fetchall()]
 
-        cur.execute(sql_top_productos, params)
-        top_productos = []
-        for fila in cur.fetchall():
-            nombre, unidad, cantidad, monto = fila
-            cantidad = float(cantidad or 0)
-            unidad_low = (unidad or "").strip().lower()
-            if unidad_low in ("gramo", "gramos"):
-                etiqueta_cant = f"{cantidad/1000:.1f} kg"
-            else:
-                etiqueta_cant = f"{cantidad:.0f} u"
-            top_productos.append({"nombre": nombre, "cantidad": cantidad,
-                                  "etiqueta": etiqueta_cant, "monto": float(monto or 0)})
+        cur.execute(sql_top_productos_cantidad, params)
+        top_productos_cantidad = _filas_a_top_productos(cur.fetchall())
+
+        cur.execute(sql_top_productos_monto, params)
+        top_productos_monto = _filas_a_top_productos(cur.fetchall())
 
     ticket_promedio = (suma_total / total_ventas) if total_ventas else 0
     mostrando_limitado = len(ventas) < total_ventas
@@ -188,7 +218,8 @@ def ventas_historial():
                            tendencia_json=json.dumps(tendencia),
                            top_clientes_monto_json=json.dumps(top_clientes_monto),
                            top_clientes_cantidad_json=json.dumps(top_clientes_cantidad),
-                           top_productos_json=json.dumps(top_productos),
+                           top_productos_cantidad_json=json.dumps(top_productos_cantidad),
+                           top_productos_monto_json=json.dumps(top_productos_monto),
                            hoy=hoy, hace_7=hace_7, hace_30=hace_30, inicio_mes=inicio_mes,
                            f_desde=f_desde, f_hasta=f_hasta,
                            f_venta=f_venta, f_cliente=f_cliente)
