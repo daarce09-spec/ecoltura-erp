@@ -198,14 +198,6 @@
 
     /* Tarjetas de producto */
     .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 20px; }
-    @media (max-width: 600px) {
-      .grid-prod { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
-      .prod-img { aspect-ratio: 1/1; }
-      .prod h4 { font-size: .88rem; }
-      .prod .unidad { font-size: .7rem; }
-      .precio { font-size: .85rem; }
-      .agregar { padding: 6px 12px; font-size: .68rem; }
-    }
     .prod { display: flex; flex-direction: column; cursor: default; }
     .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
                 background: linear-gradient(165deg, #E9E7DC, #C9CEB2 70%);
@@ -230,6 +222,19 @@
                padding: 8px 18px; font-family: 'Inter'; font-weight: 600; font-size: .74rem;
                letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
     .agregar:hover { background: var(--verde); color: #fff; }
+
+    /* Este bloque va DESPUÉS de las reglas base de .prod-img / .prod h4 / .precio / .agregar
+       a propósito: en CSS, con la misma especificidad, gana la regla que aparece más abajo
+       en el archivo — así este override de móvil manda de verdad sobre el aspect-ratio 4/5. */
+    @media (max-width: 600px) {
+      .grid-prod { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+      .prod-img { aspect-ratio: 1/1 !important; }
+      .prod h4 { font-size: .88rem; }
+      .prod .unidad { font-size: .7rem; }
+      .precio { font-size: .85rem; }
+      .agregar { padding: 6px 12px; font-size: .68rem; }
+    }
+
     .stepper { display: flex; align-items: center; border: 1.5px solid var(--verde); }
     .stepper button { background: none; border: none; width: 30px; height: 31px;
                       font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
