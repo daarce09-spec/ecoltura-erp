@@ -126,17 +126,17 @@
 
     <div id="panel-tendencia" class="panel-grafico">
       <div class="text-muted small mb-2">Por día — rango filtrado</div>
-      <canvas id="chartTendencia" height="90"></canvas>
+      <div class="grafico-wrap"><canvas id="chartTendencia"></canvas></div>
     </div>
 
     <div id="panel-clientes" class="panel-grafico d-none">
       <div class="text-muted small mb-2">Top 8 clientes — rango filtrado</div>
-      <canvas id="chartClientes" height="110"></canvas>
+      <div class="grafico-wrap"><canvas id="chartClientes"></canvas></div>
     </div>
 
     <div id="panel-productos" class="panel-grafico d-none">
       <div class="text-muted small mb-2">Top 8 productos por cantidad vendida — rango filtrado</div>
-      <canvas id="chartProductos" height="110"></canvas>
+      <div class="grafico-wrap"><canvas id="chartProductos"></canvas></div>
     </div>
   </div>
 </div>
@@ -146,6 +146,15 @@
     border: 1px solid #d8e6dc; background:#fff; color:#39503f; font-weight:600; font-size:.82rem;
   }
   .btn-tab.activa, .btn-metrica.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+
+  /* Alto fijo por CSS (no por el canvas) + maintainAspectRatio:false en el
+     JS: los paneles de Top Clientes/Top Productos arrancan ocultos
+     (d-none), así que si Chart.js calcula su tamaño contra "mantener
+     proporción" en ese momento mide un contenedor de 0x0 y el gráfico
+     queda aplastado para siempre, aunque después se muestre la pestaña.
+     Con una altura fija en CSS, Chart.js siempre tiene una referencia
+     real para dibujar, esté o no visible el panel en ese instante. */
+  .grafico-wrap { position: relative; height: 280px; }
 </style>
 
 {% if mostrando_limitado %}
@@ -255,6 +264,7 @@
     },
     options: {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -291,6 +301,7 @@
     options: {
       indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -327,6 +338,7 @@
     options: {
       indexAxis: 'y',
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: { display: false },
         tooltip: {
