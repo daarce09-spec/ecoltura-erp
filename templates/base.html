@@ -34,7 +34,14 @@
     body {
       background-color: var(--brand-bg);
       font-family: 'Segoe UI', sans-serif;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
     }
+
+    /* El navbar es sticky-top: en PWA/instalada, el padding-top de arriba
+       ya empuja todo por debajo de la barra de estado del celular (reloj,
+       batería, wifi), así que el navbar nunca queda tapado ni inclickeable. */
+    .navbar.sticky-top { top: 0; }
 
     .btn-verde-eco {
       background-color: var(--brand-green) !important;
