@@ -6,6 +6,7 @@
   <title>Mi Ecoltura — Productos orgánicos y lácteos de finca</title>
   <meta name="description" content="Finca familiar costarricense. Productos orgánicos y lácteos artesanales, cosechados por encargo y entregados sin intermediarios.">
 
+  <link rel="preload" as="image" href="/static/img/finca/hero.jpg" fetchpriority="high">
   <link rel="icon" type="image/png" href="/static/img/apple-touch-icon.png?v=2">
   <link rel="apple-touch-icon" href="/static/img/apple-touch-icon.png?v=2">
   <link rel="manifest" href="/static/manifest.json">
@@ -51,7 +52,8 @@
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image:
         linear-gradient(rgba(10,15,6,.65), rgba(10,15,6,.72)),
-        url('https://images.unsplash.com/photo-1602943543714-cf535b048440?q=80&w=1920&auto=format&fit=crop');
+        url('/static/img/finca/hero.jpg');
+      background-color: #0A0F06;
       background-size: cover; background-position: center;
       transition: filter 1.2s ease, transform 2s ease;
     }
@@ -1125,6 +1127,7 @@ function renderTarjetaGrupo(g) {
   return `<div class="prod">
     <div class="prod-img">
       <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
+           loading="lazy" decoding="async"
            onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
       <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
     </div>
@@ -1187,6 +1190,7 @@ function renderProductos() {
     return `<div class="prod">
       <div class="prod-img">
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
+             loading="lazy" decoding="async"
              onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
         <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
       </div>
