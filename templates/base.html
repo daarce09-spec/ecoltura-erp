@@ -38,6 +38,14 @@
          instante después) — eso es lo que causaba el mini scroll-down. */
       overflow-anchor: none;
     }
+    /* Bloqueo real de scroll: se activa un instante al entrar a un módulo
+       (ver JS) para que sea FÍSICAMENTE imposible que la página se mueva
+       sola — sin importar qué lo esté causando (autocompletado, fuentes
+       cargando tarde, etc.) — y se libera apenas todo se acomodó. */
+    html.scroll-lock, html.scroll-lock body {
+      overflow: hidden !important;
+      height: 100% !important;
+    }
     body {
       background-color: var(--brand-bg);
       font-family: 'Segoe UI', sans-serif;
@@ -297,16 +305,34 @@
       tickRelojAdmin();
     });
 
-    // ── htmx: scroll arriba del todo al entrar a un módulo ──
-    // Un solo scrollTo justo al terminar de insertar el contenido nuevo
-    // (sin reintentos tardíos — esos peleaban contra el autocompletado de
-    // Safari en formularios y causaban un "rebote" visible).
+    // ── htmx: bloquear el scroll de verdad al entrar a un módulo ──
+    // En vez de corregir el scroll después de que ya se movió (eso se
+    // sentía como un "rebote"), se bloquea el scroll por completo
+    // (overflow:hidden real) justo antes de insertar el contenido nuevo,
+    // y se libera 500ms después — tiempo de sobra para que cualquier cosa
+    // que estuviera moviendo la vista sola (autocompletado, fuentes, etc.)
+    // ya haya terminado. Mientras está bloqueado es físicamente imposible
+    // que la página se desplace, sin importar la causa.
     document.body.addEventListener('htmx:beforeSwap', function () {
       window.scrollTo(0, 0);
+      document.documentElement.classList.add('scroll-lock');
     });
     document.body.addEventListener('htmx:afterSettle', function () {
       window.scrollTo(0, 0);
+      setTimeout(function () {
+        document.documentElement.classList.remove('scroll-lock');
+        window.scrollTo(0, 0);
+      }, 500);
     });
+
+    // Mismo bloqueo para la primera carga de la app (no pasa por htmx:
+    // abrir el acceso directo del celular, refrescar, escribir la URL).
+    document.documentElement.classList.add('scroll-lock');
+    window.scrollTo(0, 0);
+    setTimeout(function () {
+      document.documentElement.classList.remove('scroll-lock');
+      window.scrollTo(0, 0);
+    }, 500);
   </script>
 
   {% block extra_scripts %}{% endblock %}
