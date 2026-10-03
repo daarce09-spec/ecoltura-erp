@@ -31,6 +31,13 @@
       --brand-bg:         #f8faf9;
     }
 
+    html, body {
+      /* Evita que Safari/Chrome reajusten el scroll solos cuando algo
+         arriba del contenido visible cambia de tamaño después del primer
+         pintado (típicamente una tipografía web que termina de cargar un
+         instante después) — eso es lo que causaba el mini scroll-down. */
+      overflow-anchor: none;
+    }
     body {
       background-color: var(--brand-bg);
       font-family: 'Segoe UI', sans-serif;
@@ -301,6 +308,15 @@
     });
     document.body.addEventListener('htmx:load', function () {
       window.scrollTo(0, 0);
+      // Reintento tardío: por si una fuente web u otro recurso termina de
+      // cargar un instante después y el navegador mueve el scroll solo.
+      setTimeout(() => window.scrollTo(0, 0), 150);
+      setTimeout(() => window.scrollTo(0, 0), 400);
+    });
+    window.addEventListener('load', function () {
+      window.scrollTo(0, 0);
+      setTimeout(() => window.scrollTo(0, 0), 150);
+      setTimeout(() => window.scrollTo(0, 0), 400);
     });
   </script>
 
