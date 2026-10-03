@@ -49,15 +49,30 @@
       background: #0A0F06; /* tapa la página real desde el primer instante, sin esperar nada */
       transition: opacity .9s ease, visibility .9s ease;
     }
+    /* Versión diminuta y borrosa de la misma foto (unos 740 bytes),
+       incrustada directo aquí — se ve desde el primerísimo instante, sin
+       ninguna descarga de red, así que nunca hay un frame en negro. */
     .intro-background {
       position: absolute; top: 0; left: 0; width: 100%; height: 100%;
       background-image:
         linear-gradient(rgba(10,15,6,.65), rgba(10,15,6,.72)),
-        url('/static/img/finca/hero.jpg');
-      background-color: #0A0F06; /* respaldo real: solo se ve si la foto tarda */
+        url('data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAA4KCw0LCQ4NDA0QDw4RFiQXFhQUFiwgIRokNC43NjMuMjI6QVNGOj1OPjIySGJJTlZYXV5dOEVmbWVabFNbXVn/2wBDAQ8QEBYTFioXFypZOzI7WVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVlZWVn/wAARCAAVACADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDJWVZIyCm1vU1HDd7pdiKQvQ1GY5Y2DHkN2qy0tvabSVG415ja2RmWJGEBzzSw3Rfg/lSNcwOuW5ptokBdmR8E9KmN7aoRUjuGfTvNIG4VRQfaHDScnNFFbRVr2Bi3EpiJRQMVGZWiVWU80UVSS0Gj/9k=');
+      background-color: #0A0F06; /* respaldo real: solo se ve si ni siquiera esto cargó */
       background-size: cover; background-position: center;
       transition: filter 1.2s ease, transform 2s ease;
     }
+    /* La foto real entra ENCIMA de la borrosa con un crossfade — nunca
+       reemplaza de golpe, así que no se nota el cambio de una a otra. */
+    .intro-background-real {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background-image:
+        linear-gradient(rgba(10,15,6,.65), rgba(10,15,6,.72)),
+        url('/static/img/finca/hero.jpg');
+      background-size: cover; background-position: center;
+      opacity: 0;
+      transition: opacity .6s ease;
+    }
+    #intro-screen.foto-lista .intro-background-real { opacity: 1; }
     .intro-text {
       position: relative; z-index: 1000; text-align: center;
       opacity: 0; transform: translateY(12px);
@@ -65,7 +80,8 @@
     }
     #intro-screen.ready .intro-text  { opacity: 1; transform: translateY(0); }
     #intro-screen.difuminar           { opacity: 0; visibility: hidden; pointer-events: none; }
-    #intro-screen.difuminar .intro-background { filter: blur(25px); transform: scale(1.08); }
+    #intro-screen.difuminar .intro-background,
+    #intro-screen.difuminar .intro-background-real { filter: blur(25px); transform: scale(1.08); }
 
     .intro-bloque { display: flex; flex-direction: column; align-items: center; gap: 20px; }
     .intro-logo {
@@ -453,6 +469,7 @@
 <!-- ── INTRO ── -->
 <div id="intro-screen">
   <div class="intro-background"></div>
+  <div class="intro-background-real"></div>
   <div class="intro-text">
     <div class="intro-bloque">
       <img src="/static/img/ecoltura-logo-blanco.png" alt="ECOLTURA — Agricultura Regenerativa" class="intro-logo">
@@ -838,27 +855,28 @@
 window.addEventListener("DOMContentLoaded", () => {
   const intro = document.getElementById("intro-screen");
 
-  // La pantalla de intro (fondo sólido oscuro) tapa la página real desde
-  // el primer instante. La FOTO se muestra tal cual el navegador la vaya
-  // teniendo lista (ya no espera nada — es local y liviana, aparece casi
-  // de inmediato). Lo único que espera un toque es el LOGO/texto, para
-  // que no aparezca de golpe antes que la foto. Tope de 700ms por si la
-  // conexión es lenta.
-  let revelado = false;
-  function revelarIntro() {
-    if (revelado) return;
-    revelado = true;
-    intro.classList.add("ready");
+  // La pantalla de intro arranca mostrando una versión diminuta y borrosa
+  // de la foto, incrustada en el propio CSS (cero red, aparece al
+  // instante — nunca hay un frame en negro). El logo entra enseguida
+  // (no depende de nada). La foto NÍTIDA hace crossfade encima apenas
+  // termina de decodificar, con tope de 700ms por si la conexión es lenta.
+  intro.classList.add("ready");
+
+  let fotoRevelada = false;
+  function revelarFotoNitida() {
+    if (fotoRevelada) return;
+    fotoRevelada = true;
+    intro.classList.add("foto-lista");
   }
   const fotoIntro = new Image();
   fotoIntro.src = "/static/img/finca/hero.jpg";
   if (fotoIntro.decode) {
-    fotoIntro.decode().then(revelarIntro).catch(revelarIntro);
+    fotoIntro.decode().then(revelarFotoNitida).catch(revelarFotoNitida);
   } else {
-    fotoIntro.onload = revelarIntro;
-    fotoIntro.onerror = revelarIntro;
+    fotoIntro.onload = revelarFotoNitida;
+    fotoIntro.onerror = revelarFotoNitida;
   }
-  setTimeout(revelarIntro, 700);
+  setTimeout(revelarFotoNitida, 700);
 
   function quitarIntro() {
     if (!intro.classList.contains("difuminar")) intro.classList.add("difuminar");
