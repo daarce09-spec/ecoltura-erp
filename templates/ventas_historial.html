@@ -327,6 +327,14 @@
 
     const toggle = document.getElementById('toggle-metrica');
     toggle.style.display = (tab === 'productos') ? 'none' : '';
+
+    // Los canvas ocultos (d-none) miden 0x0 al crearse, así que hay que
+    // forzar un resize justo cuando se muestra el panel por primera vez.
+    requestAnimationFrame(() => {
+      if (tab === 'tendencia') chartTendencia.resize();
+      if (tab === 'clientes')  chartClientes.resize();
+      if (tab === 'productos') chartProductos.resize();
+    });
   }
 
   function cambiarMetrica(metrica) {
