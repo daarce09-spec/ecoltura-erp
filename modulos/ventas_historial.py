@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 """
-Historial de ventas con filtros — ECOLTURA
+Historial de ventas con filtros, gráficos y reenvío de comprobantes — ECOLTURA
 Ubicación: modulos/ventas_historial.py
 En app.py agregar junto a los otros imports de ventas:
     import modulos.ventas_historial
 """
+import json
 from flask import render_template, request
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta
@@ -78,6 +79,42 @@ def ventas_historial():
         GROUP BY v.estado
     """
 
+    # Tendencia por día (sobre el conjunto completo filtrado)
+    sql_tendencia = f"""
+        SELECT v.fecha_venta::date AS dia, COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
+        FROM ventas v
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+        GROUP BY dia
+        ORDER BY dia
+    """
+
+    # Top clientes (sobre el conjunto completo filtrado)
+    sql_top_clientes = f"""
+        SELECT COALESCE(c.nombre, 'Cliente general') AS cliente,
+               COUNT(*) AS cantidad, COALESCE(SUM(v.total), 0) AS monto
+        FROM ventas v
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+        GROUP BY cliente
+        ORDER BY monto DESC
+        LIMIT 8
+    """
+
+    # Top productos (usa ventas_detalle, con el mismo filtro aplicado a la venta)
+    sql_top_productos = f"""
+        SELECT pr.nombre, pr.unidad,
+               SUM(vd.cantidad) AS cantidad, COALESCE(SUM(vd.total_linea), 0) AS monto
+        FROM ventas_detalle vd
+        JOIN ventas v ON v.id = vd.venta_id
+        JOIN productos pr ON pr.id = vd.producto_id
+        LEFT JOIN clientes c ON c.id = v.cliente_id
+        {where}
+        GROUP BY pr.id, pr.nombre, pr.unidad
+        ORDER BY cantidad DESC
+        LIMIT 8
+    """
+
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute(sql, params)
@@ -90,6 +127,27 @@ def ventas_historial():
         cur.execute(sql_estados, params)
         estados = {fila[0]: {"cantidad": fila[1], "monto": float(fila[2] or 0)}
                    for fila in cur.fetchall()}
+
+        cur.execute(sql_tendencia, params)
+        tendencia = [{"fecha": fila[0].strftime("%d %b"), "cantidad": fila[1], "monto": float(fila[2] or 0)}
+                     for fila in cur.fetchall()]
+
+        cur.execute(sql_top_clientes, params)
+        top_clientes = [{"nombre": fila[0], "cantidad": fila[1], "monto": float(fila[2] or 0)}
+                        for fila in cur.fetchall()]
+
+        cur.execute(sql_top_productos, params)
+        top_productos = []
+        for fila in cur.fetchall():
+            nombre, unidad, cantidad, monto = fila
+            cantidad = float(cantidad or 0)
+            unidad_low = (unidad or "").strip().lower()
+            if unidad_low in ("gramo", "gramos"):
+                etiqueta_cant = f"{cantidad/1000:.1f} kg"
+            else:
+                etiqueta_cant = f"{cantidad:.0f} u"
+            top_productos.append({"nombre": nombre, "cantidad": cantidad,
+                                  "etiqueta": etiqueta_cant, "monto": float(monto or 0)})
 
     ticket_promedio = (suma_total / total_ventas) if total_ventas else 0
     mostrando_limitado = len(ventas) < total_ventas
@@ -108,6 +166,9 @@ def ventas_historial():
                            mostrando_limitado=mostrando_limitado,
                            filas_mostradas=len(ventas),
                            rango_por_defecto=rango_por_defecto,
+                           tendencia_json=json.dumps(tendencia),
+                           top_clientes_json=json.dumps(top_clientes),
+                           top_productos_json=json.dumps(top_productos),
                            hoy=hoy, hace_7=hace_7, hace_30=hace_30, inicio_mes=inicio_mes,
                            f_desde=f_desde, f_hasta=f_hasta,
                            f_venta=f_venta, f_cliente=f_cliente)

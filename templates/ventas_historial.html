@@ -109,6 +109,45 @@
   {% endif %}
 </div>
 
+<!-- GRAFICO PRINCIPAL CON PESTAÑAS -->
+<div class="card shadow-sm grafico-card mb-3">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+      <div class="btn-group" role="group" aria-label="Vista de gráfico">
+        <button type="button" class="btn btn-sm btn-tab activa" data-tab="tendencia" onclick="cambiarTabGrafico('tendencia')">Tendencia</button>
+        <button type="button" class="btn btn-sm btn-tab" data-tab="clientes" onclick="cambiarTabGrafico('clientes')">Top Clientes</button>
+        <button type="button" class="btn btn-sm btn-tab" data-tab="productos" onclick="cambiarTabGrafico('productos')">Top Productos</button>
+      </div>
+      <div class="btn-group" role="group" id="toggle-metrica">
+        <button type="button" class="btn btn-sm btn-metrica activa" data-metrica="monto" onclick="cambiarMetrica('monto')">Monto</button>
+        <button type="button" class="btn btn-sm btn-metrica" data-metrica="cantidad" onclick="cambiarMetrica('cantidad')"># Ventas</button>
+      </div>
+    </div>
+
+    <div id="panel-tendencia" class="panel-grafico">
+      <div class="text-muted small mb-2">Por día — rango filtrado</div>
+      <canvas id="chartTendencia" height="90"></canvas>
+    </div>
+
+    <div id="panel-clientes" class="panel-grafico d-none">
+      <div class="text-muted small mb-2">Top 8 clientes — rango filtrado</div>
+      <canvas id="chartClientes" height="110"></canvas>
+    </div>
+
+    <div id="panel-productos" class="panel-grafico d-none">
+      <div class="text-muted small mb-2">Top 8 productos por cantidad vendida — rango filtrado</div>
+      <canvas id="chartProductos" height="110"></canvas>
+    </div>
+  </div>
+</div>
+
+<style>
+  .btn-tab, .btn-metrica {
+    border: 1px solid #d8e6dc; background:#fff; color:#39503f; font-weight:600; font-size:.82rem;
+  }
+  .btn-tab.activa, .btn-metrica.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+</style>
+
 {% if mostrando_limitado %}
 <div class="aviso-limite">
   Se están mostrando las {{ filas_mostradas }} ventas más recientes de un total de {{ total_ventas }}
@@ -167,5 +206,145 @@
   </div>
   {% endif %}
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<script>
+  const DATA_TENDENCIA   = {{ tendencia_json|safe }};
+  const DATA_CLIENTES    = {{ top_clientes_json|safe }};
+  const DATA_PRODUCTOS   = {{ top_productos_json|safe }};
+
+  const VERDE = '#2d6a4f';
+  const VERDE_OSC = '#1b4332';
+  const VERDE_CLARO = '#A4C93C';
+
+  let metricaActual = 'monto';
+
+  function formatoColones(n) {
+    return '₡' + Math.round(n).toLocaleString('es-CR');
+  }
+
+  const chartTendencia = new Chart(document.getElementById('chartTendencia'), {
+    type: 'line',
+    data: {
+      labels: DATA_TENDENCIA.map(d => d.fecha),
+      datasets: [{
+        label: 'Monto',
+        data: DATA_TENDENCIA.map(d => d.monto),
+        borderColor: VERDE,
+        backgroundColor: 'rgba(45,106,79,0.08)',
+        fill: true,
+        tension: 0.35,
+        pointRadius: 2.5,
+        pointBackgroundColor: VERDE,
+        borderWidth: 2.5
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => metricaActual === 'monto'
+              ? formatoColones(ctx.parsed.y)
+              : ctx.parsed.y + ' ventas'
+          }
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          ticks: { callback: v => metricaActual === 'monto' ? formatoColones(v) : v }
+        }
+      }
+    }
+  });
+
+  const chartClientes = new Chart(document.getElementById('chartClientes'), {
+    type: 'bar',
+    data: {
+      labels: DATA_CLIENTES.map(d => d.nombre),
+      datasets: [{
+        label: 'Monto',
+        data: DATA_CLIENTES.map(d => d.monto),
+        backgroundColor: VERDE,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => metricaActual === 'monto'
+              ? formatoColones(ctx.parsed.x)
+              : ctx.parsed.x + ' ventas'
+          }
+        }
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: { callback: v => metricaActual === 'monto' ? formatoColones(v) : v }
+        }
+      }
+    }
+  });
+
+  const chartProductos = new Chart(document.getElementById('chartProductos'), {
+    type: 'bar',
+    data: {
+      labels: DATA_PRODUCTOS.map(d => d.nombre),
+      datasets: [{
+        label: 'Cantidad',
+        data: DATA_PRODUCTOS.map(d => d.cantidad),
+        backgroundColor: VERDE_CLARO,
+        borderRadius: 6
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => DATA_PRODUCTOS[ctx.dataIndex].etiqueta
+          }
+        }
+      },
+      scales: { x: { beginAtZero: true } }
+    }
+  });
+
+  function cambiarTabGrafico(tab) {
+    document.querySelectorAll('.panel-grafico').forEach(p => p.classList.add('d-none'));
+    document.getElementById('panel-' + tab).classList.remove('d-none');
+    document.querySelectorAll('.btn-tab').forEach(b => b.classList.remove('activa'));
+    document.querySelector(`.btn-tab[data-tab="${tab}"]`).classList.add('activa');
+
+    const toggle = document.getElementById('toggle-metrica');
+    toggle.style.display = (tab === 'productos') ? 'none' : '';
+  }
+
+  function cambiarMetrica(metrica) {
+    metricaActual = metrica;
+    document.querySelectorAll('.btn-metrica').forEach(b => b.classList.remove('activa'));
+    document.querySelector(`.btn-metrica[data-metrica="${metrica}"]`).classList.add('activa');
+
+    const campo = metrica === 'monto' ? 'monto' : 'cantidad';
+    const etiqueta = metrica === 'monto' ? 'Monto' : '# Ventas';
+
+    chartTendencia.data.datasets[0].data = DATA_TENDENCIA.map(d => d[campo]);
+    chartTendencia.data.datasets[0].label = etiqueta;
+    chartTendencia.update();
+
+    chartClientes.data.datasets[0].data = DATA_CLIENTES.map(d => d[campo]);
+    chartClientes.data.datasets[0].label = etiqueta;
+    chartClientes.update();
+  }
+</script>
 
 {% endblock %}
