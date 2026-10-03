@@ -32,8 +32,8 @@
       <div class="card-body p-4">
 
         <!-- FORM NUEVO CLIENTE -->
-        <form method="POST" action="{{ url_for('clientes_bp.clientes') }}">
-          
+        <form method="POST" action="{{ url_for('clientes_bp.clientes') }}" autocomplete="off">
+
           <div class="mb-3">
             <label class="form-label small fw-bold">NOMBRE COMPLETO</label>
             <input type="text" name="nombre" class="form-control" required>

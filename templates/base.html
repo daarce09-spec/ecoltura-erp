@@ -297,26 +297,15 @@
       tickRelojAdmin();
     });
 
-    // ── htmx: forzar scroll arriba del todo al entrar a un módulo ──
-    // Evita que un mini-scroll (de un campo con foco, un layout que
-    // todavía se está acomodando, etc.) deje el header fuera de vista.
+    // ── htmx: scroll arriba del todo al entrar a un módulo ──
+    // Un solo scrollTo justo al terminar de insertar el contenido nuevo
+    // (sin reintentos tardíos — esos peleaban contra el autocompletado de
+    // Safari en formularios y causaban un "rebote" visible).
     document.body.addEventListener('htmx:beforeSwap', function () {
       window.scrollTo(0, 0);
     });
     document.body.addEventListener('htmx:afterSettle', function () {
       window.scrollTo(0, 0);
-    });
-    document.body.addEventListener('htmx:load', function () {
-      window.scrollTo(0, 0);
-      // Reintento tardío: por si una fuente web u otro recurso termina de
-      // cargar un instante después y el navegador mueve el scroll solo.
-      setTimeout(() => window.scrollTo(0, 0), 150);
-      setTimeout(() => window.scrollTo(0, 0), 400);
-    });
-    window.addEventListener('load', function () {
-      window.scrollTo(0, 0);
-      setTimeout(() => window.scrollTo(0, 0), 150);
-      setTimeout(() => window.scrollTo(0, 0), 400);
     });
   </script>
 
