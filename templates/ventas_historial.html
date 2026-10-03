@@ -208,9 +208,21 @@
 </div>
 
 <script>
+(function () {
   // Chart.js ahora se carga una sola vez desde base.html (ver comentario
   // ahí) para que siempre esté listo sin importar si se entra por primera
   // vez o por navegación boosted de htmx.
+  //
+  // Todo este bloque va envuelto en un IIFE por otra razón: el formulario
+  // de filtros apunta a esta MISMA página, así que al enviarlo htmx vuelve
+  // a insertar y re-ejecutar este script sobre la misma página (sin
+  // recargar). La primera vez funciona, pero un "const"/"let" declarado
+  // en el scope global no se puede volver a declarar -> la segunda vez
+  // (filtrar, o entrar-salir-y-volver al módulo) el script entero moría
+  // con "Identifier 'chartTendencia' has already been declared" y el
+  // gráfico quedaba en blanco — aunque los números de arriba (que
+  // renderiza el servidor, no JS) sí se actualizaban bien. El IIFE aísla
+  // cada ejecución en su propio scope.
   const DATA_TENDENCIA   = {{ tendencia_json|safe }};
   const DATA_CLIENTES    = {{ top_clientes_json|safe }};
   const DATA_PRODUCTOS   = {{ top_productos_json|safe }};
@@ -361,6 +373,14 @@
     chartClientes.data.datasets[0].label = etiqueta;
     chartClientes.update();
   }
+
+  // Los botones de pestaña/métrica usan onclick="..." en el HTML, que
+  // busca estas funciones en el scope global — como ahora viven dentro
+  // del IIFE hay que exponerlas explícitamente, si no "cambiarTabGrafico
+  // is not defined" al hacer clic.
+  window.cambiarTabGrafico = cambiarTabGrafico;
+  window.cambiarMetrica = cambiarMetrica;
+})();
 </script>
 
 {% endblock %}
