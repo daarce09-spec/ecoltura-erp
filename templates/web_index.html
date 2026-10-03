@@ -47,7 +47,7 @@
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       z-index: 999; display: flex; justify-content: center; align-items: center;
       background: #0A0F06; /* tapa la página real desde el primer instante, sin esperar nada */
-      transition: opacity .9s ease, visibility .9s ease;
+      transition: opacity .55s ease, visibility .55s ease;
     }
     /* Versión diminuta y borrosa de la misma foto (unos 740 bytes),
        incrustada directo aquí — se ve desde el primerísimo instante, sin
@@ -82,6 +82,15 @@
     #intro-screen.difuminar           { opacity: 0; visibility: hidden; pointer-events: none; }
     #intro-screen.difuminar .intro-background,
     #intro-screen.difuminar .intro-background-real { filter: blur(25px); transform: scale(1.08); }
+    /* El logo/texto se va MUCHO más rápido que el fondo: así nunca queda
+       flotando (fantasma) encima del texto real de la página mientras el
+       fondo todavía se está difuminando — evita el efecto de "texto
+       superpuesto/roto" que se veía al salir del intro. */
+    #intro-screen.difuminar .intro-text {
+      opacity: 0 !important;
+      transform: translateY(-8px);
+      transition: opacity .25s ease, transform .25s ease;
+    }
 
     .intro-bloque { display: flex; flex-direction: column; align-items: center; gap: 20px; }
     .intro-logo {
