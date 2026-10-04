@@ -197,7 +197,13 @@
               <span class="badge-estado badge-{{ v[4] }}">{{ v[4] }}</span>
             </td>
             <td class="text-end">
+              <!-- hx-boost="false": el ticket es una página standalone
+                   propia (ticket_venta.html), no un módulo del admin — no
+                   tiene #main-content, así que si htmx intenta "boostear"
+                   este link e insertarlo con hx-select, no encuentra nada
+                   que swapear y la pantalla queda en blanco. -->
               <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=v[0]) }}"
+                 hx-boost="false"
                  class="btn btn-sm btn-success fw-bold">
                 <i class="bi bi-receipt me-1"></i>Ver / Enviar
               </a>

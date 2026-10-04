@@ -78,7 +78,10 @@
       {% if pedido[9] %}
       <div class="dato-row">
         <span class="dato-label">Venta generada</span>
-        <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=pedido[9]) }}" class="fw-bold text-success">#{{ pedido[9] }}</a>
+        <!-- hx-boost="false": el ticket es una página standalone propia,
+             no tiene #main-content (ver el mismo comentario en
+             ventas_historial.html) -->
+        <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=pedido[9]) }}" hx-boost="false" class="fw-bold text-success">#{{ pedido[9] }}</a>
       </div>
       {% endif %}
     </div>
