@@ -1172,7 +1172,10 @@ function renderTarjetaGrupo(g) {
     : `<button class="agregar activo-peso" onclick="abrirModalVariante('${g.id}')">${totalUnidades} · Editar</button>`;
 
   const desde = Math.min(...g.variantes.map(v => v.precio));
-  const imgId = g.variantes[0].id;
+  // La foto de la tarjeta es la de la variante más grande (la más cara):
+  // los grupos se ordenan por nombre y, por ejemplo, "1/2 Cartón de Huevos"
+  // quedaba antes que "Cartón de Huevos", mostrando la foto del medio cartón.
+  const imgId = g.variantes.reduce((a, b) => (b.precio > a.precio ? b : a)).id;
 
   return `<div class="prod">
     <div class="prod-img">
