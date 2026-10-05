@@ -334,6 +334,32 @@
       resetScrollContenido();
     });
     resetScrollContenido();
+
+    // ── Modales de Bootstrap: sacarlos de #main-content mientras están abiertos ──
+    // #main-content es position:fixed, y eso crea su propio "stacking
+    // context": todo lo que vive adentro (incluidos los modales) queda
+    // atrapado debajo del fondo gris (backdrop) que Bootstrap pone en el
+    // <body>. Resultado: el modal se ve gris/apagado y no se puede tocar
+    // ("se bloquea"). La solución es mover el modal al <body> al abrirlo y
+    // devolverlo a su lugar al cerrarlo (así sus ids siguen siendo únicos
+    // y los scripts de cada módulo lo siguen encontrando). Aplica a TODOS
+    // los modales del admin, no solo al de Registrar venta.
+    document.addEventListener('show.bs.modal', function (e) {
+      var m = e.target;
+      if (!m || m.parentNode === document.body) return;
+      m.__hogar = { padre: m.parentNode, siguiente: m.nextSibling };
+      document.body.appendChild(m);
+    });
+    document.addEventListener('hidden.bs.modal', function (e) {
+      var m = e.target;
+      var h = m && m.__hogar;
+      if (!h) return;
+      m.__hogar = null;
+      if (h.padre && h.padre.isConnected) {
+        var ref = (h.siguiente && h.siguiente.parentNode === h.padre) ? h.siguiente : null;
+        h.padre.insertBefore(m, ref);
+      }
+    });
   </script>
 
   {% block extra_scripts %}{% endblock %}
