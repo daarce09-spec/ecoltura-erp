@@ -1,10 +1,12 @@
 {
-  "name": "Mi Ecoltura",
-  "short_name": "Mi Ecoltura",
-  "description": "Productos orgánicos y lácteos con entrega a domicilio",
-  "start_url": "/",
+  "id": "/menu",
+  "name": "Ecoltura",
+  "short_name": "Ecoltura",
+  "description": "Administración de ECOLTURA",
+  "start_url": "/menu",
+  "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f1ea",
+  "background_color": "#0f3d2e",
   "theme_color": "#2d6a4f",
   "icons": [
     {
