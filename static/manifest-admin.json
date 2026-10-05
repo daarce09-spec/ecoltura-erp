@@ -6,11 +6,11 @@
   "start_url": "/menu",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#f4f1ea",
+  "background_color": "#1A4226",
   "theme_color": "#2d6a4f",
   "icons": [
     {
-      "src": "/static/img/icon-512.png?v=3",
+      "src": "/static/img/icon-admin-512.png?v=1",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
