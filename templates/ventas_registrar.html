@@ -4,7 +4,13 @@
 
 <h2 class="fw-bold mb-4 text-success"><i class="bi bi-cart-check me-2"></i>Registrar venta</h2>
 
-<form id="form-venta">
+<!-- hx-boost="false": el <body> tiene hx-boost="true", que también "boostea"
+     los formularios. Este form no tiene action, así que htmx lo enviaba
+     (GET a esta misma página) y reemplazaba la pantalla por un formulario
+     en blanco justo al tocar GUARDAR VENTA, mientras el modal de confirmar
+     abría encima. El guardado real lo hace el fetch de abajo, no un submit
+     normal, así que htmx no debe tocarlo. -->
+<form id="form-venta" hx-boost="false">
     <div class="row mb-3">
         <div class="col-md-6 position-relative">
             <label class="form-label fw-bold">Cliente (nombre o cédula)</label>
