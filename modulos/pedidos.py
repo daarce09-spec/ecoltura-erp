@@ -42,7 +42,8 @@ def pedido_detalle(id):
         cur.execute("""
             SELECT p.id, p.nombre_contacto, p.celular, p.cedula,
                    p.total_estimado, p.estado, p.creado, p.notas,
-                   p.cliente_id, p.venta_id
+                   p.cliente_id, p.venta_id,
+                   COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0)
             FROM pedidos p WHERE p.id = %s
         """, (id,))
         pedido = cur.fetchone()
@@ -79,13 +80,37 @@ def pedido_detalle(id):
 # ─────────────────────────────────────────────
 #  Helper: recalcular el total estimado tras cualquier edición
 # ─────────────────────────────────────────────
-def _recalcular_total(cur, pedido_id):
+def _calcular_descuento(subtotal, tipo, valor):
+    """Monto del descuento (nunca mayor al subtotal)."""
+    valor = float(valor or 0)
+    if valor <= 0 or subtotal <= 0:
+        return 0.0
+    if tipo == 'porcentaje':
+        valor = min(valor, 100.0)
+        return round(subtotal * valor / 100.0, 2)
+    return round(min(valor, subtotal), 2)
+
+
+def _totales(cur, pedido_id):
+    """Devuelve (subtotal, descuento_monto, total, tipo, valor) del pedido."""
     cur.execute("""
-        UPDATE pedidos SET total_estimado = (
-            SELECT COALESCE(SUM(cantidad * precio_unitario), 0)
-            FROM pedidos_detalle WHERE pedido_id = %s
-        ) WHERE id = %s
-    """, (pedido_id, pedido_id))
+        SELECT COALESCE(SUM(cantidad * precio_unitario), 0)
+        FROM pedidos_detalle WHERE pedido_id = %s
+    """, (pedido_id,))
+    subtotal = float(cur.fetchone()[0])
+    cur.execute("""
+        SELECT COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
+        FROM pedidos WHERE id = %s
+    """, (pedido_id,))
+    tipo, valor = cur.fetchone()
+    desc = _calcular_descuento(subtotal, tipo, valor)
+    return subtotal, desc, round(subtotal - desc, 2), tipo, float(valor)
+
+
+def _recalcular_total(cur, pedido_id):
+    """total_estimado = subtotal - descuento (lo que ve la bandeja)."""
+    _, _, total, _, _ = _totales(cur, pedido_id)
+    cur.execute("UPDATE pedidos SET total_estimado = %s WHERE id = %s", (total, pedido_id))
 
 
 def _pedido_editable(cur, id):
@@ -139,6 +164,67 @@ def detalle_eliminar(id, detalle_id):
 
     flash("Producto eliminado del pedido.", "success")
     return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+
+# ─────────────────────────────────────────────
+#  JSON: cambiar cantidad (0 = eliminar) y descuento, devuelven totales
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/detalle/<int:detalle_id>/cantidad", methods=["POST"])
+def detalle_cantidad_json(id, detalle_id):
+    data = request.get_json(silent=True) or {}
+    try:
+        cantidad = float(data.get("cantidad", 0))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="Cantidad inválida"), 400
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            return jsonify(ok=False, error="Este pedido ya no se puede editar."), 409
+
+        linea = None
+        if cantidad <= 0:
+            cur.execute("DELETE FROM pedidos_detalle WHERE id=%s AND pedido_id=%s", (detalle_id, id))
+        else:
+            cur.execute("""
+                UPDATE pedidos_detalle SET cantidad=%s WHERE id=%s AND pedido_id=%s
+                RETURNING cantidad * precio_unitario
+            """, (cantidad, detalle_id, id))
+            r = cur.fetchone()
+            linea = float(r[0]) if r else None
+
+        _recalcular_total(cur, id)
+        subtotal, desc, total, _, _ = _totales(cur, id)
+        conn.commit()
+
+    return jsonify(ok=True, eliminada=cantidad <= 0, linea=linea,
+                   subtotal=subtotal, descuento=desc, total=total)
+
+
+@pedidos_bp.route("/admin/pedidos/<int:id>/descuento", methods=["POST"])
+def pedido_descuento_json(id):
+    data = request.get_json(silent=True) or {}
+    tipo = data.get("tipo", "monto")
+    if tipo not in ("monto", "porcentaje"):
+        tipo = "monto"
+    try:
+        valor = max(0.0, float(data.get("valor", 0) or 0))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="Descuento inválido"), 400
+    if tipo == "porcentaje":
+        valor = min(valor, 100.0)
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            return jsonify(ok=False, error="Este pedido ya no se puede editar."), 409
+        cur.execute("UPDATE pedidos SET descuento_tipo=%s, descuento_valor=%s WHERE id=%s",
+                    (tipo, valor, id))
+        _recalcular_total(cur, id)
+        subtotal, desc, total, _, _ = _totales(cur, id)
+        conn.commit()
+
+    return jsonify(ok=True, subtotal=subtotal, descuento=desc, total=total)
 
 
 # ─────────────────────────────────────────────
@@ -210,35 +296,44 @@ def pedido_convertir(id):
         # Obtener detalle del pedido
         cur.execute("""
             SELECT producto_id, cantidad, precio_unitario
-            FROM pedidos_detalle WHERE pedido_id = %s
+            FROM pedidos_detalle WHERE pedido_id = %s ORDER BY id
         """, (id,))
         items = cur.fetchall()
+        if not items:
+            flash("El pedido no tiene productos.", "warning")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+        subtotal_total, descuento_total, total_total, _, _ = _totales(cur, id)
 
         fecha_hora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
 
-        # Insertar venta
+        # Insertar venta (con el descuento del pedido)
         cur.execute("""
             INSERT INTO ventas (cliente_id, fecha_venta, subtotal, descuento, iva, total, metodo_pago, estado)
-            VALUES (%s, %s, 0, 0, 0, 0, 'Por cobrar', 'Facturado')
+            VALUES (%s, %s, %s, %s, 0, %s, 'Por cobrar', 'Facturado')
             RETURNING id
-        """, (cliente_id, fecha_hora))
+        """, (cliente_id, fecha_hora, subtotal_total, descuento_total, total_total))
         venta_id = cur.fetchone()[0]
 
-        subtotal_total = 0
-        total_total    = 0
-
-        for producto_id, cantidad, precio in items:
+        desc_asignado = 0.0
+        for i, (producto_id, cantidad, precio) in enumerate(items):
             sub_l = float(cantidad) * float(precio)
-            subtotal_total += sub_l
-            total_total    += sub_l
+
+            # Descuento repartido proporcionalmente; la última línea absorbe el redondeo
+            if i == len(items) - 1:
+                desc_l = round(descuento_total - desc_asignado, 2)
+            else:
+                desc_l = round(descuento_total * sub_l / subtotal_total, 2) if subtotal_total else 0.0
+                desc_asignado += desc_l
+            total_l = round(sub_l - desc_l, 2)
 
             # Detalle de venta
             cur.execute("""
                 INSERT INTO ventas_detalle
                     (venta_id, producto_id, cantidad, precio_unitario,
                      subtotal_linea, descuento, total_linea)
-                VALUES (%s, %s, %s, %s, %s, 0, %s)
-            """, (venta_id, producto_id, cantidad, precio, sub_l, sub_l))
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """, (venta_id, producto_id, cantidad, precio, sub_l, desc_l, total_l))
 
             # Movimiento de inventario (salida)
             cur.execute("""
@@ -256,11 +351,6 @@ def pedido_convertir(id):
                     ORDER BY fecha_semana ASC LIMIT 1
                 )
             """, (cantidad, producto_id, cantidad))
-
-        # Actualizar totales de la venta
-        cur.execute("""
-            UPDATE ventas SET subtotal=%s, total=%s WHERE id=%s
-        """, (subtotal_total, total_total, venta_id))
 
         # Marcar pedido como Resuelto
         cur.execute("""

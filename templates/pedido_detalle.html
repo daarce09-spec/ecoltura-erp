@@ -100,44 +100,69 @@
       <div class="fw-bold mb-3" style="font-size:1.05rem;color:#1b4332">
         <i class="bi bi-basket me-2"></i>Productos solicitados
       </div>
-      <div class="d-flex flex-column gap-2">
+      {% set editable = pedido[5] == 'Pendiente' %}
+      {% set subtotal_bruto = namespace(v=0) %}
+      <div class="d-flex flex-column gap-2" id="lineas-pedido">
         {% for d in detalle %}
-        <div class="item-producto">
+        {% set subtotal_bruto.v = subtotal_bruto.v + d[6]|float %}
+        <div class="item-producto" data-linea="{{ d[0] }}" data-precio="{{ d[5]|float }}">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="fw-bold" style="color:#1b4332;font-size:1rem">{{ d[2] }}</div>
-            {% if pedido[5] == 'Pendiente' %}
-            <form method="POST" action="{{ url_for('pedidos_bp.detalle_eliminar', id=pedido[0], detalle_id=d[0]) }}"
-                  onsubmit="return confirm('¿Quitar {{ d[2] }} del pedido?')">
-              <button type="submit" class="btn btn-sm btn-outline-danger" title="Quitar del pedido">
-                <i class="bi bi-trash"></i>
-              </button>
-            </form>
+            {% if editable %}
+            <button type="button" class="btn btn-sm btn-outline-danger" title="Quitar del pedido"
+                    onclick="pedQuitar({{ d[0] }}, {{ d[2]|tojson|forceescape }})">
+              <i class="bi bi-trash"></i>
+            </button>
             {% endif %}
           </div>
           <div class="text-muted small mb-2">₡{{ "{:,.0f}".format(d[5]) }} c/u</div>
           <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-            {% if pedido[5] == 'Pendiente' %}
-            <form method="POST" action="{{ url_for('pedidos_bp.detalle_actualizar', id=pedido[0], detalle_id=d[0]) }}"
-                  class="d-flex align-items-center gap-1">
-              <input type="number" step="any" min="0" name="cantidad" value="{{ '%g'|format(d[4]) }}"
-                     style="width:72px" class="form-control form-control-sm text-center">
+            {% if editable %}
+            <div class="d-flex align-items-center gap-1">
+              <input type="number" step="any" min="0" value="{{ '%g'|format(d[4]) }}" data-prev="{{ '%g'|format(d[4]) }}"
+                     style="width:80px" class="form-control form-control-sm text-center ped-cant"
+                     oninput="pedCantInput({{ d[0] }}, this)" onchange="pedCantChange({{ d[0] }}, this)">
               <span class="text-muted small">{{ d[3] }}</span>
-              <button type="submit" class="btn btn-sm btn-outline-success" title="Guardar cambio">
-                <i class="bi bi-check-lg"></i>
-              </button>
-            </form>
+            </div>
             {% else %}
             <span class="small">{{ '%g'|format(d[4]) }} {{ d[3] }}</span>
             {% endif %}
-            <span class="fw-bold text-success">₡{{ "{:,.0f}".format(d[6]) }}</span>
+            <span class="fw-bold text-success ped-linea-total">₡{{ "{:,.0f}".format(d[6]) }}</span>
           </div>
         </div>
         {% endfor %}
       </div>
 
-      <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top:2px solid #f0f0f0">
-        <span class="fw-bold">TOTAL ESTIMADO</span>
-        <span class="fw-bold" style="font-size:1.2rem;color:#2d6a4f">₡{{ "{:,.0f}".format(pedido[4]) }}</span>
+      {% set tipo_desc = pedido[10] %}
+      {% set valor_desc = pedido[11]|float %}
+      {% if tipo_desc == 'porcentaje' %}{% set desc_monto = subtotal_bruto.v * [valor_desc, 100]|min / 100 %}
+      {% else %}{% set desc_monto = [valor_desc, subtotal_bruto.v]|min %}{% endif %}
+
+      <div class="mt-3 pt-3" style="border-top:2px solid #f0f0f0">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted">Subtotal</span>
+          <span class="fw-semibold" id="ped-subtotal">₡{{ "{:,.0f}".format(subtotal_bruto.v) }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+          <span class="text-muted">Descuento</span>
+          {% if editable %}
+          <div class="d-flex align-items-center gap-2">
+            <select id="ped-desc-tipo" class="form-select form-select-sm" style="width:auto" onchange="pedDescInput(true)">
+              <option value="monto" {{ 'selected' if tipo_desc != 'porcentaje' }}>₡</option>
+              <option value="porcentaje" {{ 'selected' if tipo_desc == 'porcentaje' }}>%</option>
+            </select>
+            <input type="number" id="ped-desc-valor" min="0" step="any" class="form-control form-control-sm text-end"
+                   style="width:110px" value="{{ '%g'|format(valor_desc) if valor_desc else '' }}" placeholder="0"
+                   oninput="pedDescInput()">
+          </div>
+          {% endif %}
+          <span class="fw-semibold text-danger" id="ped-descuento">{{ '−₡' ~ "{:,.0f}".format(desc_monto) if desc_monto > 0 else '₡0' }}</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center pt-2" style="border-top:1px dashed #e5e5e5">
+          <span class="fw-bold">{{ 'TOTAL' if not editable else 'TOTAL ESTIMADO' }}</span>
+          <span class="fw-bold" id="ped-total" style="font-size:1.2rem;color:#2d6a4f">₡{{ "{:,.0f}".format(pedido[4]) }}</span>
+        </div>
+        <div class="small text-muted text-end" id="ped-estado" style="min-height:1.1em"></div>
       </div>
 
       {% if pedido[5] == 'Pendiente' %}
@@ -198,7 +223,7 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body p-4">
-        <p class="mb-2">Se generará una venta por <strong>₡{{ "{:,.0f}".format(pedido[4]) }}</strong> a nombre de <strong>{{ pedido[1] }}</strong>.</p>
+        <p class="mb-2">Se generará una venta por <strong id="ped-total-modal">₡{{ "{:,.0f}".format(pedido[4]) }}</strong> a nombre de <strong>{{ pedido[1] }}</strong>.</p>
         <p class="mb-0 text-muted" style="font-size:.9rem">
           <i class="bi bi-info-circle me-1"></i>El inventario de los productos se descontará automáticamente y se generará el comprobante.
         </p>
@@ -239,12 +264,116 @@
 </div>
 
 <script>
-// Evitar que el navegador muestre una versión cacheada al volver con "atrás"
-// (así el estado del pedido siempre está actualizado)
+// IIFE: htmx re-ejecuta este script en cada navegación; así no chocan los const.
+(function () {
 window.addEventListener('pageshow', function(event) {
-  if (event.persisted) {
-    window.location.reload();
+  if (event.persisted) window.location.reload();
+});
+
+const PEDIDO_ID = {{ pedido[0] }};
+const fmt = n => '₡' + Math.round(n).toLocaleString('es-CR');
+const el = id => document.getElementById(id);
+const timers = {};
+
+function lineaEl(did) { return document.querySelector('[data-linea="' + did + '"]'); }
+
+function recalcLocal() {
+  if (!el('ped-desc-tipo')) return;
+  let sub = 0;
+  document.querySelectorAll('#lineas-pedido [data-linea]').forEach(row => {
+    const precio = parseFloat(row.dataset.precio);
+    const inp = row.querySelector('.ped-cant');
+    const cant = Math.max(0, parseFloat(inp.value) || 0);
+    const t = precio * cant;
+    row.querySelector('.ped-linea-total').textContent = fmt(t);
+    sub += t;
+  });
+  const tipo = el('ped-desc-tipo').value;
+  let v = Math.max(0, parseFloat(el('ped-desc-valor').value) || 0);
+  let desc = tipo === 'porcentaje' ? sub * Math.min(v, 100) / 100 : Math.min(v, sub);
+  pintar(sub, desc, sub - desc);
+}
+
+function pintar(sub, desc, total) {
+  el('ped-subtotal').textContent = fmt(sub);
+  el('ped-descuento').textContent = desc > 0 ? '−' + fmt(desc) : '₡0';
+  el('ped-total').textContent = fmt(total);
+  const m = el('ped-total-modal'); if (m) m.textContent = fmt(total);
+}
+
+function estado(txt) { el('ped-estado').textContent = txt; }
+
+async function post(url, payload) {
+  const r = await fetch(url, {method: 'POST', headers: {'Content-Type': 'application/json'},
+                              body: JSON.stringify(payload)});
+  const j = await r.json().catch(() => ({ok: false, error: 'Error de servidor'}));
+  if (!r.ok || !j.ok) throw new Error(j.error || 'Error');
+  return j;
+}
+
+// ── Cantidad: recalcula al instante y guarda (debounce) ──
+window.pedCantInput = function (did, inp) {
+  const v = parseFloat(inp.value);
+  if (!(v > 0)) return;            // vacío/0 se resuelve al salir del campo
+  recalcLocal();
+  estado('Guardando…');
+  clearTimeout(timers[did]);
+  timers[did] = setTimeout(async () => {
+    try {
+      const j = await post('/admin/pedidos/' + PEDIDO_ID + '/detalle/' + did + '/cantidad', {cantidad: v});
+      inp.dataset.prev = inp.value;
+      pintar(j.subtotal, j.descuento, j.total);
+      estado('Guardado ✓');
+    } catch (e) { estado('⚠ ' + e.message); }
+  }, 400);
+};
+
+window.pedCantChange = function (did, inp) {
+  const v = parseFloat(inp.value);
+  if (v > 0) return;
+  if (confirm('Cantidad 0: ¿quitar este producto del pedido?')) {
+    pedEliminar(did);
+  } else {
+    inp.value = inp.dataset.prev; recalcLocal();
   }
+};
+
+window.pedQuitar = function (did, nombre) {
+  if (confirm('¿Quitar ' + nombre + ' del pedido?')) pedEliminar(did);
+};
+
+async function pedEliminar(did) {
+  clearTimeout(timers[did]);
+  estado('Guardando…');
+  try {
+    const j = await post('/admin/pedidos/' + PEDIDO_ID + '/detalle/' + did + '/cantidad', {cantidad: 0});
+    const row = lineaEl(did); if (row) row.remove();
+    pintar(j.subtotal, j.descuento, j.total);
+    estado('Producto eliminado ✓');
+  } catch (e) { estado('⚠ ' + e.message); }
+}
+
+// ── Descuento ──
+let tDesc;
+window.pedDescInput = function (inmediato) {
+  recalcLocal();
+  estado('Guardando…');
+  clearTimeout(tDesc);
+  tDesc = setTimeout(async () => {
+    try {
+      const j = await post('/admin/pedidos/' + PEDIDO_ID + '/descuento', {
+        tipo: el('ped-desc-tipo').value,
+        valor: parseFloat(el('ped-desc-valor').value) || 0
+      });
+      pintar(j.subtotal, j.descuento, j.total);
+      estado('Guardado ✓');
+    } catch (e) { estado('⚠ ' + e.message); }
+  }, inmediato ? 0 : 500);
+};
+
+// Al abrir "Convertir", asegurar que el total mostrado es el último
+document.addEventListener('show.bs.modal', function (e) {
+  if (e.target && e.target.id === 'modalConvertir') recalcLocal();
 });
 
 // ── Buscador de "Agregar producto" — filtra por nombre mientras se escribe ──
@@ -337,13 +466,20 @@ function ocultarSeleccionPeso() {
 }
 
 // Cerrar la lista de resultados al tocar afuera
-document.addEventListener('click', function(e) {
+if (window.__pedClick) document.removeEventListener('click', window.__pedClick);
+window.__pedClick = function(e) {
   const cont  = document.getElementById('listaProductoResultados');
   const input = document.getElementById('buscarProducto');
   if (cont && e.target !== input && !cont.contains(e.target)) {
     cont.style.display = 'none';
   }
-});
+};
+document.addEventListener('click', window.__pedClick);
+
+window.buscarProductoInput = buscarProductoInput;
+window.seleccionarProducto = seleccionarProducto;
+window.elegirPeso = elegirPeso;
+})();
 </script>
 
 {% endblock %}
