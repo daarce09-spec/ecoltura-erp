@@ -6,11 +6,11 @@
   "start_url": "/menu",
   "scope": "/",
   "display": "standalone",
-  "background_color": "#1A4226",
+  "background_color": "#ffffff",
   "theme_color": "#2d6a4f",
   "icons": [
     {
-      "src": "/static/img/icon-admin-512.png?v=1",
+      "src": "/static/img/apple-touch-icon.png?v=3",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any"
