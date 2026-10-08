@@ -281,6 +281,13 @@ def api_pedidos():
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
 
+        # 1b. Express (envío) es obligatorio: se descarta lo que mande el cliente
+        #     para ese producto y se agrega siempre 1 con el precio de la base.
+        ID_EXPRESS = 118
+        items = [i for i in items if int(i["producto_id"]) != ID_EXPRESS]
+        if not items:
+            return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
+
         # 2. Calcular total estimado y validar precios
         producto_ids = [i["producto_id"] for i in items]
         cur.execute(
@@ -291,6 +298,12 @@ def api_pedidos():
 
         if not set(producto_ids).issubset(precios.keys()):
             return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
+
+        cur.execute("SELECT precio FROM productos WHERE id = %s", (ID_EXPRESS,))
+        row_exp = cur.fetchone()
+        if row_exp:
+            precios[ID_EXPRESS] = float(row_exp[0])
+            items.append({"producto_id": ID_EXPRESS, "cantidad": 1})
 
         total = sum(precios[i["producto_id"]] * float(i["cantidad"]) for i in items)
 
