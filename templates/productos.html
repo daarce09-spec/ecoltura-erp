@@ -102,7 +102,8 @@
         <h5 class="modal-title fw-bold">Editar producto</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" id="formEditar">
+      <!-- hx-boost="false": envío normal (recarga completa) para que el modal y su fondo se cierren -->
+      <form method="POST" id="formEditar" hx-boost="false">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label fw-bold">Nombre</label>
@@ -119,7 +120,7 @@
           <div class="mb-3">
             <label class="form-label fw-bold">Precio (₡)</label>
             <input type="number" name="precio_edit" id="edit_precio" class="form-control"
-                   step="0.01" min="0" required>
+                   step="any" min="0" required>
           </div>
         </div>
         <div class="modal-footer">
@@ -139,7 +140,7 @@
         <h5 class="modal-title fw-bold">Nuevo producto</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
-      <form method="POST" action="{{ url_for('productos_bp.productos') }}">
+      <form method="POST" action="{{ url_for('productos_bp.productos') }}" hx-boost="false">
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label fw-bold">Nombre</label>
@@ -155,7 +156,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Precio (₡)</label>
-            <input type="number" name="precio" class="form-control" step="0.01" min="0" required>
+            <input type="number" name="precio" class="form-control" step="any" min="0" required>
           </div>
         </div>
         <div class="modal-footer">
