@@ -24,7 +24,7 @@ def productos():
         cur.close()
         conn.close()
 
-        flash("Producto agregado correctamente.", "productos")
+        flash("✅ Producto agregado correctamente.", "success")
         return redirect(url_for("productos_bp.productos"))
 
     conn = obtener_conexion()
@@ -78,7 +78,7 @@ def editar_producto(id):
     cur.close()
     conn.close()
 
-    flash("Producto actualizado correctamente.", "productos")
+    flash("✅ Su producto ha sido actualizado correctamente.", "success")
     return redirect(url_for("productos_bp.productos"))
 
 
@@ -94,9 +94,9 @@ def eliminar_producto(id):
         conn.commit()
         cur.close()
         conn.close()
-        flash("Producto eliminado correctamente.", "productos")
+        flash("✅ Producto eliminado correctamente.", "success")
     except Exception as e:
-        flash(f"No se puede eliminar el producto: {e}", "productos")
+        flash(f"No se puede eliminar el producto: {e}", "danger")
     return redirect(url_for("productos_bp.productos"))
 
 

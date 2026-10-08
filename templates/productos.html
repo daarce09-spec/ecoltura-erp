@@ -13,7 +13,7 @@
 
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% for cat, msg in messages %}
-    <div class="alert alert-{{ cat }} alert-dismissible fade show">
+    <div class="alert alert-{{ cat }} alert-dismissible fade show fw-bold alerta-prod">
       {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
   {% endfor %}
@@ -187,6 +187,11 @@
       document.getElementById('edit_precio').value    = this.getAttribute('data-precio');
       document.getElementById('formEditar').action    = this.getAttribute('data-action');
     });
+  });
+
+  // ===== Ocultar el aviso de confirmación a los 4 segundos =====
+  document.querySelectorAll('.alerta-prod.alert-success').forEach(function(a) {
+    setTimeout(function() { a.classList.remove('show'); setTimeout(function() { a.remove(); }, 200); }, 4000);
   });
 
   // ===== Buscador en vivo =====
