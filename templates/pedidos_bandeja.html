@@ -94,7 +94,7 @@
             <i class="bi bi-eye me-1"></i>Ver detalle
           </a>
           {% if p[5] == 'Pendiente' %}
-          <a href="https://wa.me/506{{ p[2]|replace('-','') }}?text=Hola+{{ p[1]|urlencode }}%2C+su+pedido+de+ECOLTURA+est%C3%A1+siendo+alistado+%F0%9F%8C%B1"
+          <a href="https://wa.me/506{{ p[2]|replace('-','') }}?text={{ ('Hola ' ~ (p[1].split()[0] if p[1] else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
              target="_blank" class="btn btn-sm btn-success fw-bold" style="border-radius:10px">
             <i class="bi bi-whatsapp me-1"></i>WhatsApp
           </a>

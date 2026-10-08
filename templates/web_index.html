@@ -1362,9 +1362,9 @@ async function enviarPedido() {
           direccion: document.getElementById("pedDireccion").value.trim()
         }));
       } catch(e) {}
-      document.getElementById("textoExito").innerHTML =
-        `Gracias, <b>${nombre}</b>. Su pedido #${data.pedido_id} ya está en nuestra bandeja.<br><br>
-         Lo alistamos con producto recién cosechado y le contactaremos por WhatsApp para coordinar el pago y la entrega.`;
+      // textContent: el nombre lo escribe el cliente, no se inserta como HTML
+      document.getElementById("textoExito").textContent =
+        `Hola ${nombre}, su pedido de ECOLTURA está siendo alistado. Gracias por apoyar productos locales.`;
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
