@@ -960,16 +960,16 @@ function precioVisual(p) {
   return { texto: '₡' + p.precio.toLocaleString('es-CR'), unidad: p.unidad };
 }
 
-// Costo de Express (₡1000) por defecto — se agrega una sola vez al cargar
-// la tienda; si el cliente lo quita del pedido, no vuelve a aparecer solo.
+// Express (envío): línea OBLIGATORIA del pedido. No se puede quitar ni cambiar
+// la cantidad; se vuelve a poner sola cada vez que se dibuja el resumen
+// (también después de enviar un pedido). El servidor la agrega igual.
 const ID_EXPRESS = 118;
-let expressInicializado = false;
-function inicializarExpress() {
-  if (expressInicializado) return;
-  expressInicializado = true;
-  if (productosPorId[ID_EXPRESS] && !pedido[ID_EXPRESS]) {
-    pedido[ID_EXPRESS] = 1;
-  }
+function asegurarExpress() {
+  if (productosPorId[ID_EXPRESS]) pedido[ID_EXPRESS] = 1;
+}
+function inicializarExpress() { asegurarExpress(); }
+function lineasReales() {
+  return Object.keys(pedido).filter(k => parsearClave(k).id !== ID_EXPRESS);
 }
 
 function formatoPeso(gramos) {
@@ -1268,10 +1268,11 @@ function actualizarPedido(id, delta) {
 }
 
 function renderResumen() {
+  asegurarExpress();
   const claves = Object.keys(pedido);
   const zona = document.getElementById("zonaResumen");
   let total = 0, unds = 0;
-  if (claves.length === 0) {
+  if (lineasReales().length === 0) {
     zona.innerHTML = '<div class="res-vacio">Aún no ha agregado productos.</div>';
   } else {
     zona.innerHTML = claves.map(clave => {
@@ -1307,7 +1308,8 @@ function abrirModalConfirmacion() {
   const nombre    = document.getElementById("pedNombre").value.trim();
   const celular   = document.getElementById("pedCelular").value.trim();
   const direccion = document.getElementById("pedDireccion").value.trim();
-  if (Object.keys(pedido).length === 0) { alert("Agregue al menos un producto."); return; }
+  asegurarExpress();
+  if (lineasReales().length === 0) { alert("Agregue al menos un producto."); return; }
   if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
   if (!direccion) { alert("Indique la dirección de entrega."); return; }
 
@@ -1363,9 +1365,9 @@ async function enviarPedido() {
           direccion: document.getElementById("pedDireccion").value.trim()
         }));
       } catch(e) {}
-      document.getElementById("textoExito").innerHTML =
-        `Gracias, <b>${nombre}</b>. Su pedido #${data.pedido_id} ya está en nuestra bandeja.<br><br>
-         Lo alistamos con producto recién cosechado y le contactaremos por WhatsApp para coordinar el pago y la entrega.`;
+      // textContent: el nombre lo escribe el cliente, no se inserta como HTML
+      document.getElementById("textoExito").textContent =
+        `Hola ${nombre}, su pedido de ECOLTURA está siendo alistado. Gracias por apoyar productos locales.`;
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
@@ -1502,6 +1504,8 @@ async function consultarCliente(cel) {
 let ultimaCompraGuardada = [];
 
 function mostrarRepetir(nombre, items) {
+  items = items.filter(i => i.id !== ID_EXPRESS);   // Express va siempre, no se "repite"
+  if (items.length === 0) return;
   ultimaCompraGuardada = items;
   const cont = document.getElementById("bannerRepetir");
   if (!cont) return;
@@ -1730,6 +1734,7 @@ function mostrarToast(texto, tipo) {
 function repetirUltimaCompra() {
   ultimaCompraGuardada.forEach(item => {
     // Cargar la cantidad de la última vez (respetando stock disponible)
+    if (item.id === ID_EXPRESS) return;
     const cant = Math.min(item.cantidad, item.stock);
     if (cant > 0) pedido[item.id] = cant;
   });

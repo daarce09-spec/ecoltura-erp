@@ -232,11 +232,17 @@ def pedido_descuento_json(id):
 # ─────────────────────────────────────────────
 @pedidos_bp.route("/admin/pedidos/<int:id>/detalle/agregar", methods=["POST"])
 def detalle_agregar(id):
+    if not (request.form.get("producto_id") or "").strip():
+        flash("Elegí un producto de la lista que aparece al escribir el nombre.", "warning")
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
     try:
         producto_id = int(request.form.get("producto_id", 0))
-        cantidad    = float(request.form.get("cantidad", 0))
-    except ValueError:
-        flash("Datos inválidos.", "danger")
+        # Hay dos campos "cantidad" (simple y por peso); se toma el primero con valor.
+        # Se acepta coma decimal por si el teclado del celular la manda así.
+        crudos = [c.strip().replace(",", ".") for c in request.form.getlist("cantidad") if c.strip()]
+        cantidad = float(crudos[0]) if crudos else 0
+    except (ValueError, IndexError):
+        flash("Datos inválidos: revisá el producto y la cantidad.", "danger")
         return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
 
     if not producto_id or cantidad <= 0:
