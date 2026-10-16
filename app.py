@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory, request, abort
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import os
 
 # ── Módulos del app administrativo ──
@@ -54,7 +54,7 @@ app.register_blueprint(recordatorios_bp)
 #   Servicio del ADMIN     →  TIENDA_URL=https://miecoltura.up.railway.app
 #       si alguien abre la raíz "/" lo manda a la tienda (un solo link público).
 RUTAS_PUBLICAS = (
-    "/api/productos", "/api/cliente/", "/api/pedidos", "/api/visitas/",
+    "/api/productos", "/api/version", "/api/cliente/", "/api/pedidos", "/api/visitas/",
     "/api/push/public-key", "/api/push/subscribe",
     "/api/recordatorios/marcar-leido/", "/api/recordatorios/pendiente",
     "/static/", "/sw.js", "/favicon.ico",
@@ -117,9 +117,22 @@ def api_contadores():
         vis = cur.fetchone()[0]
     return jsonify({"pedidos_pendientes": ped, "visitas_pendientes": vis})
 
+# ── Versión visible: identifica cada deploy ──────────────────────────
+# Railway entrega el commit en RAILWAY_GIT_COMMIT_SHA; la hora es la del arranque
+# (cada deploy reinicia el servidor), en hora de Costa Rica (UTC-6).
+_CR = timezone(timedelta(hours=-6))
+_COMMIT = (os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "local")[:7]
+_ARRANQUE = datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
+APP_VERSION = f"{_COMMIT} · {_ARRANQUE}"
+APP_VERSION_ID = f"{_COMMIT}-{_ARRANQUE}"
+
+@app.route("/api/version")
+def api_version():
+    return jsonify({"id": APP_VERSION_ID, "version": APP_VERSION})
+
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now()}
+    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID}
 
 if __name__ == "__main__":
     import os
