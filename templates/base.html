@@ -360,6 +360,26 @@
         h.padre.insertBefore(m, ref);
       }
     });
+
+    // ── Cerrar los modales cuando la página cambia ──
+    // Al confirmar un modal (ej. "Sí, rechazar") el formulario viaja por htmx y
+    // la pantalla se reemplaza; como el modal vivía en <body>, quedaba abierto
+    // (y con el fondo gris) encima de la página nueva. Aquí se cierra y se limpia.
+    document.body.addEventListener('htmx:beforeSwap', function () {
+      document.querySelectorAll('.modal').forEach(function (m) {
+        if (!m.classList.contains('show') && !m.__hogar) return;
+        try {
+          var inst = window.bootstrap && bootstrap.Modal.getInstance(m);
+          if (inst) inst.dispose();
+        } catch (e) {}
+        if (m.__hogar) { m.__hogar = null; m.remove(); }
+        else { m.classList.remove('show'); m.style.display = 'none'; }
+      });
+      document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('overflow');
+      document.body.style.removeProperty('padding-right');
+    });
   </script>
 
   <div style="text-align:center;font-size:.72rem;color:#999;padding:10px 0 16px">Versión {{ APP_RELEASE }} · {{ APP_VERSION.split(" · ")[2] }}</div>
