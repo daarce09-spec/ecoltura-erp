@@ -146,9 +146,11 @@ def _registrar_version():
         print("No se pudo registrar la versión:", e)
         return "?", datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
 
-APP_RELEASE, _FECHA = _registrar_version()
+_NUM, _FECHA = _registrar_version()
+# Deploy 1 → 1.01, deploy 2 → 1.02 ... deploy 99 → 1.99, deploy 100 → 1.100
+APP_RELEASE = f"1.{int(_NUM):02d}" if _NUM.isdigit() else "?"
 APP_VERSION = f"{APP_RELEASE} · {_COMMIT} · {_FECHA}"
-APP_VERSION_ID = f"{APP_RELEASE}-{_COMMIT}"
+APP_VERSION_ID = f"{_NUM}-{_COMMIT}"
 
 @app.route("/api/version")
 def api_version():
