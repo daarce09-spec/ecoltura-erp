@@ -58,7 +58,7 @@ def api_productos():
                 p.grupo_nombre,
                 p.nombre_variante
             FROM productos p
-            WHERE p.visible_web = TRUE
+            WHERE p.visible_web = TRUE OR p.id = 118   -- Express (envío) va siempre
             ORDER BY
                 CASE p.categoria
                     WHEN 'Verduras' THEN 1
@@ -96,7 +96,7 @@ def api_productos():
             "nombre_variante": r[8],
         }
         for r in rows
-        if float(r[5]) > 0          # solo productos con stock disponible
+        if float(r[5]) > 0 or r[0] == 118   # solo con stock; Express (118) siempre, aunque su stock llegue a 0
     ]
 
     # Agrupar productos que comparten grupo_id en una sola tarjeta con
@@ -305,7 +305,7 @@ def api_pedidos():
             precios[ID_EXPRESS] = float(row_exp[0])
             items.append({"producto_id": ID_EXPRESS, "cantidad": 1})
 
-        total = sum(precios[i["producto_id"]] * float(i["cantidad"]) for i in items)
+        total = sum(round(precios[i["producto_id"]] * float(i["cantidad"])) for i in items)   # colones enteros
 
         # 3. Insertar pedido (la dirección va en notas para que el admin la vea)
         notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")

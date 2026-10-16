@@ -329,16 +329,25 @@
                display: flex; align-items: center; justify-content: center; padding: 16px;
                opacity: 0; pointer-events: none; transition: opacity .25s; }
     .overlay.visible { opacity: 1; pointer-events: auto; }
+    /* El modal nunca es más alto que la pantalla: título y botones quedan fijos
+       y solo la lista de productos hace scroll (antes se cortaba con pedidos largos) */
     .modal { background: var(--blanco); max-width: 480px; width: 100%;
-             padding: 36px 32px; position: relative; }
+             padding: 36px 32px; position: relative;
+             max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
+             display: flex; flex-direction: column; overflow-y: auto; }
+    .modal > * { flex-shrink: 0; }
+    @media (max-width: 600px) { .modal { padding: 28px 20px 22px; } }
     .modal-titulo { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--negro);
                     font-weight: 400; margin-bottom: 16px; }
-    .modal-detalle { font-size: .88rem; color: var(--texto); margin-bottom: 18px; }
+    .modal-detalle { font-size: .88rem; color: var(--texto); margin-bottom: 10px;
+                     flex: 1 1 auto !important; min-height: 0; display: flex; flex-direction: column; }
+    .modal-lista { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
+                   min-height: 0; flex: 1 1 auto; }
     .modal-detalle table { width: 100%; border-collapse: collapse; }
     .modal-detalle td { padding: 6px 0; border-bottom: 1px solid var(--crema); font-size: .86rem; }
     .modal-detalle td:last-child { text-align: right; font-weight: 600; }
     .modal-total { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.05rem;
-                   color: var(--negro); padding: 12px 0 18px; }
+                   color: var(--negro); padding: 12px 0 14px; border-top: 1px solid var(--borde); }
     .modal-nota { font-size: .8rem; color: var(--gris); line-height: 1.5; margin-bottom: 18px; }
     .modal-botones { display: flex; gap: 12px; }
     .btn-confirmar { flex: 1; background: var(--verde); color: #fff; border: none; padding: 14px;
@@ -608,6 +617,8 @@
     <aside class="resumen" id="resumen">
       <div class="resumen-titulo">Su pedido</div>
       <div id="zonaResumen"><div class="res-vacio">Aún no ha agregado productos.</div></div>
+      <!-- Express (envío) fijo debajo de la lista: siempre visible, aunque la lista tenga scroll -->
+      <div id="zonaExpress"></div>
       <div class="total-res"><span>Total</span><span id="totalRes">₡0</span></div>
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
@@ -1153,7 +1164,7 @@ function renderModalVariante() {
     </div>`;
   }).join('');
 
-  const total = g.variantes.reduce((s, v) => s + v.precio * (pedido[v.id] || 0), 0);
+  const total = g.variantes.reduce((s, v) => s + Math.round(v.precio * (pedido[v.id] || 0)), 0);
 
   document.getElementById('modalVarianteContenido').innerHTML = `
     <div class="modal-titulo">${g.nombre}</div>
@@ -1269,25 +1280,26 @@ function actualizarPedido(id, delta) {
 
 function renderResumen() {
   asegurarExpress();
-  const claves = Object.keys(pedido);
-  const zona = document.getElementById("zonaResumen");
+  const zona    = document.getElementById("zonaResumen");
+  const zonaExp = document.getElementById("zonaExpress");
   let total = 0, unds = 0;
-  if (lineasReales().length === 0) {
+
+  const reales = lineasReales();
+  if (reales.length === 0) {
     zona.innerHTML = '<div class="res-vacio">Aún no ha agregado productos.</div>';
+    zonaExp.innerHTML = '';
   } else {
-    zona.innerHTML = claves.map(clave => {
+    zona.innerHTML = reales.map(clave => {
       const { id, gramos } = parsearClave(clave);
       const p    = productosPorId[id];
       const cant = pedido[clave];
-      const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
+      const sub  = Math.round(gramos ? p.precio * gramos * cant : p.precio * cant);  // colones enteros
       total += sub; unds += cant;
 
       const nombreLinea = gramos ? `${p.nombre} — ${formatoPeso(gramos)}` : p.nombre;
-      const controles = id === ID_EXPRESS
-        ? `<span style="color:var(--gris); font-size:.72rem;">incluido</span>`
-        : gramos
-          ? `<button onclick="cambiarCantidadPeso(${id},${gramos},-1)">−</button><b>${cant}</b><button onclick="cambiarCantidadPeso(${id},${gramos},1)">+</button>`
-          : `<button onclick="actualizarPedido(${id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${id},1)">+</button>`;
+      const controles = gramos
+        ? `<button onclick="cambiarCantidadPeso(${id},${gramos},-1)">−</button><b>${cant}</b><button onclick="cambiarCantidadPeso(${id},${gramos},1)">+</button>`
+        : `<button onclick="actualizarPedido(${id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${id},1)">+</button>`;
 
       return `<div class="item-res">
         <span class="nombre-it">${nombreLinea}</span>
@@ -1297,6 +1309,22 @@ function renderResumen() {
         </span>
       </div>`;
     }).join("");
+
+    // Express: línea fija, no se puede quitar ni cambiar
+    const exp = productosPorId[ID_EXPRESS];
+    if (exp && pedido[ID_EXPRESS]) {
+      const subExp = Math.round(exp.precio * pedido[ID_EXPRESS]);
+      total += subExp;
+      zonaExp.innerHTML = `<div class="item-res">
+        <span class="nombre-it">${exp.nombre}</span>
+        <span class="controles-mini">
+          <span style="color:var(--gris); font-size:.72rem;">incluido</span>
+          <b style="min-width:60px;text-align:right">₡${subExp.toLocaleString('es-CR')}</b>
+        </span>
+      </div>`;
+    } else {
+      zonaExp.innerHTML = '';
+    }
   }
   document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
   document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
@@ -1318,14 +1346,14 @@ function abrirModalConfirmacion() {
     const { id, gramos } = parsearClave(clave);
     const p    = productosPorId[id];
     const cant = pedido[clave];
-    const sub  = gramos ? p.precio * gramos * cant : p.precio * cant;
+    const sub  = Math.round(gramos ? p.precio * gramos * cant : p.precio * cant);  // colones enteros
     total += sub;
     const etiqueta = gramos ? `${p.nombre} (${formatoPeso(gramos)}) × ${cant}` : `${p.nombre} × ${cant} ${p.unidad}`;
     return `<tr><td>${etiqueta}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
   }).join("");
 
   document.getElementById("modalDetalle").innerHTML = `
-    <table><tbody>${filas}</tbody></table>
+    <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>
     <div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
   abrirModal('overlayConfirm');
 }
