@@ -361,6 +361,27 @@
       }
     });
 
+    // Al enviar un formulario que está dentro de un modal, el modal se cierra de inmediato
+    document.addEventListener('submit', function (e) {
+      var m = e.target && e.target.closest && e.target.closest('.modal');
+      if (!m) return;
+      setTimeout(function () {
+        try {
+          var inst = window.bootstrap && bootstrap.Modal.getInstance(m);
+          if (inst) inst.hide();
+        } catch (err) {}
+        // por si algo impide el cierre normal, se limpia a la fuerza un instante después
+        setTimeout(function () {
+          if (!document.body.contains(m) || !m.classList.contains('show')) return;
+          m.classList.remove('show'); m.style.display = 'none';
+          document.querySelectorAll('.modal-backdrop').forEach(function (b) { b.remove(); });
+          document.body.classList.remove('modal-open');
+          document.body.style.removeProperty('overflow');
+          document.body.style.removeProperty('padding-right');
+        }, 400);
+      }, 0);
+    });
+
     // ── Cerrar los modales cuando la página cambia ──
     // Al confirmar un modal (ej. "Sí, rechazar") el formulario viaja por htmx y
     // la pantalla se reemplaza; como el modal vivía en <body>, quedaba abierto
