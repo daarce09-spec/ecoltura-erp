@@ -342,7 +342,10 @@
     .modal-detalle { font-size: .88rem; color: var(--texto); margin-bottom: 10px;
                      flex: 1 1 auto !important; min-height: 0; display: flex; flex-direction: column; }
     .modal-lista { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
-                   min-height: 0; flex: 1 1 auto; }
+                   min-height: 0; flex: 1 1 auto;
+                   /* tope propio por si el navegador del celular calcula mal la altura de pantalla:
+                      así el total y los botones SIEMPRE quedan a la vista */
+                   max-height: 48vh; max-height: 48dvh; }
     .modal-detalle table { width: 100%; border-collapse: collapse; }
     .modal-detalle td { padding: 6px 0; border-bottom: 1px solid var(--crema); font-size: .86rem; }
     .modal-detalle td:last-child { text-align: right; font-weight: 600; }
