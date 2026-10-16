@@ -32,6 +32,10 @@ from modulos.recordatorios import recordatorios_bp
 app = Flask(__name__, template_folder="templates")
 app.secret_key = "ecoltura_secret_key_2025"
 
+# Los archivos estáticos (fotos, manifest, etc.) se revalidan siempre en vez de
+# quedar guardados días en el navegador: si cambia una foto, se ve el cambio.
+app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
+
 app.register_blueprint(clientes_bp)
 app.register_blueprint(productos_bp)
 app.register_blueprint(inventario_bp)
@@ -68,6 +72,20 @@ def separar_tienda_y_admin():
         return redirect(tienda + "/", code=302)
     return None
 
+
+# ── Nunca servir una versión vieja del sitio tras un deploy ──────────
+@app.after_request
+def sin_cache(resp):
+    tipo = resp.headers.get("Content-Type", "")
+    if tipo.startswith("text/html") or tipo.startswith("application/json") or request.path == "/sw.js":
+        # Páginas, datos y service worker: siempre pedir la versión actual
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        resp.headers["Pragma"] = "no-cache"
+        resp.headers["Expires"] = "0"
+    elif request.path.startswith("/static/"):
+        # Fotos, íconos, manifest: se guardan, pero el navegador pregunta antes de usarlas
+        resp.headers["Cache-Control"] = "no-cache"
+    return resp
 
 @app.route("/sw.js")
 def service_worker():
