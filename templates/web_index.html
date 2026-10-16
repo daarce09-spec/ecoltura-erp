@@ -480,6 +480,14 @@
     footer p { font-size: .86rem; line-height: 1.9; }
     .firma { max-width: 1160px; margin: 32px auto 0; padding-top: 18px;
              border-top: 1px solid rgba(255,255,255,.1); font-size: .7rem; color: #6E6E68; }
+    .firma { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px 16px; }
+    .version-chip { display: inline-flex; align-items: center; gap: 7px; padding: 4px 11px;
+                    border: 1px solid rgba(255,255,255,.14); border-radius: 999px;
+                    font: 500 .66rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                    color: #8F8F88; letter-spacing: .3px; user-select: all; }
+    .version-chip b { color: #C9DC7A; font-weight: 700; }
+    .version-chip em { font-style: normal; opacity: .65; }
+    .version-chip i { width: 6px; height: 6px; border-radius: 50%; background: #8CBF45; display: inline-block; }
     @media (max-width: 720px) { .footer-inner { grid-template-columns: 1fr; } }
   </style>
 </head>
@@ -868,7 +876,10 @@
       <p>Feria del agricultor, sábados<br>Visitas a la finca con cita previa</p>
     </div>
   </div>
-  <div class="firma">© ECOLTURA — Cultivado con paciencia y respeto absoluto por la tierra.<br><span style="font-size:.7rem;opacity:.6">Versión {{ APP_VERSION }}</span></div>
+  <div class="firma">
+    <span>© ECOLTURA — Cultivado con paciencia y respeto absoluto por la tierra.</span>
+    <span class="version-chip" title="Versión de la página que está viendo"><i></i><b>Versión {{ APP_RELEASE }}</b><em>{{ APP_VERSION.split(" · ", 1)[1] }}</em></span>
+  </div>
 </footer>
 
 <div id="aviso-version" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#2E7D32;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.3);font:600 14px sans-serif;text-align:center;cursor:pointer" onclick="location.reload()">

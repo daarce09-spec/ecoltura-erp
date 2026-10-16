@@ -362,7 +362,7 @@
     });
   </script>
 
-  <div style="text-align:center;font-size:.72rem;color:#999;padding:10px 0 16px">Versión {{ APP_VERSION }}</div>
+  <div style="text-align:center;font-size:.72rem;color:#999;padding:10px 0 16px">Versión {{ APP_RELEASE }} · {{ APP_VERSION.split(" · ", 1)[1] }}</div>
 
 <div id="aviso-version" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#2E7D32;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.3);font:600 14px sans-serif;text-align:center;cursor:pointer" onclick="location.reload()">
   Hay una versión nueva disponible — toque aquí para actualizar

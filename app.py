@@ -120,11 +120,13 @@ def api_contadores():
 # ── Versión visible: identifica cada deploy ──────────────────────────
 # Railway entrega el commit en RAILWAY_GIT_COMMIT_SHA; la hora es la del arranque
 # (cada deploy reinicia el servidor), en hora de Costa Rica (UTC-6).
+# >>> Suba este número a mano en cada cambio importante (2.1 → 2.2 → 3.0) <<<
+APP_RELEASE = "2.1"
 _CR = timezone(timedelta(hours=-6))
 _COMMIT = (os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "local")[:7]
 _ARRANQUE = datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
-APP_VERSION = f"{_COMMIT} · {_ARRANQUE}"
-APP_VERSION_ID = f"{_COMMIT}-{_ARRANQUE}"
+APP_VERSION = f"{APP_RELEASE} · {_COMMIT} · {_ARRANQUE}"
+APP_VERSION_ID = f"{APP_RELEASE}-{_COMMIT}-{_ARRANQUE}"
 
 @app.route("/api/version")
 def api_version():
@@ -132,7 +134,7 @@ def api_version():
 
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID}
+    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE}
 
 if __name__ == "__main__":
     import os
