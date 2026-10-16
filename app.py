@@ -125,8 +125,8 @@ APP_RELEASE = "2.1"
 _CR = timezone(timedelta(hours=-6))
 _COMMIT = (os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "local")[:7]
 _ARRANQUE = datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
-APP_VERSION = f"{APP_RELEASE} · {_COMMIT} · {_ARRANQUE}"
-APP_VERSION_ID = f"{APP_RELEASE}-{_COMMIT}-{_ARRANQUE}"
+APP_VERSION = f"{APP_RELEASE} · {_COMMIT}"
+APP_VERSION_ID = f"{APP_RELEASE}-{_COMMIT}"
 
 @app.route("/api/version")
 def api_version():
