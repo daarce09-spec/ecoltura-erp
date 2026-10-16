@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory
+from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory, request, abort
 from datetime import datetime
 import os
 
@@ -42,6 +42,32 @@ app.register_blueprint(pedidos_bp)
 app.register_blueprint(visitas_bp)
 app.register_blueprint(push_bp)
 app.register_blueprint(recordatorios_bp)
+
+# ── Un solo link público ───────────────────────────────────────────
+# Dos servicios de Railway corren este mismo código. Se separan por variables:
+#   Servicio de la TIENDA  →  SOLO_TIENDA=1
+#       solo responde la tienda y sus APIs públicas; el admin da 404.
+#   Servicio del ADMIN     →  TIENDA_URL=https://miecoltura.up.railway.app
+#       si alguien abre la raíz "/" lo manda a la tienda (un solo link público).
+RUTAS_PUBLICAS = (
+    "/api/productos", "/api/cliente/", "/api/pedidos", "/api/visitas/",
+    "/api/push/public-key", "/api/push/subscribe",
+    "/api/recordatorios/marcar-leido/", "/api/recordatorios/pendiente",
+    "/static/", "/sw.js", "/favicon.ico",
+)
+
+@app.before_request
+def separar_tienda_y_admin():
+    ruta = request.path
+    if os.environ.get("SOLO_TIENDA") == "1":
+        if ruta != "/" and not ruta.startswith(RUTAS_PUBLICAS):
+            abort(404)
+        return None
+    tienda = os.environ.get("TIENDA_URL", "").rstrip("/")
+    if tienda and ruta == "/":
+        return redirect(tienda + "/", code=302)
+    return None
+
 
 @app.route("/sw.js")
 def service_worker():
