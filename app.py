@@ -117,15 +117,37 @@ def api_contadores():
         vis = cur.fetchone()[0]
     return jsonify({"pedidos_pendientes": ped, "visitas_pendientes": vis})
 
-# ── Versión visible: identifica cada deploy ──────────────────────────
-# Railway entrega el commit en RAILWAY_GIT_COMMIT_SHA; la hora es la del arranque
-# (cada deploy reinicia el servidor), en hora de Costa Rica (UTC-6).
-# >>> Suba este número a mano en cada cambio importante (2.1 → 2.2 → 3.0) <<<
-APP_RELEASE = "2.1"
+# ── Versión visible: número consecutivo por cada deploy ──────────────
+# Cada deploy trae un commit distinto (Railway lo da en RAILWAY_GIT_COMMIT_SHA).
+# La primera vez que se ve un commit se guarda en la tabla `versiones` y la base
+# le asigna el siguiente número (1, 2, 3...). Los dos servicios comparten base,
+# así que ambos muestran el mismo número y la misma fecha. Sin intervención manual.
 _CR = timezone(timedelta(hours=-6))
 _COMMIT = (os.environ.get("RAILWAY_GIT_COMMIT_SHA") or "local")[:7]
-_ARRANQUE = datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
-APP_VERSION = f"{APP_RELEASE} · {_COMMIT}"
+
+def _registrar_version():
+    try:
+        from db.conexion import obtener_conexion
+        conn = obtener_conexion()
+        try:
+            cur = conn.cursor()
+            cur.execute("""CREATE TABLE IF NOT EXISTS versiones (
+                               numero SERIAL PRIMARY KEY,
+                               commit_sha VARCHAR(40) UNIQUE NOT NULL,
+                               creado_en TIMESTAMPTZ DEFAULT NOW())""")
+            cur.execute("INSERT INTO versiones (commit_sha) VALUES (%s) ON CONFLICT (commit_sha) DO NOTHING", (_COMMIT,))
+            cur.execute("SELECT numero, creado_en FROM versiones WHERE commit_sha = %s", (_COMMIT,))
+            numero, creado = cur.fetchone()
+            conn.commit()
+            return str(numero), creado.astimezone(_CR).strftime("%d/%m/%Y %H:%M")
+        finally:
+            conn.close()
+    except Exception as e:
+        print("No se pudo registrar la versión:", e)
+        return "?", datetime.now(_CR).strftime("%d/%m/%Y %H:%M")
+
+APP_RELEASE, _FECHA = _registrar_version()
+APP_VERSION = f"{APP_RELEASE} · {_COMMIT} · {_FECHA}"
 APP_VERSION_ID = f"{APP_RELEASE}-{_COMMIT}"
 
 @app.route("/api/version")
