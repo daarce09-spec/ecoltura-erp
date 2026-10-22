@@ -6,6 +6,7 @@ Blueprint registrado en app.py como: from modulos.web_publica import web_bp
 """
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
+from modulos.push import notificar_admins
 from datetime import datetime, timedelta
 
 web_bp = Blueprint("web_bp", __name__)
@@ -325,6 +326,12 @@ def api_pedidos():
             """, (pedido_id, item["producto_id"], float(item["cantidad"]), precios[item["producto_id"]]))
 
         conn.commit()
+
+    # Aviso al celular de quienes tienen activadas las notificaciones del admin
+    try:
+        notificar_admins("🛒 Nuevo pedido web", f"{nombre} · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
+    except Exception as ex:
+        print(f"No se pudo avisar del pedido #{pedido_id}: {ex}")
 
     return jsonify({"ok": True, "pedido_id": pedido_id})
 

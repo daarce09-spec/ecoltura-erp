@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import os
 import json
+import threading
 from flask import Blueprint, request, jsonify
 from pywebpush import webpush, WebPushException
 from db.conexion import obtener_conexion
@@ -93,7 +94,45 @@ def enviar_push(subscription_row, titulo, cuerpo, url="/"):
         return True
     except WebPushException as ex:
         print(f"Error enviando push: {ex}")
+        status = getattr(ex.response, "status_code", None)
+        if status in (404, 410):
+            # La suscripción expiró o fue invalidada por el navegador
+            # (frecuente en iOS al reinstalar la app) — se desactiva para
+            # que no se siga intentando usar, y el cliente pueda
+            # reactivar notificaciones la próxima vez que abra la tienda.
+            try:
+                with obtener_conexion() as conn:
+                    cur = conn.cursor()
+                    cur.execute(
+                        "UPDATE push_subscriptions SET activo = FALSE WHERE endpoint = %s",
+                        (endpoint,)
+                    )
+                    conn.commit()
+            except Exception as db_ex:
+                print(f"Error desactivando suscripción expirada: {db_ex}")
         return False
+
+
+# ─────────────────────────────────────────────
+#  Avisar a TODOS los celulares con las notificaciones del admin activadas
+#  (se usa cuando llega un pedido web nuevo). Corre en segundo plano para
+#  no hacer esperar al cliente que está confirmando su pedido.
+# ─────────────────────────────────────────────
+def notificar_admins(titulo, cuerpo, url="/"):
+    def _enviar():
+        try:
+            with obtener_conexion() as conn:
+                cur = conn.cursor()
+                cur.execute("""
+                    SELECT endpoint, p256dh, auth FROM push_subscriptions
+                    WHERE tipo = 'admin' AND activo = TRUE
+                """)
+                subs = cur.fetchall()
+            for s in subs:
+                enviar_push(s, titulo, cuerpo, url=url)
+        except Exception as ex:
+            print(f"Error notificando a los admins: {ex}")
+    threading.Thread(target=_enviar, daemon=True).start()
 
 
 # ─────────────────────────────────────────────
