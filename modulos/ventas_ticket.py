@@ -21,7 +21,7 @@ def limpiar_celular(celular):
     return digitos or None
 
 
-def construir_texto_ticket(venta, detalles):
+def construir_texto_ticket(venta, detalles, notas=None):
     lineas = [
         "🌱 *ECOLTURA*",
         f"Ticket de venta #{venta['id']}",
@@ -34,6 +34,9 @@ def construir_texto_ticket(venta, detalles):
         lineas.append(f"• {d['producto']} x{cant} {d['unidad']} — ₡{d['total_linea']:,.0f}")
 
     lineas.append("─────────────────")
+    if notas:
+        lineas.append(f"📝 Notas: {notas}")
+        lineas.append("─────────────────")
     if venta["descuento"] and venta["descuento"] > 0:
         lineas.append(f"Subtotal: ₡{venta['subtotal']:,.0f}")
         lineas.append(f"Descuento: -₡{venta['descuento']:,.0f}")
@@ -103,7 +106,8 @@ def ticket_venta(venta_id):
         fila_ped = cur.fetchone()
         pedido_origen = {"id": fila_ped[0], "notas": fila_ped[1]} if fila_ped else None
 
-    texto = construir_texto_ticket(venta, detalles)
+    notas_pedido = (pedido_origen["notas"] or "").strip() if pedido_origen else ""
+    texto = construir_texto_ticket(venta, detalles, notas_pedido)
 
     telefono = limpiar_celular(venta["celular"])
     base = f"https://wa.me/{telefono}" if telefono else "https://wa.me/"
@@ -116,4 +120,5 @@ def ticket_venta(venta_id):
         texto_ticket=texto,
         enlace_wa=enlace_wa,
         pedido_origen=pedido_origen,
+        notas_pedido=notas_pedido,
     )

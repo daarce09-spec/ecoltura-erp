@@ -52,6 +52,9 @@
     .btn-desc { background: #2e7d32; color: #fff; }
     .btn-sec { background: #e0e0e0; color: #333; }
     .btn:active { transform: scale(.98); }
+    .notas-ticket { font-size: .88rem; color: #555; line-height: 1.5; padding: 2px 0 6px; }
+    .notas-ticket b { color: #2e7d32; }
+    .notas-ticket span { white-space: pre-wrap; word-break: break-word; }
     .nota-pedido { max-width: 380px; width: 100%; box-sizing: border-box; margin-top: 16px; background: #fff8e1;
                    border: 1px solid #f0dc9a; border-radius: 10px; padding: 12px 14px; font-size: .88rem; color: #5d4a00; }
     .nota-pedido b { display: block; margin-bottom: 4px; }
@@ -83,6 +86,11 @@
     {% endfor %}
     <hr>
 
+    {% if notas_pedido %}
+    <div class="notas-ticket"><b>Notas:</b> <span>{{ notas_pedido }}</span></div>
+    <hr>
+    {% endif %}
+
     {% if venta.descuento > 0 %}
     <div class="fila"><span>Subtotal</span><span>₡{{ "{:,.0f}".format(venta.subtotal) }}</span></div>
     <div class="fila"><span>Descuento</span><span>-₡{{ "{:,.0f}".format(venta.descuento) }}</span></div>
@@ -100,9 +108,8 @@
 
   {% if pedido_origen %}
   <div class="nota-pedido">
-    <b>Pedido web #{{ pedido_origen.id }}</b>
-    {% if pedido_origen.notas %}Notas del cliente: {{ pedido_origen.notas }}{% else %}Sin notas.{% endif %}
-    <br><a href="{{ url_for('pedidos_bp.pedido_detalle', id=pedido_origen.id) }}" target="_blank">Ver el pedido</a>
+    Viene del <b style="display:inline">pedido web #{{ pedido_origen.id }}</b> ·
+    <a href="{{ url_for('pedidos_bp.pedido_detalle', id=pedido_origen.id) }}" target="_blank">Ver el pedido</a>
   </div>
   {% endif %}
 
