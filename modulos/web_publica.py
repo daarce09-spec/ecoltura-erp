@@ -77,7 +77,7 @@ def api_productos():
         # Pesos preestablecidos (kg/g) por producto — parametrizables desde
         # la tabla producto_pesos, sin necesidad de tocar código para
         # agregar o quitar opciones.
-        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, orden")
+        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, gramos")
         pesos_por_producto = {}
         for producto_id, gramos in cur.fetchall():
             pesos_por_producto.setdefault(producto_id, []).append(gramos)

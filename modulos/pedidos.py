@@ -51,7 +51,7 @@ def pedido_detalle(id):
         cur.execute("""
             SELECT pd.id, pd.producto_id, pr.nombre, pr.unidad,
                    pd.cantidad, pd.precio_unitario,
-                   pd.cantidad * pd.precio_unitario AS subtotal
+                   ROUND(pd.cantidad * pd.precio_unitario) AS subtotal
             FROM pedidos_detalle pd
             JOIN productos pr ON pr.id = pd.producto_id
             WHERE pd.pedido_id = %s
@@ -67,7 +67,7 @@ def pedido_detalle(id):
 
         # Pesos preestablecidos por producto (los mismos botones "1 kg / 500 g"
         # que usa la tienda pública), para poder elegirlos igual desde el admin.
-        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, orden")
+        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, gramos")
         pesos_por_producto = {}
         for producto_id, gramos in cur.fetchall():
             pesos_por_producto.setdefault(producto_id, []).append(gramos)
@@ -87,14 +87,14 @@ def _calcular_descuento(subtotal, tipo, valor):
         return 0.0
     if tipo == 'porcentaje':
         valor = min(valor, 100.0)
-        return round(subtotal * valor / 100.0, 2)
-    return round(min(valor, subtotal), 2)
+        return float(round(subtotal * valor / 100.0))
+    return float(round(min(valor, subtotal)))
 
 
 def _totales(cur, pedido_id):
     """Devuelve (subtotal, descuento_monto, total, tipo, valor) del pedido."""
     cur.execute("""
-        SELECT COALESCE(SUM(cantidad * precio_unitario), 0)
+        SELECT COALESCE(SUM(ROUND(cantidad * precio_unitario)), 0)
         FROM pedidos_detalle WHERE pedido_id = %s
     """, (pedido_id,))
     subtotal = float(cur.fetchone()[0])
@@ -104,7 +104,7 @@ def _totales(cur, pedido_id):
     """, (pedido_id,))
     tipo, valor = cur.fetchone()
     desc = _calcular_descuento(subtotal, tipo, valor)
-    return subtotal, desc, round(subtotal - desc, 2), tipo, float(valor)
+    return subtotal, desc, float(round(subtotal - desc)), tipo, float(valor)
 
 
 def _recalcular_total(cur, pedido_id):
@@ -188,7 +188,7 @@ def detalle_cantidad_json(id, detalle_id):
         else:
             cur.execute("""
                 UPDATE pedidos_detalle SET cantidad=%s WHERE id=%s AND pedido_id=%s
-                RETURNING cantidad * precio_unitario
+                RETURNING ROUND(cantidad * precio_unitario)
             """, (cantidad, detalle_id, id))
             r = cur.fetchone()
             linea = float(r[0]) if r else None
@@ -323,15 +323,15 @@ def pedido_convertir(id):
 
         desc_asignado = 0.0
         for i, (producto_id, cantidad, precio) in enumerate(items):
-            sub_l = float(cantidad) * float(precio)
+            sub_l = round(float(cantidad) * float(precio))
 
             # Descuento repartido proporcionalmente; la última línea absorbe el redondeo
             if i == len(items) - 1:
-                desc_l = round(descuento_total - desc_asignado, 2)
+                desc_l = float(round(descuento_total - desc_asignado))
             else:
-                desc_l = round(descuento_total * sub_l / subtotal_total, 2) if subtotal_total else 0.0
+                desc_l = float(round(descuento_total * sub_l / subtotal_total)) if subtotal_total else 0.0
                 desc_asignado += desc_l
-            total_l = round(sub_l - desc_l, 2)
+            total_l = float(round(sub_l - desc_l))
 
             # Detalle de venta
             cur.execute("""
