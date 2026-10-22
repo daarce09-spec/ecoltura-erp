@@ -48,8 +48,8 @@
   {% endfor %}
 {% endwith %}
 
-{# Por defecto se ven los Pendientes; si no hay ninguno, se muestran Todos #}
-{% set por_defecto = 'pendiente' if pendientes > 0 else 'todos' %}
+{# Por defecto se ven siempre los Pendientes (aunque no haya ninguno) #}
+{% set por_defecto = 'pendiente' %}
 <div class="filtros">
   <button class="filtro-btn {{ 'activo' if por_defecto == 'todos' }}" onclick="filtrar('todos', this)">Todos</button>
   <button class="filtro-btn {{ 'activo' if por_defecto == 'pendiente' }}" onclick="filtrar('pendiente', this)">Pendientes</button>
