@@ -48,9 +48,11 @@
   {% endfor %}
 {% endwith %}
 
+{# Por defecto se ven los Pendientes; si no hay ninguno, se muestran Todos #}
+{% set por_defecto = 'pendiente' if pendientes > 0 else 'todos' %}
 <div class="filtros">
-  <button class="filtro-btn activo" onclick="filtrar('todos', this)">Todos</button>
-  <button class="filtro-btn" onclick="filtrar('pendiente', this)">Pendientes</button>
+  <button class="filtro-btn {{ 'activo' if por_defecto == 'todos' }}" onclick="filtrar('todos', this)">Todos</button>
+  <button class="filtro-btn {{ 'activo' if por_defecto == 'pendiente' }}" onclick="filtrar('pendiente', this)">Pendientes</button>
   <button class="filtro-btn" onclick="filtrar('resuelto', this)">Resueltos</button>
   <button class="filtro-btn" onclick="filtrar('rechazado', this)">Rechazados</button>
 </div>
@@ -115,5 +117,10 @@ function filtrar(estado, btn) {
     card.style.display = (estado === 'todos' || card.dataset.estado === estado) ? '' : 'none';
   });
 }
+// Aplica el filtro inicial (Pendientes, o Todos si no hay pendientes)
+(function () {
+  var activo = document.querySelector('.filtro-btn.activo');
+  if (activo) activo.click();
+})();
 </script>
 {% endblock %}
