@@ -165,7 +165,9 @@
             </div>
             <div class="modal-footer border-0 p-3">
                 <button type="button" class="btn btn-light fw-bold" data-bs-dismiss="modal">Cancelar</button>
-                <form id="formConfirmar" method="POST">
+                <!-- hx-boost="false": la acción de este formulario se asigna por JS al tocar "Anular Venta";
+                     htmx la guardaba vacía al cargar la página y enviaba el POST a la dirección actual -->
+                <form id="formConfirmar" method="POST" hx-boost="false">
                     <button type="submit" class="btn-anular-rojo">Sí, Anular</button>
                 </form>
             </div>
@@ -208,7 +210,11 @@
     (function() {
         {% with messages = get_flashed_messages(category_filter=["exito_anulacion"]) %}
             {% if messages %}
-                new bootstrap.Modal(document.getElementById('modalExito')).show();
+                // Tras una carga normal de página Bootstrap se carga DESPUÉS de este script:
+                // se espera a que termine de cargar para poder abrir el cuadro de éxito.
+                function mostrarExito() { new bootstrap.Modal(document.getElementById('modalExito')).show(); }
+                if (window.bootstrap) { mostrarExito(); }
+                else { window.addEventListener('load', mostrarExito); }
             {% endif %}
         {% endwith %}
     })();
