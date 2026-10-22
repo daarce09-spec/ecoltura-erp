@@ -522,8 +522,9 @@
     <!-- Tab "La finca" oculto temporalmente — reactivar quitando este comentario
     <button class="tab" id="tabFinca" onclick="irPagina('finca')">La finca</button>
     -->
+    <!-- Campana escondida a pedido. Para volver a mostrarla, quitar display:none y poner MOSTRAR_INVITACION_NOTIF = true -->
     <button id="btnNotifHeader" onclick="activarNotificacionesCliente()" title="Activar notificaciones"
-      style="background:none; border:none; font-size:1.2rem; cursor:pointer; padding:0 4px;">🔔</button>
+      style="display:none; background:none; border:none; font-size:1.2rem; cursor:pointer; padding:0 4px;">🔔</button>
   </div>
 </header>
 
@@ -1591,7 +1592,9 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
 }
 
+const MOSTRAR_INVITACION_NOTIF = false;  // true = vuelve a invitar a activar notificaciones
 function mostrarBannerNotif() {
+  if (!MOSTRAR_INVITACION_NOTIF) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
   if (localStorage.getItem('ecoltura_notif_cerrado')) return;
