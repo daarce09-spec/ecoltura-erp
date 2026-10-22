@@ -231,7 +231,7 @@
       </div>
       <div class="modal-footer border-0 p-4 pt-0">
         <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
-        <form method="POST" action="{{ url_for('pedidos_bp.pedido_convertir', id=pedido[0]) }}">
+        <form method="POST" hx-boost="false" action="{{ url_for('pedidos_bp.pedido_convertir', id=pedido[0]) }}">
           <button type="submit" class="btn fw-bold px-4 text-white" style="background:#1b4332;border-radius:10px">
             <i class="bi bi-check-lg me-1"></i>Sí, generar venta
           </button>

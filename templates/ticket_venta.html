@@ -52,6 +52,10 @@
     .btn-desc { background: #2e7d32; color: #fff; }
     .btn-sec { background: #e0e0e0; color: #333; }
     .btn:active { transform: scale(.98); }
+    .nota-pedido { max-width: 380px; width: 100%; box-sizing: border-box; margin-top: 16px; background: #fff8e1;
+                   border: 1px solid #f0dc9a; border-radius: 10px; padding: 12px 14px; font-size: .88rem; color: #5d4a00; }
+    .nota-pedido b { display: block; margin-bottom: 4px; }
+    .nota-pedido a { color: #2e7d32; font-weight: 600; }
   </style>
 </head>
 <body>
@@ -93,6 +97,14 @@
       <div class="leyenda">ECOLTURA · Productos orgánicos y lácteos</div>
     </div>
   </div>
+
+  {% if pedido_origen %}
+  <div class="nota-pedido">
+    <b>Pedido web #{{ pedido_origen.id }}</b>
+    {% if pedido_origen.notas %}Notas del cliente: {{ pedido_origen.notas }}{% else %}Sin notas.{% endif %}
+    <br><a href="{{ url_for('pedidos_bp.pedido_detalle', id=pedido_origen.id) }}" target="_blank">Ver el pedido</a>
+  </div>
+  {% endif %}
 
   <div class="acciones">
     <button class="btn btn-desc" onclick="descargarComprobante()">📥 Descargar comprobante</button>

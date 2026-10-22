@@ -98,6 +98,11 @@ def ticket_venta(venta_id):
             for r in cur.fetchall()
         ]
 
+        # Si la venta nació de un pedido web, se traen sus notas para que no se pierdan
+        cur.execute("SELECT id, notas FROM pedidos WHERE venta_id = %s ORDER BY id LIMIT 1", (venta_id,))
+        fila_ped = cur.fetchone()
+        pedido_origen = {"id": fila_ped[0], "notas": fila_ped[1]} if fila_ped else None
+
     texto = construir_texto_ticket(venta, detalles)
 
     telefono = limpiar_celular(venta["celular"])
@@ -110,4 +115,5 @@ def ticket_venta(venta_id):
         detalles=detalles,
         texto_ticket=texto,
         enlace_wa=enlace_wa,
+        pedido_origen=pedido_origen,
     )
