@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta
 
@@ -30,6 +30,104 @@ def bandeja_pedidos():
 
     return render_template("pedidos_bandeja.html",
                            pedidos=pedidos, pendientes=pendientes)
+
+
+# ─────────────────────────────────────────────
+#  LISTA DE PREPARACIÓN (pedidos pendientes, para imprimir / PDF)
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/lista-preparacion")
+def lista_preparacion():
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT pr.nombre, pr.unidad,
+                   SUM(pd.cantidad) AS total,
+                   COUNT(DISTINCT pd.pedido_id) AS n_pedidos
+            FROM pedidos_detalle pd
+            JOIN pedidos p   ON p.id  = pd.pedido_id
+            JOIN productos pr ON pr.id = pd.producto_id
+            WHERE p.estado = 'Pendiente'
+            GROUP BY pr.id, pr.nombre, pr.unidad
+            ORDER BY pr.nombre
+        """)
+        filas = cur.fetchall()
+
+        cur.execute("SELECT COUNT(*) FROM pedidos WHERE estado='Pendiente'")
+        n_pendientes = cur.fetchone()[0]
+
+    items = []
+    for nombre, unidad, total, n_pedidos in filas:
+        total = float(total)
+        if (unidad or "").lower() in ("gramo", "gramos"):
+            if total >= 1000:
+                kg = total / 1000
+                txt = f"{kg:.2f}".rstrip("0").rstrip(".") + " kg"
+            else:
+                txt = f"{total:.0f} g"
+        else:
+            cant = int(total) if total == int(total) else round(total, 2)
+            txt = f"{cant} {unidad or 'unid.'}"
+        items.append((nombre, txt, n_pedidos))
+
+    ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
+    pdf = _generar_pdf_lista(items, n_pendientes, ahora.strftime("%d/%m/%Y %I:%M %p"))
+    nombre_archivo = f"lista_preparacion_{ahora.strftime('%Y-%m-%d')}.pdf"
+    return Response(pdf, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'})
+
+
+def _generar_pdf_lista(items, n_pendientes, fecha):
+    from io import BytesIO
+    from xml.sax.saxutils import escape
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
+
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=15*mm, rightMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=15*mm,
+                            title="Lista de preparación - Ecoltura")
+    est = getSampleStyleSheet()
+    plural = "" if n_pendientes == 1 else "s"
+    elementos = [
+        Paragraph("Lista de preparación — Ecoltura", est["Title"]),
+        Paragraph(f"{n_pendientes} pedido{plural} pendiente{plural} · {fecha}", est["Normal"]),
+        Spacer(1, 6*mm),
+    ]
+    if not items:
+        elementos.append(Paragraph("No hay pedidos pendientes.", est["Normal"]))
+    else:
+        from reportlab.platypus.flowables import Flowable
+
+        class Caja(Flowable):  # casilla vacía para marcar a mano
+            def wrap(self, w, h): return 6*mm, 6*mm
+            def draw(self):
+                self.canv.setLineWidth(1.2)
+                self.canv.rect(0, 0, 5*mm, 5*mm)
+
+        datos = [["", "Producto", "Cantidad total", "En pedidos"]]
+        for nombre, cant, n in items:
+            datos.append([Caja(), Paragraph(escape(nombre), est["Normal"]), cant,
+                          f"{n} pedido{'' if n == 1 else 's'}"])
+        t = Table(datos, colWidths=[12*mm, 85*mm, 45*mm, 38*mm], repeatRows=1)
+        estilo = [
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 11),
+            ("ALIGN", (2, 0), (2, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 1), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.5, colors.HexColor("#999999")),
+        ]
+        t.setStyle(TableStyle(estilo))
+        elementos.append(t)
+    doc.build(elementos)
+    return buf.getvalue()
 
 
 # ─────────────────────────────────────────────
