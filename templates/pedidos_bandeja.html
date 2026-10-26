@@ -117,7 +117,7 @@
 
 <script>
 // Descarga la lista en PDF sin salir de la app (en el celular abre el menú
-// de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC descarga directo).
+// de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC se descarga directo).
 async function descargarListaPdf(btn) {
   const txt = btn.querySelector('span');
   const original = txt.textContent;
@@ -128,7 +128,8 @@ async function descargarListaPdf(btn) {
     const blob = await r.blob();
     const nombre = 'lista_preparacion_' + new Date().toISOString().slice(0, 10) + '.pdf';
     const archivo = new File([blob], nombre, { type: 'application/pdf' });
-    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+    const esCelular = window.matchMedia('(pointer: coarse)').matches;
+    if (esCelular && navigator.canShare && navigator.canShare({ files: [archivo] })) {
       try { await navigator.share({ files: [archivo], title: 'Lista de preparación' }); }
       catch (e) { /* el usuario cerró el menú de compartir */ }
     } else {
