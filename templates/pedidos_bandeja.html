@@ -37,8 +37,10 @@
     <span class="badge bg-danger py-2 px-3" style="font-size:.8rem">{{ pendientes }} pendiente{{ 's' if pendientes != 1 }}</span>
     {% endif %}
     {% if pendientes > 0 %}
-    <a href="{{ url_for('pedidos_bp.lista_preparacion') }}" hx-boost="false"
-       class="btn btn-success btn-sm"><i class="bi bi-printer me-1"></i>Lista PDF</a>
+    <button type="button" id="btnListaPdf" class="btn btn-success btn-sm"
+            data-url="{{ url_for('pedidos_bp.lista_preparacion') }}" onclick="descargarListaPdf(this)">
+      <i class="bi bi-printer me-1"></i><span>Lista PDF</span>
+    </button>
     {% endif %}
     <a href="{{ url_for('menu') }}" class="btn btn-outline-secondary btn-sm">← Menú</a>
   </div>
@@ -114,6 +116,34 @@
 {% endif %}
 
 <script>
+// Descarga la lista en PDF sin salir de la app (en el celular abre el menú
+// de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC descarga directo).
+async function descargarListaPdf(btn) {
+  const txt = btn.querySelector('span');
+  const original = txt.textContent;
+  btn.disabled = true; txt.textContent = 'Generando...';
+  try {
+    const r = await fetch(btn.dataset.url, { credentials: 'same-origin' });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    const nombre = 'lista_preparacion_' + new Date().toISOString().slice(0, 10) + '.pdf';
+    const archivo = new File([blob], nombre, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      try { await navigator.share({ files: [archivo], title: 'Lista de preparación' }); }
+      catch (e) { /* el usuario cerró el menú de compartir */ }
+    } else {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob); a.download = nombre;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    }
+  } catch (e) {
+    alert('No se pudo generar el PDF. Intentá de nuevo.');
+  } finally {
+    btn.disabled = false; txt.textContent = original;
+  }
+}
+
 function filtrar(estado, btn) {
   document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
   btn.classList.add('activo');
