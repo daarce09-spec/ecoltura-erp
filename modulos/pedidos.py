@@ -66,7 +66,10 @@ def lista_preparacion():
                 txt = f"{total:.0f} g"
         else:
             cant = int(total) if total == int(total) else round(total, 2)
-            txt = f"{cant} {(unidad or 'unid.').lower()}"
+            u = (unidad or "unid.").lower()
+            if u == "unidad" and cant != 1:
+                u = "unidades"
+            txt = f"{cant} {u}"
         items.append((nombre, txt, n_pedidos))
 
     ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
