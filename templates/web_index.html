@@ -1183,7 +1183,8 @@ function renderModalVariante() {
   const g = PRODUCTOS.find(p => p.id === modalVarianteGrupoId);
   if (!g) return;
 
-  const filas = g.variantes.map(v => {
+  // Opciones de menor a mayor precio (pequeño → grande)
+  const filas = [...g.variantes].sort((a, b) => a.precio - b.precio).map(v => {
     const cant = pedido[v.id] || 0;
     const subtotal = Math.round(v.precio * cant);
     return `<div class="fila-peso-modal">
