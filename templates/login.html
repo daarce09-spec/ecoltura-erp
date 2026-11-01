@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Ingresar — Ecoltura Admin</title>
+<link rel="icon" href="/static/img/icon-512.png">
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;
+       background:#f1f5ee;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:#1f2d1f}
+  .caja{width:100%;max-width:360px;margin:16px;background:#fff;border-radius:16px;
+        padding:28px 24px;box-shadow:0 6px 24px rgba(0,0,0,.08);text-align:center}
+  .caja img{width:84px;height:84px;border-radius:18px;margin-bottom:8px}
+  h1{font-size:20px;margin:4px 0 18px}
+  label{display:block;text-align:left;font-size:13px;font-weight:600;margin:12px 0 4px}
+  input{width:100%;padding:12px;font-size:16px;border:1px solid #cfd8c8;border-radius:10px}
+  input:focus{outline:2px solid #4c8a3c;border-color:#4c8a3c}
+  button{width:100%;margin-top:18px;padding:13px;font-size:16px;font-weight:700;color:#fff;
+         background:#3f7d32;border:0;border-radius:10px;cursor:pointer}
+  .error{background:#fdecea;color:#b3261e;border-radius:8px;padding:10px;font-size:14px;margin-bottom:6px}
+  small{display:block;margin-top:14px;color:#6b7a66}
+</style>
+</head>
+<body>
+{% if ENTORNO_PRUEBAS %}<div style="position:fixed;top:0;left:0;right:0;background:#e67e00;color:#fff;font:700 12px/22px sans-serif;text-align:center">ENTORNO DE PRUEBAS — los datos no son reales</div>{% endif %}
+<form class="caja" method="post" action="/login" hx-boost="false">
+  <img src="/static/img/icon-512.png" alt="Ecoltura">
+  <h1>Ecoltura · Admin</h1>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <label for="usuario">Usuario</label>
+  <input id="usuario" name="usuario" autocomplete="username" autocapitalize="none" autocorrect="off" required autofocus>
+  <label for="clave">Contraseña</label>
+  <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+  <button type="submit">Entrar</button>
+  <small>Este dispositivo recordará tu sesión por 90 días.</small>
+</form>
+</body>
+</html>

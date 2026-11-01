@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
-from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory, request, abort
+from flask import Flask, render_template, redirect, url_for, jsonify, send_from_directory, request, abort, session
 from datetime import datetime, timedelta, timezone
 import os
+import hmac
+import time
 
 # ── Módulos del app administrativo ──
 from modulos.clientes   import clientes_bp
@@ -30,7 +32,14 @@ from modulos.push import push_bp
 from modulos.recordatorios import recordatorios_bp
 
 app = Flask(__name__, template_folder="templates")
-app.secret_key = "ecoltura_secret_key_2025"
+# La llave que firma las sesiones se toma de la variable SECRET_KEY de Railway.
+# (Si no existe se usa la antigua, para que nada se rompa mientras se configura.)
+app.secret_key = os.environ.get("SECRET_KEY") or "ecoltura_secret_key_2025"
+# La sesión del Admin queda guardada 90 días en el dispositivo.
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
 
 # Los archivos estáticos (fotos, manifest, etc.) se revalidan siempre en vez de
 # quedar guardados días en el navegador: si cambia una foto, se ve el cambio.
@@ -71,6 +80,78 @@ def separar_tienda_y_admin():
     if tienda and ruta == "/":
         return redirect(tienda + "/", code=302)
     return None
+
+
+# ── Inicio de sesión del Admin ─────────────────────────────────────
+# Un solo usuario y contraseña para el equipo. Se activa cuando en Railway existe
+# la variable ADMIN_PASSWORD (y opcionalmente ADMIN_USER). Sin esa variable el
+# Admin queda abierto como antes, así se puede desplegar sin bloquear a nadie.
+# La tienda pública (SOLO_TIENDA=1) nunca pide inicio de sesión.
+_INTENTOS = {}            # ip -> [fallos, hora_del_bloqueo]
+_MAX_FALLOS = 5
+_BLOQUEO_SEG = 300
+
+def _ip():
+    return (request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]).strip()
+
+def _bloqueado(ip):
+    reg = _INTENTOS.get(ip)
+    if reg and reg[0] >= _MAX_FALLOS:
+        if time.time() - reg[1] < _BLOQUEO_SEG:
+            return int(_BLOQUEO_SEG - (time.time() - reg[1])) // 60 + 1
+        _INTENTOS.pop(ip, None)
+    return 0
+
+@app.before_request
+def exigir_login():
+    clave = os.environ.get("ADMIN_PASSWORD")
+    if not clave or os.environ.get("SOLO_TIENDA") == "1":
+        return None
+    ruta = request.path
+    if ruta == "/" or ruta == "/login" or ruta.startswith(RUTAS_PUBLICAS):
+        return None
+    if session.get("admin_ok"):
+        return None
+    if ruta.startswith("/api/") or "/api/" in ruta or request.method != "GET":
+        return jsonify({"error": "No autorizado"}), 401
+    return redirect(url_for("login", next=ruta))
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    clave = os.environ.get("ADMIN_PASSWORD")
+    if os.environ.get("SOLO_TIENDA") == "1":
+        abort(404)
+    if not clave:
+        return redirect("/menu")
+    destino = request.values.get("next", "/menu")
+    if not destino.startswith("/") or destino.startswith("//"):
+        destino = "/menu"
+    error = None
+    if request.method == "POST":
+        ip = _ip()
+        espera = _bloqueado(ip)
+        if espera:
+            error = f"Demasiados intentos. Probá de nuevo en {espera} min."
+        else:
+            usuario = os.environ.get("ADMIN_USER", "ecoltura")
+            ok_u = hmac.compare_digest(request.form.get("usuario", "").strip().lower().encode(), usuario.lower().encode())
+            ok_p = hmac.compare_digest(request.form.get("clave", "").encode(), clave.encode())
+            if ok_u and ok_p:
+                _INTENTOS.pop(ip, None)
+                session.clear()
+                session["admin_ok"] = True
+                session.permanent = True
+                return redirect(destino)
+            reg = _INTENTOS.setdefault(ip, [0, 0])
+            reg[0] += 1
+            reg[1] = time.time()
+            error = "Usuario o contraseña incorrectos."
+    return render_template("login.html", error=error, next=destino)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 
 
 # ── Nunca servir una versión vieja del sitio tras un deploy ──────────
