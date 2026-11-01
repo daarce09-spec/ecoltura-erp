@@ -1,0 +1,66 @@
+name: Restaurar datos a staging (solo pruebas)
+
+# Copia el último respaldo de producción a la base de datos de PRUEBAS,
+# oculta nombres/celulares de clientes y borra las suscripciones de notificaciones.
+# Se corre a mano: Actions > "Restaurar datos a staging" > Run workflow.
+# NO toca la base de producción.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  restaurar:
+    runs-on: ubuntu-latest
+    env:
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      PROD_DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - name: Seguridad - staging debe ser distinta a producción
+        run: |
+          if [ -z "$STAGING_DATABASE_URL" ]; then echo "Falta el secreto STAGING_DATABASE_URL"; exit 1; fi
+          host_port() { echo "$1" | sed -E 's#^[a-z]+://[^@]*@([^/?]+).*#\1#'; }
+          if [ "$(host_port "$STAGING_DATABASE_URL")" = "$(host_port "$PROD_DATABASE_URL")" ]; then
+            echo "ABORTADO: STAGING_DATABASE_URL apunta al mismo servidor que producción."
+            exit 1
+          fi
+          echo "OK: staging y producción son servidores distintos."
+
+      - name: Instalar cliente de PostgreSQL 17
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Descargar el último respaldo
+        run: |
+          git clone https://x-access-token:${{ secrets.BACKUP_REPO_TOKEN }}@github.com/daarce09-spec/ecoltura-backups.git repo_backups
+          ULTIMO=$(ls repo_backups/backup_*.sql.gz | sort | tail -1)
+          echo "Respaldo a restaurar: $ULTIMO"
+          echo "ULTIMO=$ULTIMO" >> "$GITHUB_ENV"
+
+      - name: Vaciar la base de pruebas y restaurar
+        run: |
+          PSQL=/usr/lib/postgresql/17/bin/psql
+          $PSQL "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 -c "DROP SCHEMA public CASCADE; CREATE SCHEMA public;"
+          gunzip -c "$ULTIMO" | grep -v '^SET transaction_timeout' | $PSQL "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 -q
+
+      - name: Ocultar datos de clientes y quitar notificaciones
+        run: |
+          /usr/lib/postgresql/17/bin/psql "$STAGING_DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          UPDATE clientes SET
+            nombre = 'Cliente ' || id,
+            celular = '8' || lpad(id::text, 7, '0'),
+            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '1-0000-0000' END,
+            direccion = 'Dirección de prueba';
+          UPDATE pedidos SET
+            nombre_contacto = 'Cliente ' || COALESCE(cliente_id::text, id::text),
+            celular = '8' || lpad(id::text, 7, '0'),
+            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '1-0000-0000' END,
+            notas = CASE WHEN notas IS NULL THEN NULL ELSE 'Notas de prueba' END;
+          DELETE FROM push_subscriptions;
+          SELECT 'productos' AS tabla, count(*) FROM productos
+          UNION ALL SELECT 'clientes', count(*) FROM clientes
+          UNION ALL SELECT 'pedidos', count(*) FROM pedidos
+          UNION ALL SELECT 'ventas', count(*) FROM ventas;
+          SQL
