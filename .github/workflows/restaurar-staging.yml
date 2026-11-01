@@ -51,12 +51,12 @@ jobs:
           UPDATE clientes SET
             nombre = 'Cliente ' || id,
             celular = '8' || lpad(id::text, 7, '0'),
-            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '1-0000-0000' END,
+            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '9-' || lpad(id::text, 8, '0') END,
             direccion = 'Dirección de prueba';
           UPDATE pedidos SET
             nombre_contacto = 'Cliente ' || COALESCE(cliente_id::text, id::text),
             celular = '8' || lpad(id::text, 7, '0'),
-            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '1-0000-0000' END,
+            cedula = CASE WHEN cedula IS NULL THEN NULL ELSE '9-' || lpad(id::text, 8, '0') END,
             notas = CASE WHEN notas IS NULL THEN NULL ELSE 'Notas de prueba' END;
           DELETE FROM push_subscriptions;
           SELECT 'productos' AS tabla, count(*) FROM productos
