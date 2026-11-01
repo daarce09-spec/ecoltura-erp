@@ -158,7 +158,7 @@ def api_version():
 
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE}
+    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE, "ENTORNO_PRUEBAS": os.environ.get("ENTORNO", "").lower() == "pruebas"}
 
 if __name__ == "__main__":
     import os

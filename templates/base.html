@@ -180,6 +180,7 @@
 </head>
 
 <body hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">
+{% if ENTORNO_PRUEBAS %}<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e67e00;color:#fff;font:700 12px/22px sans-serif;text-align:center;letter-spacing:.5px;pointer-events:none;">ENTORNO DE PRUEBAS — los datos no son reales</div><div style="height:22px"></div>{% endif %}
 
   {% block before_content %}{% endblock %}
 
@@ -231,6 +232,15 @@
         .catch(err => console.error("Error en SW:", err));
       });
     }
+
+    // Quita la bolita roja del ícono al abrir la app o volver a ella
+    function limpiarBolita() {
+      try { if (navigator.clearAppBadge) navigator.clearAppBadge(); } catch (e) {}
+    }
+    limpiarBolita();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') limpiarBolita();
+    });
 
     // PWA prompt
     let deferredPrompt;
