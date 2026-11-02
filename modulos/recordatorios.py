@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from flask import Blueprint, render_template, jsonify, request
 from db.conexion import obtener_conexion
-from modulos.push import enviar_push
+from modulos.push import enviar_push, vincular_suscripciones_huerfanas
 from urllib.parse import quote
 
 recordatorios_bp = Blueprint("recordatorios_bp", __name__)
@@ -123,6 +123,10 @@ def generar_mensaje(cliente_id, nombre):
 def recordatorios_preview():
     with obtener_conexion() as conn:
         cur = conn.cursor()
+
+        # Vincula suscripciones que quedaron sin cliente (el celular aún no existía en Clientes)
+        vincular_suscripciones_huerfanas(cur)
+        conn.commit()
 
         # 1. Última venta de cada cliente + sus 2 productos con más cantidad, en UNA sola consulta
         cur.execute("""
@@ -246,6 +250,8 @@ def recordatorios_enviar_individual():
 
     with obtener_conexion() as conn:
         cur = conn.cursor()
+        vincular_suscripciones_huerfanas(cur)
+        conn.commit()
         cur.execute("""
             SELECT endpoint, p256dh, auth FROM push_subscriptions
             WHERE cliente_id = %s AND tipo = 'cliente' AND activo = TRUE

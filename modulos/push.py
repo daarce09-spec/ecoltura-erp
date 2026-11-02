@@ -17,6 +17,38 @@ VAPID_EMAIL = os.environ.get("VAPID_EMAIL", "mailto:info@ecoltura.local")
 
 
 # ─────────────────────────────────────────────
+#  La suscripción guarda también el celular con el que se activó la campana.
+#  Así, si ese celular todavía no existía en Clientes, se puede vincular
+#  más tarde (cuando el cliente haga su primer pedido o se registre).
+# ─────────────────────────────────────────────
+def _asegurar_columna_celular():
+    try:
+        with obtener_conexion() as conn:
+            cur = conn.cursor()
+            cur.execute("ALTER TABLE push_subscriptions ADD COLUMN IF NOT EXISTS celular VARCHAR(30)")
+            conn.commit()
+    except Exception as ex:
+        print("No se pudo asegurar la columna celular en push_subscriptions:", ex)
+
+_asegurar_columna_celular()
+
+
+def vincular_suscripciones_huerfanas(cur):
+    """Vincula con su cliente las suscripciones de clientes que quedaron sin
+    cliente_id, comparando el celular. Si varios clientes comparten celular,
+    se usa el más reciente (igual que al activar la campana). Devuelve cuántas vinculó."""
+    cur.execute("""
+        UPDATE push_subscriptions ps
+           SET cliente_id = (SELECT MAX(c.id) FROM clientes c WHERE c.celular = ps.celular)
+         WHERE ps.tipo = 'cliente'
+           AND ps.cliente_id IS NULL
+           AND ps.celular IS NOT NULL
+           AND EXISTS (SELECT 1 FROM clientes c WHERE c.celular = ps.celular)
+    """)
+    return cur.rowcount
+
+
+# ─────────────────────────────────────────────
 #  API: entregar la llave pública al navegador
 # ─────────────────────────────────────────────
 @push_bp.route("/api/push/public-key")
@@ -63,13 +95,15 @@ def push_subscribe():
             """, (cliente_id, tipo, endpoint))
 
         cur.execute("""
-            INSERT INTO push_subscriptions (cliente_id, endpoint, p256dh, auth, tipo)
-            VALUES (%s, %s, %s, %s, %s)
+            INSERT INTO push_subscriptions (cliente_id, endpoint, p256dh, auth, tipo, celular)
+            VALUES (%s, %s, %s, %s, %s, %s)
             ON CONFLICT (endpoint) DO UPDATE
                 SET p256dh = EXCLUDED.p256dh,
                     auth = EXCLUDED.auth,
-                    activo = TRUE
-        """, (cliente_id, endpoint, p256dh, auth, tipo))
+                    activo = TRUE,
+                    celular = COALESCE(EXCLUDED.celular, push_subscriptions.celular),
+                    cliente_id = COALESCE(EXCLUDED.cliente_id, push_subscriptions.cliente_id)
+        """, (cliente_id, endpoint, p256dh, auth, tipo, celular or None))
         conn.commit()
 
     return jsonify({"ok": True, "vinculado": cliente_id is not None})

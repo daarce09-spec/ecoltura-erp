@@ -6,7 +6,7 @@ Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_
 """
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
-from modulos.push import notificar_admins
+from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
 from datetime import datetime, timedelta
 
 web_bp = Blueprint("web_bp", __name__)
@@ -281,6 +281,9 @@ def api_pedidos():
                 RETURNING id
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
+
+        # 1a. Si este celular activó antes la campana sin ser cliente, se vincula ahora
+        vincular_suscripciones_huerfanas(cur)
 
         # 1b. Express (envío) es obligatorio: se descarta lo que mande el cliente
         #     para ese producto y se agrega siempre 1 con el precio de la base.
