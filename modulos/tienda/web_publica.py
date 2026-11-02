@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Web Pública ECOLTURA
-Ubicación: modulos/web_publica.py
-Blueprint registrado en app.py como: from modulos.web_publica import web_bp
+Ubicación: modulos/tienda/web_publica.py
+Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_bp
 """
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
@@ -16,7 +16,7 @@ web_bp = Blueprint("web_bp", __name__)
 # ─────────────────────────────────────────────
 @web_bp.route("/")
 def index():
-    return render_template("web_index.html")
+    return render_template("tienda/web_index.html")
 
 
 # ─────────────────────────────────────────────

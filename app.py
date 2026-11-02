@@ -19,7 +19,7 @@ import modulos.ventas_ticket
 import modulos.ventas_historial
 
 # ── Web pública ──
-from modulos.web_publica import web_bp
+from modulos.tienda.web_publica import web_bp
 
 # ── Bandejas ──
 from modulos.pedidos import pedidos_bp
