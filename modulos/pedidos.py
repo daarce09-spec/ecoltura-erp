@@ -32,6 +32,51 @@ def bandeja_pedidos():
                            pedidos=pedidos, pendientes=pendientes)
 
 
+def _formato_cantidad(unidad, total):
+    """Texto legible: gramos -> g / kg; el resto en unidades."""
+    total = float(total)
+    if (unidad or "").lower() in ("gramo", "gramos"):
+        if total >= 1000:
+            return f"{total / 1000:.2f}".rstrip("0").rstrip(".") + " kg"
+        return f"{total:.0f} g"
+    cant = int(total) if total == int(total) else round(total, 2)
+    u = (unidad or "unid.").lower()
+    if u == "unidad" and cant != 1:
+        u = "unidades"
+    return f"{cant} {u}"
+
+
+def _clase_caja():
+    """Casilla vacía (cuadrito) para marcar a mano en el PDF."""
+    from reportlab.platypus.flowables import Flowable
+    from reportlab.lib.units import mm
+
+    class Caja(Flowable):
+        def wrap(self, w, h):
+            return 6*mm, 6*mm
+
+        def draw(self):
+            self.canv.setLineWidth(1.2)
+            self.canv.rect(0, 0, 5*mm, 5*mm)
+    return Caja
+
+
+def _texto_pdf(txt):
+    """Quita emojis y símbolos que la fuente estándar del PDF no puede dibujar."""
+    salida = []
+    for ch in (txt or ""):
+        try:
+            ch.encode("cp1252")
+            salida.append(ch)
+        except UnicodeEncodeError:
+            pass
+    return " ".join("".join(salida).split(" ")).strip()
+
+
+def _miles(n):
+    return f"{float(n):,.0f}".replace(",", " ")
+
+
 # ─────────────────────────────────────────────
 #  LISTA DE PREPARACIÓN (pedidos pendientes, para imprimir / PDF)
 # ─────────────────────────────────────────────
@@ -39,38 +84,7 @@ def bandeja_pedidos():
 def lista_preparacion():
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT pr.nombre, pr.unidad,
-                   SUM(pd.cantidad) AS total,
-                   COUNT(DISTINCT pd.pedido_id) AS n_pedidos
-            FROM pedidos_detalle pd
-            JOIN pedidos p   ON p.id  = pd.pedido_id
-            JOIN productos pr ON pr.id = pd.producto_id
-            WHERE p.estado = 'Pendiente'
-            GROUP BY pr.id, pr.nombre, pr.unidad
-            ORDER BY pr.nombre
-        """)
-        filas = cur.fetchall()
-
-        cur.execute("SELECT COUNT(*) FROM pedidos WHERE estado='Pendiente'")
-        n_pendientes = cur.fetchone()[0]
-
-    items = []
-    for nombre, unidad, total, n_pedidos in filas:
-        total = float(total)
-        if (unidad or "").lower() in ("gramo", "gramos"):
-            if total >= 1000:
-                kg = total / 1000
-                txt = f"{kg:.2f}".rstrip("0").rstrip(".") + " kg"
-            else:
-                txt = f"{total:.0f} g"
-        else:
-            cant = int(total) if total == int(total) else round(total, 2)
-            u = (unidad or "unid.").lower()
-            if u == "unidad" and cant != 1:
-                u = "unidades"
-            txt = f"{cant} {u}"
-        items.append((nombre, txt, n_pedidos))
+        items, n_pendientes = _datos_lista(cur)
 
     ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
     pdf = _generar_pdf_lista(items, n_pendientes, ahora.strftime("%d/%m/%Y %I:%M %p"))
@@ -79,19 +93,13 @@ def lista_preparacion():
                     headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'})
 
 
-def _generar_pdf_lista(items, n_pendientes, fecha):
-    from io import BytesIO
+def _elementos_lista(items, n_pendientes, fecha):
     from xml.sax.saxutils import escape
-    from reportlab.lib.pagesizes import A4
     from reportlab.lib.units import mm
     from reportlab.lib import colors
     from reportlab.lib.styles import getSampleStyleSheet
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Table, TableStyle, Spacer
+    from reportlab.platypus import Paragraph, Table, TableStyle, Spacer
 
-    buf = BytesIO()
-    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=15*mm, rightMargin=15*mm,
-                            topMargin=15*mm, bottomMargin=15*mm,
-                            title="Lista de preparación - Ecoltura")
     est = getSampleStyleSheet()
     plural = "" if n_pendientes == 1 else "s"
     elementos = [
@@ -102,13 +110,7 @@ def _generar_pdf_lista(items, n_pendientes, fecha):
     if not items:
         elementos.append(Paragraph("No hay pedidos pendientes.", est["Normal"]))
     else:
-        from reportlab.platypus.flowables import Flowable
-
-        class Caja(Flowable):  # casilla vacía para marcar a mano
-            def wrap(self, w, h): return 6*mm, 6*mm
-            def draw(self):
-                self.canv.setLineWidth(1.2)
-                self.canv.rect(0, 0, 5*mm, 5*mm)
+        Caja = _clase_caja()
 
         datos = [["", "Producto", "Cantidad total", "En pedidos"]]
         for nombre, cant, n in items:
@@ -129,7 +131,193 @@ def _generar_pdf_lista(items, n_pendientes, fecha):
         ]
         t.setStyle(TableStyle(estilo))
         elementos.append(t)
+    return elementos
+
+
+def _nuevo_documento(titulo):
+    from io import BytesIO
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.units import mm
+    from reportlab.platypus import SimpleDocTemplate
+    buf = BytesIO()
+    doc = SimpleDocTemplate(buf, pagesize=A4, leftMargin=15*mm, rightMargin=15*mm,
+                            topMargin=15*mm, bottomMargin=15*mm, title=titulo)
+    return doc, buf
+
+
+def _generar_pdf_lista(items, n_pendientes, fecha):
+    doc, buf = _nuevo_documento("Lista de preparación - Ecoltura")
+    doc.build(_elementos_lista(items, n_pendientes, fecha))
+    return buf.getvalue()
+
+
+# ─────────────────────────────────────────────
+#  HOJAS POR PEDIDO (una página por pedido pendiente, en un solo PDF)
+# ─────────────────────────────────────────────
+def _datos_lista(cur):
+    cur.execute("""
+        SELECT pr.nombre, pr.unidad,
+               SUM(pd.cantidad) AS total,
+               COUNT(DISTINCT pd.pedido_id) AS n_pedidos
+        FROM pedidos_detalle pd
+        JOIN pedidos p   ON p.id  = pd.pedido_id
+        JOIN productos pr ON pr.id = pd.producto_id
+        WHERE p.estado = 'Pendiente'
+        GROUP BY pr.id, pr.nombre, pr.unidad
+        ORDER BY pr.nombre
+    """)
+    filas = cur.fetchall()
+    cur.execute("SELECT COUNT(*) FROM pedidos WHERE estado='Pendiente'")
+    n_pendientes = cur.fetchone()[0]
+    items = [(nombre, _formato_cantidad(unidad, total), n_pedidos)
+             for nombre, unidad, total, n_pedidos in filas]
+    return items, n_pendientes
+
+
+def _datos_hojas(cur):
+    cur.execute("""
+        SELECT p.id, COALESCE(c.nombre, p.nombre_contacto), p.celular, p.cedula,
+               p.notas, p.creado
+        FROM pedidos p
+        LEFT JOIN clientes c ON c.id = p.cliente_id
+        WHERE p.estado = 'Pendiente'
+        ORDER BY p.creado, p.id
+    """)
+    cabeceras = cur.fetchall()
+
+    pedidos = []
+    for pid, nombre, celular, cedula, notas, creado in cabeceras:
+        cur.execute("""
+            SELECT pr.nombre, pr.unidad, pd.cantidad,
+                   ROUND(pd.cantidad * pd.precio_unitario)
+            FROM pedidos_detalle pd
+            JOIN productos pr ON pr.id = pd.producto_id
+            WHERE pd.pedido_id = %s
+            ORDER BY pr.nombre
+        """, (pid,))
+        lineas = [(n, _formato_cantidad(u, c), float(sub)) for n, u, c, sub in cur.fetchall()]
+        subtotal, desc, total, _, _ = _totales(cur, pid)
+        pedidos.append({
+            "id": pid, "cliente": nombre or "", "celular": celular or "",
+            "cedula": cedula or "", "notas": (notas or "").strip(),
+            "fecha": creado.strftime("%d/%m/%Y %I:%M %p") if creado else "",
+            "lineas": lineas, "subtotal": subtotal, "descuento": desc, "total": total,
+        })
+    return pedidos
+
+
+@pedidos_bp.route("/admin/pedidos/hojas-pedidos")
+def hojas_pedidos():
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        pedidos = _datos_hojas(cur)
+
+    ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
+    pdf = _generar_pdf_hojas(pedidos, ahora.strftime("%d/%m/%Y %I:%M %p"))
+    nombre_archivo = f"hojas_pedidos_{ahora.strftime('%Y-%m-%d')}.pdf"
+    return Response(pdf, mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'})
+
+
+# ─────────────────────────────────────────────
+#  EXPORTAR TODO: lista de preparación + una hoja por pedido, en un solo PDF
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/exportar-pdf")
+def exportar_pdf():
+    from reportlab.platypus import PageBreak
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        items, n_pendientes = _datos_lista(cur)
+        pedidos = _datos_hojas(cur)
+
+    ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
+    fecha = ahora.strftime("%d/%m/%Y %I:%M %p")
+    elementos = _elementos_lista(items, n_pendientes, fecha)
+    if pedidos:
+        elementos.append(PageBreak())
+        elementos += _elementos_hojas(pedidos, fecha)
+    doc, buf = _nuevo_documento("Pedidos pendientes - Ecoltura")
     doc.build(elementos)
+    nombre_archivo = f"pedidos_pendientes_{ahora.strftime('%Y-%m-%d')}.pdf"
+    return Response(buf.getvalue(), mimetype="application/pdf",
+                    headers={"Content-Disposition": f'attachment; filename="{nombre_archivo}"'})
+
+
+def _elementos_hojas(pedidos, fecha):
+    from xml.sax.saxutils import escape
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import (Paragraph, Table, TableStyle,
+                                    Spacer, PageBreak)
+
+    Caja = _clase_caja()
+    est = getSampleStyleSheet()
+    elementos = []
+
+    if not pedidos:
+        elementos.append(Paragraph("No hay pedidos pendientes.", est["Normal"]))
+
+    for i, p in enumerate(pedidos):
+        if i > 0:
+            elementos.append(PageBreak())
+        elementos.append(Paragraph(f"Pedido #{p['id']} — {escape(_texto_pdf(p['cliente']))}", est["Title"]))
+        datos_cliente = []
+        if p["celular"]:
+            datos_cliente.append(f"Celular: {escape(p['celular'])}")
+        if p["cedula"]:
+            datos_cliente.append(f"Cédula: {escape(p['cedula'])}")
+        if p["fecha"]:
+            datos_cliente.append(f"Pedido: {p['fecha']}")
+        if datos_cliente:
+            elementos.append(Paragraph(" · ".join(datos_cliente), est["Normal"]))
+        if p["notas"]:
+            elementos.append(Spacer(1, 3*mm))
+            elementos.append(Paragraph(f"<b>Notas / dirección:</b> {escape(_texto_pdf(p['notas'])).replace(chr(10), '<br/>')}",
+                                       est["Normal"]))
+        elementos.append(Spacer(1, 6*mm))
+
+        filas = [["", "Producto", "Cantidad", "Subtotal (colones)"]]
+        for nombre, cant, sub in p["lineas"]:
+            filas.append([Caja(), Paragraph(escape(_texto_pdf(nombre)), est["Normal"]), cant, _miles(sub)])
+        t = Table(filas, colWidths=[12*mm, 85*mm, 40*mm, 43*mm], repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 11),
+            ("ALIGN", (2, 0), (3, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 1), (-1, -1), 7),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 7),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.5, colors.HexColor("#999999")),
+        ]))
+        elementos.append(t)
+        elementos.append(Spacer(1, 4*mm))
+
+        totales = [["Subtotal", _miles(p["subtotal"])]]
+        if p["descuento"] > 0:
+            totales.append(["Descuento", "- " + _miles(p["descuento"])])
+        totales.append(["Total estimado (colones)", _miles(p["total"])])
+        tt = Table(totales, colWidths=[137*mm, 43*mm])
+        tt.setStyle(TableStyle([
+            ("ALIGN", (1, 0), (1, -1), "RIGHT"),
+            ("ALIGN", (0, 0), (0, -1), "RIGHT"),
+            ("FONTSIZE", (0, 0), (-1, -1), 11),
+            ("FONTNAME", (0, -1), (-1, -1), "Helvetica-Bold"),
+            ("LINEABOVE", (0, -1), (-1, -1), 1, colors.black),
+        ]))
+        elementos.append(tt)
+        elementos.append(Spacer(1, 6*mm))
+        elementos.append(Paragraph(f"<font size=8 color='#777777'>Generado {fecha}</font>", est["Normal"]))
+
+    return elementos
+
+
+def _generar_pdf_hojas(pedidos, fecha):
+    doc, buf = _nuevo_documento("Hojas de pedidos - Ecoltura")
+    doc.build(_elementos_hojas(pedidos, fecha))
     return buf.getvalue()
 
 
