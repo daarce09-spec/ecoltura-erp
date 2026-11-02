@@ -6,6 +6,29 @@ from datetime import datetime, timedelta
 pedidos_bp = Blueprint("pedidos_bp", __name__)
 
 
+# Descuento por producto: cada línea del pedido puede llevar su propio descuento
+# (monto en colones o porcentaje), además del descuento general del pedido.
+def _asegurar_columnas_descuento_linea():
+    try:
+        with obtener_conexion() as conn:
+            cur = conn.cursor()
+            cur.execute("""ALTER TABLE pedidos_detalle
+                           ADD COLUMN IF NOT EXISTS descuento_tipo VARCHAR(12) DEFAULT 'monto',
+                           ADD COLUMN IF NOT EXISTS descuento_valor NUMERIC DEFAULT 0""")
+            conn.commit()
+    except Exception as ex:
+        print("No se pudieron asegurar las columnas de descuento por línea:", ex)
+
+_asegurar_columnas_descuento_linea()
+
+
+def _neto_linea(cantidad, precio, tipo, valor):
+    """(base, descuento_de_la_linea, neto). Todo en colones enteros."""
+    base = float(round(float(cantidad) * float(precio)))
+    desc = _calcular_descuento(base, tipo or 'monto', float(valor or 0))
+    return base, desc, float(round(base - desc))
+
+
 # ─────────────────────────────────────────────
 #  BANDEJA PRINCIPAL
 # ─────────────────────────────────────────────
@@ -188,20 +211,24 @@ def _datos_hojas(cur):
     pedidos = []
     for pid, nombre, celular, cedula, notas, creado in cabeceras:
         cur.execute("""
-            SELECT pr.nombre, pr.unidad, pd.cantidad,
-                   ROUND(pd.cantidad * pd.precio_unitario)
+            SELECT pr.nombre, pr.unidad, pd.cantidad, pd.precio_unitario,
+                   COALESCE(pd.descuento_tipo, 'monto'), COALESCE(pd.descuento_valor, 0)
             FROM pedidos_detalle pd
             JOIN productos pr ON pr.id = pd.producto_id
             WHERE pd.pedido_id = %s
             ORDER BY pr.nombre
         """, (pid,))
-        lineas = [(n, _formato_cantidad(u, c), float(sub)) for n, u, c, sub in cur.fetchall()]
+        lineas = []
+        for n, u, c, pu, dt, dv in cur.fetchall():
+            _, d_l, neto = _neto_linea(c, pu, dt, dv)
+            lineas.append((n, _formato_cantidad(u, c), neto, d_l))
         subtotal, desc, total, _, _ = _totales(cur, pid)
+        _, desc_lineas = _subtotal_y_desc_lineas(cur, pid)
         pedidos.append({
             "id": pid, "cliente": nombre or "", "celular": celular or "",
             "cedula": cedula or "", "notas": (notas or "").strip(),
             "fecha": creado.strftime("%d/%m/%Y %I:%M %p") if creado else "",
-            "lineas": lineas, "subtotal": subtotal, "descuento": desc, "total": total,
+            "lineas": lineas, "subtotal": subtotal, "descuento": desc, "desc_lineas": desc_lineas, "total": total,
         })
     return pedidos
 
@@ -278,8 +305,11 @@ def _elementos_hojas(pedidos, fecha):
         elementos.append(Spacer(1, 6*mm))
 
         filas = [["", "Producto", "Cantidad", "Subtotal (colones)"]]
-        for nombre, cant, sub in p["lineas"]:
-            filas.append([Caja(), Paragraph(escape(_texto_pdf(nombre)), est["Normal"]), cant, _miles(sub)])
+        for nombre, cant, sub, d_l in p["lineas"]:
+            texto = escape(_texto_pdf(nombre))
+            if d_l > 0:
+                texto += f"<br/><font size=8 color='#b3261e'>Descuento: - {_miles(d_l)}</font>"
+            filas.append([Caja(), Paragraph(texto, est["Normal"]), cant, _miles(sub)])
         t = Table(filas, colWidths=[12*mm, 85*mm, 40*mm, 43*mm], repeatRows=1)
         t.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
@@ -296,7 +326,7 @@ def _elementos_hojas(pedidos, fecha):
         elementos.append(t)
         elementos.append(Spacer(1, 4*mm))
 
-        totales = [["Subtotal", _miles(p["subtotal"])]]
+        totales = [["Subtotal" + (" (ya con descuentos por producto)" if p["desc_lineas"] > 0 else ""), _miles(p["subtotal"])]]
         if p["descuento"] > 0:
             totales.append(["Descuento", "- " + _miles(p["descuento"])])
         totales.append(["Total estimado (colones)", _miles(p["total"])])
@@ -340,13 +370,18 @@ def pedido_detalle(id):
         cur.execute("""
             SELECT pd.id, pd.producto_id, pr.nombre, pr.unidad,
                    pd.cantidad, pd.precio_unitario,
-                   ROUND(pd.cantidad * pd.precio_unitario) AS subtotal
+                   ROUND(pd.cantidad * pd.precio_unitario) AS subtotal,
+                   COALESCE(pd.descuento_tipo, 'monto'), COALESCE(pd.descuento_valor, 0)
             FROM pedidos_detalle pd
             JOIN productos pr ON pr.id = pd.producto_id
             WHERE pd.pedido_id = %s
             ORDER BY pr.nombre
         """, (id,))
-        detalle = cur.fetchall()
+        detalle = []
+        for d in cur.fetchall():
+            base, desc_l, neto = _neto_linea(d[4], d[5], d[7], d[8])
+            # índices 0-5 igual que antes; 6 = neto de la línea; 7/8 = descuento; 9 = base; 10 = monto descontado
+            detalle.append((d[0], d[1], d[2], d[3], d[4], d[5], neto, d[7], float(d[8]), base, desc_l))
 
         # Catálogo completo (no solo visible_web) para poder agregar
         # cualquier producto al pedido desde el admin. precio se convierte
@@ -382,11 +417,7 @@ def _calcular_descuento(subtotal, tipo, valor):
 
 def _totales(cur, pedido_id):
     """Devuelve (subtotal, descuento_monto, total, tipo, valor) del pedido."""
-    cur.execute("""
-        SELECT COALESCE(SUM(ROUND(cantidad * precio_unitario)), 0)
-        FROM pedidos_detalle WHERE pedido_id = %s
-    """, (pedido_id,))
-    subtotal = float(cur.fetchone()[0])
+    subtotal, _ = _subtotal_y_desc_lineas(cur, pedido_id)
     cur.execute("""
         SELECT COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
         FROM pedidos WHERE id = %s
@@ -394,6 +425,21 @@ def _totales(cur, pedido_id):
     tipo, valor = cur.fetchone()
     desc = _calcular_descuento(subtotal, tipo, valor)
     return subtotal, desc, float(round(subtotal - desc)), tipo, float(valor)
+
+
+def _subtotal_y_desc_lineas(cur, pedido_id):
+    """(subtotal ya con los descuentos por producto, suma de esos descuentos)."""
+    cur.execute("""
+        SELECT cantidad, precio_unitario, COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
+        FROM pedidos_detalle WHERE pedido_id = %s
+    """, (pedido_id,))
+    neto_total = 0.0
+    desc_total = 0.0
+    for c, p, t, v in cur.fetchall():
+        _, d, n = _neto_linea(c, p, t, v)
+        neto_total += n
+        desc_total += d
+    return neto_total, desc_total
 
 
 def _recalcular_total(cur, pedido_id):
@@ -477,17 +523,56 @@ def detalle_cantidad_json(id, detalle_id):
         else:
             cur.execute("""
                 UPDATE pedidos_detalle SET cantidad=%s WHERE id=%s AND pedido_id=%s
-                RETURNING ROUND(cantidad * precio_unitario)
+                RETURNING cantidad, precio_unitario, COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
             """, (cantidad, detalle_id, id))
             r = cur.fetchone()
-            linea = float(r[0]) if r else None
+            linea = _neto_linea(*r)[2] if r else None
 
         _recalcular_total(cur, id)
         subtotal, desc, total, _, _ = _totales(cur, id)
+        _, desc_lineas = _subtotal_y_desc_lineas(cur, id)
         conn.commit()
 
     return jsonify(ok=True, eliminada=cantidad <= 0, linea=linea,
-                   subtotal=subtotal, descuento=desc, total=total)
+                   subtotal=subtotal, descuento=desc, total=total, desc_lineas=desc_lineas)
+
+
+# ─────────────────────────────────────────────
+#  JSON: descuento de UN producto del pedido
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/detalle/<int:detalle_id>/descuento", methods=["POST"])
+def detalle_descuento_json(id, detalle_id):
+    data = request.get_json(silent=True) or {}
+    tipo = data.get("tipo", "monto")
+    if tipo not in ("monto", "porcentaje"):
+        tipo = "monto"
+    try:
+        valor = max(0.0, float(data.get("valor", 0) or 0))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="Descuento inválido"), 400
+    if tipo == "porcentaje":
+        valor = min(valor, 100.0)
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        if not _pedido_editable(cur, id):
+            return jsonify(ok=False, error="Este pedido ya no se puede editar."), 409
+        cur.execute("""
+            UPDATE pedidos_detalle SET descuento_tipo=%s, descuento_valor=%s
+            WHERE id=%s AND pedido_id=%s
+            RETURNING cantidad, precio_unitario, descuento_tipo, descuento_valor
+        """, (tipo, valor, detalle_id, id))
+        r = cur.fetchone()
+        if not r:
+            return jsonify(ok=False, error="Producto no encontrado en el pedido"), 404
+        base, desc_l, neto = _neto_linea(*r)
+        _recalcular_total(cur, id)
+        subtotal, desc, total, _, _ = _totales(cur, id)
+        _, desc_lineas = _subtotal_y_desc_lineas(cur, id)
+        conn.commit()
+
+    return jsonify(ok=True, linea=neto, linea_base=base, linea_descuento=desc_l,
+                   subtotal=subtotal, descuento=desc, total=total, desc_lineas=desc_lineas)
 
 
 @pedidos_bp.route("/admin/pedidos/<int:id>/descuento", methods=["POST"])
@@ -511,9 +596,10 @@ def pedido_descuento_json(id):
                     (tipo, valor, id))
         _recalcular_total(cur, id)
         subtotal, desc, total, _, _ = _totales(cur, id)
+        _, desc_lineas = _subtotal_y_desc_lineas(cur, id)
         conn.commit()
 
-    return jsonify(ok=True, subtotal=subtotal, descuento=desc, total=total)
+    return jsonify(ok=True, subtotal=subtotal, descuento=desc, total=total, desc_lineas=desc_lineas)
 
 
 # ─────────────────────────────────────────────
@@ -590,7 +676,8 @@ def pedido_convertir(id):
 
         # Obtener detalle del pedido
         cur.execute("""
-            SELECT producto_id, cantidad, precio_unitario
+            SELECT producto_id, cantidad, precio_unitario,
+                   COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
             FROM pedidos_detalle WHERE pedido_id = %s ORDER BY id
         """, (id,))
         items = cur.fetchall()
@@ -598,7 +685,11 @@ def pedido_convertir(id):
             flash("El pedido no tiene productos.", "warning")
             return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
 
+        # subtotal_total = suma de las líneas ya con su descuento por producto;
+        # descuento_total = descuento general del pedido (sobre ese subtotal).
         subtotal_total, descuento_total, total_total, _, _ = _totales(cur, id)
+        bruto_total = float(sum(round(float(c) * float(p)) for _, c, p, _, _ in items))
+        desc_lineas_total = float(round(bruto_total - subtotal_total))
 
         fecha_hora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
 
@@ -607,19 +698,21 @@ def pedido_convertir(id):
             INSERT INTO ventas (cliente_id, fecha_venta, subtotal, descuento, iva, total, metodo_pago, estado)
             VALUES (%s, %s, %s, %s, 0, %s, 'Por cobrar', 'Facturado')
             RETURNING id
-        """, (cliente_id, fecha_hora, subtotal_total, descuento_total, total_total))
+        """, (cliente_id, fecha_hora, bruto_total, desc_lineas_total + descuento_total, total_total))
         venta_id = cur.fetchone()[0]
 
         desc_asignado = 0.0
-        for i, (producto_id, cantidad, precio) in enumerate(items):
-            sub_l = round(float(cantidad) * float(precio))
+        for i, (producto_id, cantidad, precio, d_tipo, d_valor) in enumerate(items):
+            sub_l, desc_prod, neto_l = _neto_linea(cantidad, precio, d_tipo, d_valor)
 
-            # Descuento repartido proporcionalmente; la última línea absorbe el redondeo
+            # Descuento general repartido proporcionalmente al neto de cada línea;
+            # la última línea absorbe el redondeo. Se suma al descuento propio del producto.
             if i == len(items) - 1:
-                desc_l = float(round(descuento_total - desc_asignado))
+                desc_gral = float(round(descuento_total - desc_asignado))
             else:
-                desc_l = float(round(descuento_total * sub_l / subtotal_total)) if subtotal_total else 0.0
-                desc_asignado += desc_l
+                desc_gral = float(round(descuento_total * neto_l / subtotal_total)) if subtotal_total else 0.0
+                desc_asignado += desc_gral
+            desc_l = desc_prod + desc_gral
             total_l = float(round(sub_l - desc_l))
 
             # Detalle de venta

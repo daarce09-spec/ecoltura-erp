@@ -64,6 +64,14 @@
   <button class="filtro-btn" onclick="filtrar('rechazado', this)">Rechazados</button>
 </div>
 
+<div id="resumenMonto" class="d-flex justify-content-between align-items-center flex-wrap gap-2"
+     style="background:white;border:1px solid #e5efe9;border-left:4px solid #2d6a4f;border-radius:12px;padding:12px 18px;margin-bottom:16px;">
+  <span class="text-muted" style="font-size:.9rem">
+    <span id="resumenEtiqueta">Pendientes</span> · <span id="resumenCantidad">0</span> pedido<span id="resumenPlural">s</span>
+  </span>
+  <span class="fw-bold" style="font-size:1.3rem;color:#2d6a4f">Monto total: <span id="resumenTotal">₡0</span></span>
+</div>
+
 {% if not pedidos %}
   <div class="empty-state">
     <i class="bi bi-inbox"></i>
@@ -72,7 +80,7 @@
 {% else %}
   <div id="listaPedidos">
     {% for p in pedidos %}
-    <div class="pedido-card {{ p[5]|lower }}" data-estado="{{ p[5]|lower }}">
+    <div class="pedido-card {{ p[5]|lower }}" data-estado="{{ p[5]|lower }}" data-total="{{ p[4]|float }}">
       <div class="row align-items-center g-3">
 
         <div class="col-md-4">
@@ -149,9 +157,17 @@ async function descargarListaPdf(btn) {
 function filtrar(estado, btn) {
   document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
   btn.classList.add('activo');
+  let total = 0, n = 0;
   document.querySelectorAll('.pedido-card').forEach(card => {
-    card.style.display = (estado === 'todos' || card.dataset.estado === estado) ? '' : 'none';
+    const visible = (estado === 'todos' || card.dataset.estado === estado);
+    card.style.display = visible ? '' : 'none';
+    if (visible) { total += parseFloat(card.dataset.total) || 0; n++; }
   });
+  // Monto total de los pedidos que se están viendo según el filtro
+  document.getElementById('resumenEtiqueta').textContent = btn.textContent.trim();
+  document.getElementById('resumenCantidad').textContent = n;
+  document.getElementById('resumenPlural').textContent = n === 1 ? '' : 's';
+  document.getElementById('resumenTotal').textContent = '₡' + Math.round(total).toLocaleString('es-CR');
 }
 // Aplica el filtro inicial (Pendientes, o Todos si no hay pendientes)
 (function () {

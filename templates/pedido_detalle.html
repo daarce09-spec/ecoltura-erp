@@ -102,9 +102,11 @@
       </div>
       {% set editable = pedido[5] == 'Pendiente' %}
       {% set subtotal_bruto = namespace(v=0) %}
+      {% set desc_lineas_total = namespace(v=0) %}
       <div class="d-flex flex-column gap-2" id="lineas-pedido">
         {% for d in detalle %}
         {% set subtotal_bruto.v = subtotal_bruto.v + d[6]|float %}
+        {% set desc_lineas_total.v = desc_lineas_total.v + d[10]|float %}
         <div class="item-producto" data-linea="{{ d[0] }}" data-precio="{{ d[5]|float }}">
           <div class="d-flex justify-content-between align-items-start mb-2">
             <div class="fw-bold" style="color:#1b4332;font-size:1rem">{{ d[2] }}</div>
@@ -127,8 +129,26 @@
             {% else %}
             <span class="small">{{ '%g'|format(d[4]) }} {{ d[3] }}</span>
             {% endif %}
-            <span class="fw-bold text-success ped-linea-total">₡{{ "{:,.0f}".format(d[6]) }}</span>
+            <span class="text-end">
+              <span class="small text-muted text-decoration-line-through ped-linea-base" style="{{ '' if d[10] > 0 else 'display:none' }}">₡{{ "{:,.0f}".format(d[9]) }}</span>
+              <span class="fw-bold text-success ped-linea-total">₡{{ "{:,.0f}".format(d[6]) }}</span>
+            </span>
           </div>
+          {% if editable %}
+          <div class="d-flex align-items-center gap-2 mt-2 flex-wrap">
+            <span class="small text-muted">Descuento del producto</span>
+            <select class="form-select form-select-sm ped-ldesc-tipo" style="width:auto"
+                    onchange="pedLineaDesc({{ d[0] }}, true)">
+              <option value="monto" {{ 'selected' if d[7] != 'porcentaje' }}>₡</option>
+              <option value="porcentaje" {{ 'selected' if d[7] == 'porcentaje' }}>%</option>
+            </select>
+            <input type="number" min="0" step="any" class="form-control form-control-sm text-end ped-ldesc-valor"
+                   style="width:100px" placeholder="0" value="{{ '%g'|format(d[8]) if d[8] else '' }}"
+                   oninput="pedLineaDesc({{ d[0] }})">
+          </div>
+          {% elif d[10] > 0 %}
+          <div class="small text-danger mt-1">Descuento del producto: −₡{{ "{:,.0f}".format(d[10]) }}</div>
+          {% endif %}
         </div>
         {% endfor %}
       </div>
@@ -139,6 +159,10 @@
       {% else %}{% set desc_monto = [valor_desc, subtotal_bruto.v]|min %}{% endif %}
 
       <div class="mt-3 pt-3" style="border-top:2px solid #f0f0f0">
+        <div class="d-flex justify-content-between align-items-center mb-2" id="ped-fila-desc-lineas" style="{{ '' if desc_lineas_total.v > 0 else 'display:none !important' }}">
+          <span class="text-muted">Descuentos por producto (ya aplicados)</span>
+          <span class="fw-semibold text-danger" id="ped-desc-lineas">−₡{{ "{:,.0f}".format(desc_lineas_total.v) }}</span>
+        </div>
         <div class="d-flex justify-content-between align-items-center mb-2">
           <span class="text-muted">Subtotal</span>
           <span class="fw-semibold" id="ped-subtotal">₡{{ "{:,.0f}".format(subtotal_bruto.v) }}</span>
@@ -280,22 +304,38 @@ function lineaEl(did) { return document.querySelector('[data-linea="' + did + '"
 
 function recalcLocal() {
   if (!el('ped-desc-tipo')) return;
-  let sub = 0;
+  let sub = 0, descL = 0;
   document.querySelectorAll('#lineas-pedido [data-linea]').forEach(row => {
     const precio = parseFloat(row.dataset.precio);
     const inp = row.querySelector('.ped-cant');
     const cant = Math.max(0, parseFloat(inp.value) || 0);
-    const t = precio * cant;
+    const base = Math.round(precio * cant);
+    const lt = row.querySelector('.ped-ldesc-tipo'), lv = row.querySelector('.ped-ldesc-valor');
+    let d = 0;
+    if (lt && lv) {
+      const v = Math.max(0, parseFloat(lv.value) || 0);
+      d = lt.value === 'porcentaje' ? Math.round(base * Math.min(v, 100) / 100) : Math.min(v, base);
+    }
+    const t = base - d;
     row.querySelector('.ped-linea-total').textContent = fmt(t);
-    sub += t;
+    const b = row.querySelector('.ped-linea-base');
+    if (b) { b.textContent = fmt(base); b.style.display = d > 0 ? '' : 'none'; }
+    sub += t; descL += d;
   });
   const tipo = el('ped-desc-tipo').value;
   let v = Math.max(0, parseFloat(el('ped-desc-valor').value) || 0);
   let desc = tipo === 'porcentaje' ? sub * Math.min(v, 100) / 100 : Math.min(v, sub);
-  pintar(sub, desc, sub - desc);
+  pintar(sub, desc, sub - desc, descL);
 }
 
-function pintar(sub, desc, total) {
+function pintar(sub, desc, total, descL) {
+  if (descL !== undefined) {
+    const fila = el('ped-fila-desc-lineas');
+    if (fila) {
+      fila.style.setProperty('display', descL > 0 ? 'flex' : 'none', descL > 0 ? '' : 'important');
+      el('ped-desc-lineas').textContent = '−' + fmt(descL);
+    }
+  }
   el('ped-subtotal').textContent = fmt(sub);
   el('ped-descuento').textContent = desc > 0 ? '−' + fmt(desc) : '₡0';
   el('ped-total').textContent = fmt(total);
@@ -323,7 +363,7 @@ window.pedCantInput = function (did, inp) {
     try {
       const j = await post('/admin/pedidos/' + PEDIDO_ID + '/detalle/' + did + '/cantidad', {cantidad: v});
       inp.dataset.prev = inp.value;
-      pintar(j.subtotal, j.descuento, j.total);
+      pintar(j.subtotal, j.descuento, j.total, j.desc_lineas);
       estado('Guardado ✓');
     } catch (e) { estado('⚠ ' + e.message); }
   }, 400);
@@ -349,12 +389,31 @@ async function pedEliminar(did) {
   try {
     const j = await post('/admin/pedidos/' + PEDIDO_ID + '/detalle/' + did + '/cantidad', {cantidad: 0});
     const row = lineaEl(did); if (row) row.remove();
-    pintar(j.subtotal, j.descuento, j.total);
+    pintar(j.subtotal, j.descuento, j.total, j.desc_lineas);
     estado('Producto eliminado ✓');
   } catch (e) { estado('⚠ ' + e.message); }
 }
 
-// ── Descuento ──
+// ── Descuento de un producto ──
+const tLinea = {};
+window.pedLineaDesc = function (did, inmediato) {
+  recalcLocal();
+  estado('Guardando…');
+  clearTimeout(tLinea[did]);
+  const row = lineaEl(did);
+  tLinea[did] = setTimeout(async () => {
+    try {
+      const j = await post('/admin/pedidos/' + PEDIDO_ID + '/detalle/' + did + '/descuento', {
+        tipo: row.querySelector('.ped-ldesc-tipo').value,
+        valor: parseFloat(row.querySelector('.ped-ldesc-valor').value) || 0
+      });
+      pintar(j.subtotal, j.descuento, j.total, j.desc_lineas);
+      estado('Guardado ✓');
+    } catch (e) { estado('⚠ ' + e.message); }
+  }, inmediato ? 0 : 500);
+};
+
+// ── Descuento general ──
 let tDesc;
 window.pedDescInput = function (inmediato) {
   recalcLocal();
@@ -366,7 +425,7 @@ window.pedDescInput = function (inmediato) {
         tipo: el('ped-desc-tipo').value,
         valor: parseFloat(el('ped-desc-valor').value) || 0
       });
-      pintar(j.subtotal, j.descuento, j.total);
+      pintar(j.subtotal, j.descuento, j.total, j.desc_lineas);
       estado('Guardado ✓');
     } catch (e) { estado('⚠ ' + e.message); }
   }, inmediato ? 0 : 500);
