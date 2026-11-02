@@ -523,9 +523,9 @@
     <!-- Tab "La finca" oculto temporalmente — reactivar quitando este comentario
     <button class="tab" id="tabFinca" onclick="irPagina('finca')">La finca</button>
     -->
-    <!-- Campana escondida a pedido. Para volver a mostrarla, quitar display:none y poner MOSTRAR_INVITACION_NOTIF = true -->
+    <!-- Campana de notificaciones para los clientes (para ocultarla: agregar display:none aquí y poner MOSTRAR_INVITACION_NOTIF = false) -->
     <button id="btnNotifHeader" onclick="activarNotificacionesCliente()" title="Activar notificaciones"
-      style="display:none; background:none; border:none; font-size:1.2rem; cursor:pointer; padding:0 4px;">🔔</button>
+      style="background:none; border:none; font-size:1.2rem; cursor:pointer; padding:0 4px;">🔔</button>
   </div>
 </header>
 
@@ -1594,7 +1594,7 @@ if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(() => {});
 }
 
-const MOSTRAR_INVITACION_NOTIF = false;  // true = vuelve a invitar a activar notificaciones
+const MOSTRAR_INVITACION_NOTIF = true;   // true = vuelve a invitar a activar notificaciones
 function mostrarBannerNotif() {
   if (!MOSTRAR_INVITACION_NOTIF) return;
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
@@ -1821,4 +1821,3 @@ if (celularRecordado && celularRecordado.length >= 8) {
 }</script>
 </body>
 </html>
-<!-- prueba de despliegue -->
