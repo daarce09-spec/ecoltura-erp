@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta
+from modulos.proveedores import asegurar_tablas as _asegurar_tablas_proveedores
 
 pedidos_bp = Blueprint("pedidos_bp", __name__)
 
@@ -233,6 +234,105 @@ def _datos_hojas(cur):
     return pedidos
 
 
+# ─────────────────────────────────────────────
+#  HOJAS POR PROVEEDOR (qué comprarle a cada proveedor oficial)
+# ─────────────────────────────────────────────
+def _datos_proveedores(cur):
+    """
+    Agrupa lo pendiente por proveedor OFICIAL de cada producto.
+    Devuelve (lista_de_proveedores, sin_proveedor):
+      proveedor = {"nombre", "telefono", "items": [(producto, cantidad_texto, "#12, #15")]}
+    "Express" (el envío) no se compra, así que no aparece.
+    """
+    try:
+        cur.execute("""
+            SELECT pv.id, pv.nombre, COALESCE(pv.telefono, ''),
+                   pr.nombre, pr.unidad, SUM(pd.cantidad),
+                   STRING_AGG(DISTINCT pd.pedido_id::text, ',')
+            FROM pedidos_detalle pd
+            JOIN pedidos p    ON p.id  = pd.pedido_id
+            JOIN productos pr ON pr.id = pd.producto_id
+            LEFT JOIN producto_proveedores pp ON pp.producto_id = pr.id AND pp.oficial
+            LEFT JOIN proveedores pv          ON pv.id = pp.proveedor_id
+            WHERE p.estado = 'Pendiente' AND LOWER(TRIM(pr.nombre)) <> 'express'
+            GROUP BY pv.id, pv.nombre, pv.telefono, pr.id, pr.nombre, pr.unidad
+            ORDER BY LOWER(pv.nombre) NULLS LAST, pr.nombre
+        """)
+        filas = cur.fetchall()
+    except Exception as ex:
+        print("No se pudieron leer los proveedores para el PDF:", ex)
+        cur.connection.rollback()
+        return [], []
+
+    proveedores, sin_proveedor, por_id = [], [], {}
+    for pv_id, pv_nombre, pv_tel, prod, unidad, total, pedidos_ids in filas:
+        ids = sorted({int(x) for x in (pedidos_ids or "").split(",") if x}) 
+        item = (prod, _formato_cantidad(unidad, total), ", ".join(f"#{i}" for i in ids))
+        if pv_id is None:
+            sin_proveedor.append(item)
+            continue
+        if pv_id not in por_id:
+            por_id[pv_id] = {"nombre": pv_nombre, "telefono": pv_tel, "items": []}
+            proveedores.append(por_id[pv_id])
+        por_id[pv_id]["items"].append(item)
+    return proveedores, sin_proveedor
+
+
+def _elementos_proveedores(proveedores, sin_proveedor, fecha):
+    """Una hoja por proveedor (y una final con lo que no tiene proveedor oficial)."""
+    from xml.sax.saxutils import escape
+    from reportlab.lib.units import mm
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.platypus import Paragraph, Table, TableStyle, Spacer, PageBreak
+
+    Caja = _clase_caja()
+    est = getSampleStyleSheet()
+    elementos = []
+
+    hojas = [(p["nombre"], p["telefono"], p["items"], False) for p in proveedores]
+    if sin_proveedor:
+        hojas.append(("Sin proveedor oficial", "", sin_proveedor, True))
+
+    for i, (nombre, telefono, items, es_sin) in enumerate(hojas):
+        if i > 0:
+            elementos.append(PageBreak())
+        titulo = "Sin proveedor oficial" if es_sin else f"Compra a {escape(_texto_pdf(nombre))}"
+        elementos.append(Paragraph(titulo, est["Title"]))
+        partes = []
+        if telefono:
+            partes.append(f"Tel. {escape(_texto_pdf(telefono))}")
+        partes.append(f"{len(items)} producto{'' if len(items) == 1 else 's'}")
+        partes.append(fecha)
+        elementos.append(Paragraph(" · ".join(partes), est["Normal"]))
+        if es_sin:
+            elementos.append(Spacer(1, 2*mm))
+            elementos.append(Paragraph("<font size=9 color='#b45309'>Estos productos pendientes no tienen "
+                                       "proveedor oficial asignado (Inventario → Proveedores).</font>",
+                                       est["Normal"]))
+        elementos.append(Spacer(1, 6*mm))
+
+        filas = [["", "Producto", "Cantidad a comprar", "Pedidos"]]
+        for prod, cant, ped in items:
+            filas.append([Caja(), Paragraph(escape(_texto_pdf(prod)), est["Normal"]), cant,
+                          Paragraph(f"<font size=9 color='#555555'>{escape(ped)}</font>", est["Normal"])])
+        t = Table(filas, colWidths=[12*mm, 78*mm, 42*mm, 48*mm], repeatRows=1)
+        t.setStyle(TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
+            ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),
+            ("FONTSIZE", (0, 0), (-1, -1), 11),
+            ("ALIGN", (2, 0), (2, -1), "RIGHT"),
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("TOPPADDING", (0, 1), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 1), (-1, -1), 8),
+            ("LINEBELOW", (0, 1), (-1, -1), 0.5, colors.HexColor("#999999")),
+        ]))
+        elementos.append(t)
+    return elementos
+
+
 @pedidos_bp.route("/admin/pedidos/hojas-pedidos")
 def hojas_pedidos():
     with obtener_conexion() as conn:
@@ -247,7 +347,7 @@ def hojas_pedidos():
 
 
 # ─────────────────────────────────────────────
-#  EXPORTAR TODO: lista de preparación + una hoja por pedido, en un solo PDF
+#  EXPORTAR TODO: lista de preparación + hojas por proveedor + una hoja por pedido, en un solo PDF
 # ─────────────────────────────────────────────
 @pedidos_bp.route("/admin/pedidos/exportar-pdf")
 def exportar_pdf():
@@ -256,10 +356,15 @@ def exportar_pdf():
         cur = conn.cursor()
         items, n_pendientes = _datos_lista(cur)
         pedidos = _datos_hojas(cur)
+        proveedores, sin_proveedor = _datos_proveedores(cur)
 
     ahora = datetime.utcnow() - timedelta(hours=6)  # hora de Costa Rica
     fecha = ahora.strftime("%d/%m/%Y %I:%M %p")
     elementos = _elementos_lista(items, n_pendientes, fecha)
+    # Hojas de compra por proveedor (solo si ya hay proveedores oficiales asignados)
+    if proveedores:
+        elementos.append(PageBreak())
+        elementos += _elementos_proveedores(proveedores, sin_proveedor, fecha)
     if pedidos:
         elementos.append(PageBreak())
         elementos += _elementos_hojas(pedidos, fecha)

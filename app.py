@@ -9,6 +9,7 @@ import time
 from modulos.clientes   import clientes_bp
 from modulos.productos  import productos_bp
 from modulos.inventario import inventario_bp
+from modulos.proveedores import proveedores_bp
 from modulos.saldo      import saldo_bp
 
 # ── Blueprint de ventas ──
@@ -48,6 +49,7 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.register_blueprint(clientes_bp)
 app.register_blueprint(productos_bp)
 app.register_blueprint(inventario_bp)
+app.register_blueprint(proveedores_bp)
 app.register_blueprint(saldo_bp)
 app.register_blueprint(ventas_bp)
 app.register_blueprint(web_bp)
