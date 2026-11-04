@@ -287,8 +287,8 @@
     .resumen { background: var(--blanco); border: 1px solid var(--borde);
                padding: 26px 22px; position: sticky; top: 80px;
                max-height: calc(100vh - 100px); display: flex; flex-direction: column; }
-    /* Solo la lista de productos hace scroll; crece con el contenido hasta ~4 líneas */
-    #zonaResumen { overflow-y: auto; max-height: 240px; min-height: 0; flex: 0 1 auto;
+    /* Solo la lista de productos hace scroll; crece con el contenido; alto según la pantalla */
+    #zonaResumen { overflow-y: auto; max-height: clamp(240px, 45vh, 440px); min-height: 0; flex: 0 1 auto;
                    scrollbar-width: thin; overscroll-behavior: contain; }
     .resumen-titulo { font-family: 'Inter'; font-size: .7rem; font-weight: 600;
                       letter-spacing: 2.5px; text-transform: uppercase; color: var(--negro);
