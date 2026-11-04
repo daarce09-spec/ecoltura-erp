@@ -76,7 +76,7 @@
 
   <div class="row g-4 justify-content-center">
     
-    <div class="col-md-6">
+    <div class="col-md-4">
 
       <!-- CORREGIDO -->
       <a href="{{ url_for('inventario_bp.inventario_registrar') }}" class="inventory-card">
@@ -88,7 +88,7 @@
       </a>
     </div>
 
-    <div class="col-md-6">
+    <div class="col-md-4">
 
       <!-- CORREGIDO -->
       <a href="{{ url_for('saldo_bp.inventario_saldo') }}" class="inventory-card">
@@ -97,6 +97,16 @@
           <i class="bi bi-clipboard-data inv-icon"></i>
         </div>
         <h4 class="card-title">Saldo actual</h4>
+      </a>
+    </div>
+
+    <div class="col-md-4">
+      <a href="{{ url_for('proveedores_bp.proveedores_pagina') }}" class="inventory-card">
+
+        <div class="icon-circle">
+          <i class="bi bi-truck inv-icon"></i>
+        </div>
+        <h4 class="card-title">Proveedores</h4>
       </a>
     </div>
 
