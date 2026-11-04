@@ -286,10 +286,15 @@
     /* Panel de pedido */
     .resumen { background: var(--blanco); border: 1px solid var(--borde);
                padding: 26px 22px; position: sticky; top: 80px;
-               max-height: calc(100vh - 100px); display: flex; flex-direction: column; }
-    /* Solo la lista de productos hace scroll; crece con el contenido; alto según la pantalla */
-    #zonaResumen { overflow-y: auto; max-height: clamp(240px, 45vh, 440px); min-height: 0; flex: 0 1 auto;
+               max-height: calc(100vh - 100px); display: flex; flex-direction: column;
+               overflow-y: auto; }
+    /* La lista de productos usa todo el espacio libre del panel (total, datos y botón
+       quedan siempre visibles). Si la ventana es muy baja, se queda en un mínimo de
+       ~2 productos y es el panel completo el que hace scroll. */
+    #zonaResumen { overflow-y: auto; flex: 1 1 auto; min-height: 0;
                    scrollbar-width: thin; overscroll-behavior: contain; }
+    .resumen > :not(#zonaResumen) { flex-shrink: 0; }
+    #zonaResumen:has(.item-res) { min-height: 150px; }
     .resumen-titulo { font-family: 'Inter'; font-size: .7rem; font-weight: 600;
                       letter-spacing: 2.5px; text-transform: uppercase; color: var(--negro);
                       margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--borde); }
@@ -322,7 +327,7 @@
     .barra-movil .ir { font-weight: 600; font-size: .74rem; letter-spacing: 1.5px;
                        text-transform: uppercase; border: 1px solid rgba(255,255,255,.4);
                        padding: 8px 16px; }
-    @media (max-width: 960px) { .resumen { position: static; } .barra-movil { display: flex; } }
+    @media (max-width: 960px) { .resumen { position: static; max-height: none; overflow: visible; } #zonaResumen, #zonaResumen:has(.item-res) { overflow: visible; min-height: 0; } .barra-movil { display: flex; } }
 
     /* ── MODAL DE CONFIRMACIÓN DE PEDIDO ── */
     .overlay { position: fixed; inset: 0; background: rgba(26,28,24,.55); z-index: 500;
