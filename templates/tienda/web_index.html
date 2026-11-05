@@ -252,7 +252,11 @@
     .agregar:hover { background: var(--verde); color: #fff; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
-    .destacados { margin-bottom: 26px; min-width: 0; max-width: 100%; }
+    .destacados { margin-bottom: 14px; min-width: 0; max-width: 100%; background: #EEF3E4; border: 1px solid #D9E5C7;
+                  border-radius: 18px; padding: 22px 22px 16px; }
+    .titulo-lista { display: flex; align-items: center; gap: 14px; margin: 30px 0 18px; }
+    .titulo-lista h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); white-space: nowrap; }
+    .titulo-lista::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
     .dest-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
     .dest-head h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); }
     .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--naranja); font-weight: 600; }
@@ -267,6 +271,7 @@
                 font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
     .dest-etq.vendido { background: var(--verde); }
     @media (max-width: 600px) {
+      .destacados { padding: 16px 14px 10px; border-radius: 14px; }
       .dest-item { flex-basis: 44%; }
       .dest-flechas { display: none; }
       .dest-head h3 { font-size: 1.15rem; }
@@ -670,6 +675,9 @@
         </div>
         <div class="dest-pista" id="destPista"></div>
       </div>
+
+      <!-- Separador: aquí empieza la lista completa -->
+      <div class="titulo-lista" id="tituloLista" style="display:none"><h3>Todos los productos</h3></div>
 
       <!-- Barra de filtros: categorías + buscador juntos -->
       <div class="barra-filtros">
@@ -1401,11 +1409,13 @@ function renderDestacados() {
   const cont = document.getElementById("destacados");
   const buscando = document.getElementById("buscar").value.trim() !== "";
   const lista = (filtroCat === "Todos" && !buscando) ? listaDestacados() : [];
+  document.getElementById("tituloLista").style.display = lista.length ? "flex" : "none";
   if (lista.length === 0) { cont.style.display = "none"; return; }
   cont.style.display = "block";
   document.getElementById("destPista").innerHTML = lista.map(({ p, tipo }) =>
     `<div class="dest-item"><span class="dest-etq ${tipo === "vendido" ? "vendido" : ""}">${tipo === "vendido" ? "Más vendido" : "Destacado"}</span>${tarjetaProducto(p)}</div>`
   ).join("");
+  invitarDeslizar();
 }
 function moverDestacados(dir) {
   const pista = document.getElementById("destPista");
@@ -1415,25 +1425,21 @@ function moverDestacados(dir) {
   else pista.scrollBy({ left: dir * paso, behavior: "smooth" });
 }
 
-// El carrusel avanza solo cada 4 segundos; se detiene mientras el cliente lo toca,
-// pasa el mouse por encima o la pestaña no está a la vista.
-let destPausado = false;
-(function () {
+// Sin movimiento automático. Al cargar, hace un pequeño desplazamiento una sola vez
+// para que el cliente note que puede deslizar.
+let destInvitado = false;
+function invitarDeslizar() {
+  if (destInvitado) return;
   const pista = document.getElementById("destPista");
-  const caja = document.getElementById("destacados");
-  const pausa = () => { destPausado = true; };
-  const sigue = () => { destPausado = false; };
-  ["mouseenter", "touchstart", "focusin", "pointerdown"].forEach(ev => caja.addEventListener(ev, pausa, { passive: true }));
-  ["mouseleave", "focusout"].forEach(ev => caja.addEventListener(ev, sigue));
-  caja.addEventListener("touchend", () => setTimeout(sigue, 6000), { passive: true });
-  const reducido = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
-  if (reducido) return;
-  setInterval(() => {
-    if (destPausado || document.hidden || caja.style.display === "none") return;
-    if (pista.scrollWidth <= pista.clientWidth + 4) return;   // todo cabe: no hay nada que mover
-    moverDestacados(1);
-  }, 4000);
-})();
+  if (!pista || pista.scrollWidth <= pista.clientWidth + 4) return;
+  if (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  destInvitado = true;
+  setTimeout(() => {
+    if (pista.scrollLeft > 0) return;
+    pista.scrollTo({ left: 56, behavior: "smooth" });
+    setTimeout(() => { if (pista.scrollLeft <= 60) pista.scrollTo({ left: 0, behavior: "smooth" }); }, 700);
+  }, 1500);
+}
 
 function actualizarPedido(id, delta) {
   pedido[id] = Math.max(0, (pedido[id] || 0) + delta);
