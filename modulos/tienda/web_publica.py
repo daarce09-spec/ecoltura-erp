@@ -11,6 +11,17 @@ from datetime import datetime, timedelta
 
 web_bp = Blueprint("web_bp", __name__)
 
+
+def normalizar_celular(valor):
+    """Deja solo los 8 dígitos del número: ignora guiones, espacios, paréntesis y el +506."""
+    digitos = "".join(c for c in str(valor or "") if c.isdigit())
+    if len(digitos) > 8 and digitos.startswith("506"):
+        digitos = digitos[3:]
+    return digitos
+
+# Compara contra los últimos 8 dígitos de lo guardado (aunque esté como 8888-7777 o +506 8888 7777)
+SQL_CEL_LIMPIO = "RIGHT(REGEXP_REPLACE(COALESCE(celular, ''), '[^0-9]', '', 'g'), 8)"
+
 # ─────────────────────────────────────────────
 #  PÁGINA PRINCIPAL (sirve el HTML de la web)
 # ─────────────────────────────────────────────
@@ -137,7 +148,7 @@ def api_productos():
 def api_cliente_por_celular(celular):
     """Si el celular ya existe, devuelve nombre, dirección Y el historial combinado
     de TODOS los clientes que comparten ese celular (familia que comparte teléfono)."""
-    celular = celular.strip()
+    celular = normalizar_celular(celular)
     if len(celular) < 8:
         return jsonify({"existe": False})
 
@@ -146,7 +157,7 @@ def api_cliente_por_celular(celular):
 
         # 1. Todos los clientes con ese celular (puede haber varios: familia)
         cur.execute(
-            "SELECT id, nombre, direccion FROM clientes WHERE celular = %s ORDER BY id",
+            f"SELECT id, nombre, direccion FROM clientes WHERE {SQL_CEL_LIMPIO} = %s ORDER BY id",
             (celular,)
         )
         clientes = cur.fetchall()
@@ -243,13 +254,15 @@ def api_pedidos():
     data = request.get_json(force=True)
 
     nombre    = (data.get("nombre")    or "").strip()
-    celular   = (data.get("celular")   or "").strip()
+    celular   = normalizar_celular(data.get("celular"))
     direccion = (data.get("direccion") or "").strip()
     notas     = (data.get("notas")     or "").strip()
     items     = data.get("items", [])
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
+    if len(celular) != 8:
+        return jsonify({"ok": False, "error": "El celular debe tener 8 dígitos."}), 400
     if not direccion:
         return jsonify({"ok": False, "error": "La dirección de entrega es obligatoria."}), 400
     if not items:
@@ -260,7 +273,7 @@ def api_pedidos():
 
         # 1. Buscar o crear cliente — MATCH POR CELULAR
         cliente_id = None
-        cur.execute("SELECT id FROM clientes WHERE celular = %s LIMIT 1", (celular,))
+        cur.execute(f"SELECT id FROM clientes WHERE {SQL_CEL_LIMPIO} = %s ORDER BY id LIMIT 1", (celular,))
         row = cur.fetchone()
         if row:
             cliente_id = row[0]
@@ -397,7 +410,7 @@ def api_visitas_reservar():
 
     fecha_id = data.get("fecha_id")
     nombre   = (data.get("nombre")  or "").strip()
-    celular  = (data.get("celular") or "").strip()
+    celular  = normalizar_celular(data.get("celular"))
     personas = int(data.get("personas", 1))
 
     if not all([fecha_id, nombre, celular]):
