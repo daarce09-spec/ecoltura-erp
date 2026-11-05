@@ -88,9 +88,9 @@ def _inicio_periodo(periodo):
 
 @pedidos_bp.route("/admin/pedidos")
 def bandeja_pedidos():
-    periodo = request.args.get("periodo", "semana")
+    periodo = request.args.get("periodo", "todo")
     if periodo not in ("hoy", "semana", "mes", "todo"):
-        periodo = "semana"
+        periodo = "todo"
     inicio = _inicio_periodo(periodo)
 
     filtro_fecha = ""
