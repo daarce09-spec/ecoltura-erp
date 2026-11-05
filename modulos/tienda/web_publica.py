@@ -331,7 +331,7 @@ def api_pedidos():
             _asegurar_express(cur, pedido_id)
             total = _recalcular_total_pedido(cur, pedido_id)
             extra = f" ➕ {notas}" if notas else ""
-            cur.execute("""UPDATE pedidos SET modificado = TRUE, modificado_en = NOW(),
+            cur.execute("""UPDATE pedidos SET modificado = TRUE, modificado_en = NOW(), creado = NOW(),
                                   notas = COALESCE(notas, '') || %s
                            WHERE id = %s""", (extra, pedido_id))
             conn.commit()
