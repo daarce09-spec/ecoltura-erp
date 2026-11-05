@@ -127,30 +127,65 @@
 <script>
 // Descarga la lista en PDF sin salir de la app (en el celular abre el menú
 // de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC se descarga directo).
+// Entrega el PDF: en el celular lo comparte/abre; en la computadora lo descarga.
+// Devuelve 'ok' o 'necesita-toque' (el navegador del celular exige un toque nuevo
+// para compartir cuando el PDF tardó en generarse; sin esto el PDF "no aparecía").
+async function entregarPdf(blob, nombre, esReintento, urlDirecta) {
+  const archivo = new File([blob], nombre, { type: 'application/pdf' });
+  const esCelular = window.matchMedia('(pointer: coarse)').matches;
+  if (esCelular) {
+    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+      try { await navigator.share({ files: [archivo], title: nombre }); return 'ok'; }
+      catch (e) {
+        if (e && e.name === 'AbortError') return 'ok';      // la persona cerró el menú de compartir
+        if (!esReintento) return 'necesita-toque';           // el permiso del toque venció
+      }
+    } else if (!esReintento) {
+      return 'necesita-toque';
+    }
+    // Último recurso en celular: pedir el PDF directo al servidor para que el
+    // sistema lo descargue con su aviso normal ("Descarga completa · Abrir")
+    const d = document.createElement('a');
+    d.href = urlDirecta; d.download = nombre;
+    document.body.appendChild(d); d.click(); d.remove();
+    return 'ok';
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = nombre;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  return 'ok';
+}
+
 async function descargarListaPdf(btn) {
   const txt = btn.querySelector('span');
+  // Segundo toque: el PDF ya está listo, se entrega de inmediato con un toque nuevo
+  if (btn._pdfListo) {
+    const listo = btn._pdfListo; btn._pdfListo = null;
+    txt.textContent = btn._textoOriginal || 'Exportar PDF';
+    try { await entregarPdf(listo.blob, listo.nombre, true, btn.dataset.url); }
+    catch (e) { alert('No se pudo abrir el PDF. Intentá de nuevo.'); }
+    return;
+  }
   const original = txt.textContent;
+  btn._textoOriginal = original;
+  let quedaListo = false;
   btn.disabled = true; txt.textContent = 'Generando...';
   try {
     const r = await fetch(btn.dataset.url, { credentials: 'same-origin' });
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const blob = await r.blob();
     const nombre = (btn.dataset.archivo || 'documento') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
-    const archivo = new File([blob], nombre, { type: 'application/pdf' });
-    const esCelular = window.matchMedia('(pointer: coarse)').matches;
-    if (esCelular && navigator.canShare && navigator.canShare({ files: [archivo] })) {
-      try { await navigator.share({ files: [archivo], title: btn.textContent.trim() }); }
-      catch (e) { /* el usuario cerró el menú de compartir */ }
-    } else {
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = nombre;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+    if (await entregarPdf(blob, nombre, false, btn.dataset.url) === 'necesita-toque') {
+      btn._pdfListo = { blob, nombre };
+      txt.textContent = 'Listo: toca para descargar el PDF';
+      quedaListo = true;
     }
   } catch (e) {
     alert('No se pudo generar el PDF. Intentá de nuevo.');
   } finally {
-    btn.disabled = false; txt.textContent = original;
+    btn.disabled = false;
+    if (!quedaListo) txt.textContent = original;
   }
 }
 
