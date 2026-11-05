@@ -557,7 +557,12 @@
     if (ids.length < 2) { alert('Marcá al menos 2 productos para agruparlos.'); return; }
     var prods = ids.map(datosProducto);
     var comun = prefijoComun(prods.map(function(p) { return p.nombre; }));
-    $('agNombre').value = comun.join(' ');
+    // El peso o cantidad al inicio (1/2 K, 500 g, 2 kg) no es parte del nombre del grupo
+    var qty = /^(\d+([\/.,]\d+)?|k|kg|kilo|kilos|g|gr|gramos?|lb|libras?|l|lt|litros?|ml|unidad(es)?|und)$/i;
+    var nombreGrupo = comun.slice();
+    while (nombreGrupo.length && qty.test(nombreGrupo[0])) nombreGrupo.shift();
+    if (!nombreGrupo.length) comun = [];
+    $('agNombre').value = nombreGrupo.join(' ');
     var cat = prods[0].cat;
     llenarSelectCategoria($('agCategoria'), cat);
     $('agItems').innerHTML = prods.map(function(p) {
