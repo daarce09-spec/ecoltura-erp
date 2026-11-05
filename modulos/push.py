@@ -8,6 +8,18 @@ from db.conexion import obtener_conexion
 
 push_bp = Blueprint("push_bp", __name__)
 
+
+def _solo_8_digitos(valor):
+    """Deja solo los 8 dígitos del celular (ignora espacios, guiones y el +506)."""
+    d = "".join(c for c in str(valor or "") if c.isdigit())
+    if len(d) > 8 and d.startswith("506"):
+        d = d[3:]
+    return d
+
+# Mismo criterio del lado de la base: últimos 8 dígitos, sin espacios ni guiones.
+def _sql_cel(columna):
+    return f"RIGHT(REGEXP_REPLACE(COALESCE({columna}, ''), '[^0-9]', '', 'g'), 8)"
+
 # py_vapid.Vapid.from_string() espera SOLO el contenido base64 de la llave,
 # sin los encabezados "-----BEGIN/END PRIVATE KEY-----" — si se los pasamos,
 # los trata como parte del base64 y la llave queda corrupta.
@@ -39,12 +51,12 @@ def vincular_suscripciones_huerfanas(cur):
     se usa el más reciente (igual que al activar la campana). Devuelve cuántas vinculó."""
     cur.execute("""
         UPDATE push_subscriptions ps
-           SET cliente_id = (SELECT MAX(c.id) FROM clientes c WHERE c.celular = ps.celular)
+           SET cliente_id = (SELECT MAX(c.id) FROM clientes c WHERE {c_cel} = {ps_cel})
          WHERE ps.tipo = 'cliente'
            AND ps.cliente_id IS NULL
            AND ps.celular IS NOT NULL
-           AND EXISTS (SELECT 1 FROM clientes c WHERE c.celular = ps.celular)
-    """)
+           AND EXISTS (SELECT 1 FROM clientes c WHERE {c_cel} = {ps_cel})
+    """.format(c_cel=_sql_cel("c.celular"), ps_cel=_sql_cel("ps.celular")))
     return cur.rowcount
 
 
@@ -70,7 +82,7 @@ def push_subscribe():
     keys = sub.get("keys", {})
     p256dh = keys.get("p256dh")
     auth = keys.get("auth")
-    celular = data.get("celular")
+    celular = _solo_8_digitos(data.get("celular")) or None
 
     if not endpoint or not p256dh or not auth:
         return jsonify({"ok": False, "error": "Suscripción incompleta"}), 400
@@ -80,7 +92,7 @@ def push_subscribe():
 
         # Si viene de la tienda pública, resolver cliente_id a partir del celular
         if celular and not cliente_id:
-            cur.execute("SELECT id FROM clientes WHERE celular = %s ORDER BY id DESC LIMIT 1", (celular,))
+            cur.execute(f"SELECT id FROM clientes WHERE {_sql_cel('celular')} = %s ORDER BY id DESC LIMIT 1", (celular,))
             row = cur.fetchone()
             if row:
                 cliente_id = row[0]
