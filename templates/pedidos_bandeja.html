@@ -109,10 +109,10 @@
 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
   <span class="text-muted small">Facturado y cobrado se calculan del periodo; por cobrar es todo lo pendiente.</span>
   <div class="periodos">
+    <a class="per-btn {{ 'activo' if periodo == 'todo' }}"   href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='todo') }}">Todo</a>
     <a class="per-btn {{ 'activo' if periodo == 'hoy' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='hoy') }}">Hoy</a>
     <a class="per-btn {{ 'activo' if periodo == 'semana' }}" href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='semana') }}">7 días</a>
     <a class="per-btn {{ 'activo' if periodo == 'mes' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='mes') }}">Este mes</a>
-    <a class="per-btn {{ 'activo' if periodo == 'todo' }}"   href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='todo') }}">Todo</a>
   </div>
 </div>
 
