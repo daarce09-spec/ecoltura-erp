@@ -22,12 +22,12 @@
     :root {
       --negro:      #1A1C18;
       --carbon:     #3F3F41;   /* wordmark del logo */
-      --crema:      #F4F1EA;
+      --crema:      #F6F6F4;   /* gris muy suave: inputs, chips, superficies */
       --blanco:     #FFFFFF;
       --sage:       #7A8C80;
-      --borde:      #E2E0DA;
-      --texto:      #55554F;
-      --gris:       #8C8C85;
+      --borde:      #E6E6E2;
+      --texto:      #3B3B37;
+      --gris:       #6E6E69;
       --verde:      #3E6B22;   /* hoja oscura del logo – acción */
       --verde-os:   #2E5117;
       --lima:       #A4C93C;   /* hoja clara – microacento */
@@ -37,7 +37,7 @@
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
     html { scroll-behavior: smooth; }
-    body { font-family: 'Inter', sans-serif; background: var(--crema);
+    body { font-family: 'Inter', sans-serif; background: #FFFFFF;
            color: var(--texto); line-height: 1.65; font-size: 15px;
            -webkit-font-smoothing: antialiased; }
     h1, h2, h3, h4 { font-family: 'Fraunces', serif; font-weight: 300; }
@@ -188,7 +188,7 @@
                     display: flex; flex-wrap: wrap; justify-content: space-between;
                     align-items: flex-end; gap: 18px; }
     .franja .eyebrow { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase;
-                       color: var(--naranja); font-weight: 600; }
+                       color: var(--verde); font-weight: 600; }
     .franja h2 { font-family: 'Fraunces', serif; font-size: clamp(1.6rem,3vw,2.3rem);
                  margin-top: 6px; color: var(--negro); font-weight: 400; }
     .franja .sub { font-size: .9rem; color: var(--gris); max-width: 52ch; margin-top: 6px; }
@@ -228,7 +228,7 @@
     .grid-prod { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px,1fr)); gap: 20px; }
     .prod { display: flex; flex-direction: column; cursor: default; }
     .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
-                background: linear-gradient(165deg, #E9E7DC, #C9CEB2 70%);
+                background: linear-gradient(165deg, #F2F2EF, #E3E5DC 70%);
                 transition: opacity .15s; }
     .prod:hover .prod-img { opacity: .92; }
     .prod-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -244,21 +244,21 @@
                           border: 1.5px solid var(--borde); font-family: 'Inter'; font-size: .78rem;
                           color: var(--negro); background: var(--blanco); }
     .prod .fila-precio { display: flex; justify-content: space-between; align-items: center; margin-top: 9px; }
-    .precio { font-weight: 700; color: var(--naranja); font-size: .95rem; }
+    .precio { font-weight: 700; color: var(--negro); font-size: .95rem; }
     .sin-stock { font-size: .74rem; color: var(--gris); font-style: italic; }
-    .agregar { background: none; color: var(--verde); border: 1.5px solid var(--verde);
+    .agregar { background: none; color: var(--verde); border: 1.5px solid var(--verde); border-radius: 8px;
                padding: 8px 18px; font-family: 'Inter'; font-weight: 600; font-size: .74rem;
                letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
     .agregar:hover { background: var(--verde); color: #fff; }
 
     /* ── Avisos de arriba: pedido en curso y repetir compra (una sola línea, compactos) ── */
-    .franja { align-items: center; gap: 10px; border-radius: 12px; padding: 10px 12px 10px 14px; margin-bottom: 10px;
-              background: #EEF3E4; border: 1px solid #D9E5C7; }
-    .franja.rep { background: var(--blanco); border-color: var(--borde); }
-    .franja-txt { flex: 1; min-width: 0; }
-    .franja-titulo { font-weight: 600; font-size: .92rem; color: var(--verde-os); line-height: 1.3;
+    .aviso { align-items: center; gap: 10px; border-radius: 12px; padding: 10px 12px 10px 14px; margin-bottom: 10px;
+              background: var(--crema); border: 1px solid var(--borde); }
+    .aviso.rep { background: var(--blanco); border-color: var(--borde); }
+    .aviso-txt { flex: 1; min-width: 0; }
+    .aviso-titulo { font-weight: 600; font-size: .92rem; color: var(--verde-os); line-height: 1.3;
                      white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .franja-detalle { font-size: .78rem; color: var(--gris); line-height: 1.3; margin-top: 1px;
+    .aviso-detalle { font-size: .78rem; color: var(--gris); line-height: 1.3; margin-top: 1px;
                       white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .fr-btn { background: var(--verde); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font: 600 .8rem 'Inter', sans-serif;
               cursor: pointer; white-space: nowrap; flex-shrink: 0; }
@@ -272,7 +272,7 @@
     .titulo-lista::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
     .dest-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
     .dest-head h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); }
-    .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--naranja); font-weight: 600; }
+    .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); font-weight: 600; }
     .dest-flechas { display: flex; gap: 8px; align-items: center; }
     .dest-todo { width: auto !important; height: auto !important; border-radius: 99px !important; padding: 7px 14px; font: 600 .78rem 'Inter', sans-serif !important; white-space: nowrap; }
     .dest-flechas button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--borde); background: var(--blanco);
@@ -644,10 +644,10 @@
   <div class="tienda">
     <div>
       <!-- Franja: pedido en curso (solo mientras está Preparando) -->
-      <div id="franjaPedido" class="franja" style="display:none">
-        <div class="franja-txt">
-          <div id="franjaTitulo" class="franja-titulo"></div>
-          <div id="franjaDetalle" class="franja-detalle"></div>
+      <div id="franjaPedido" class="aviso" style="display:none">
+        <div class="aviso-txt">
+          <div id="franjaTitulo" class="aviso-titulo"></div>
+          <div id="franjaDetalle" class="aviso-detalle"></div>
         </div>
         <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Ver pedido</button>
         <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
@@ -686,7 +686,7 @@
       <!-- Carrusel: destacados primero y luego los más vendidos -->
       <div class="destacados" id="destacados" style="display:none">
         <div class="dest-head">
-          <div><div class="eyebrow">Favoritos de la finca</div><h3>Lo que más piden</h3></div>
+          <h3>Lo que más piden</h3>
           <div class="dest-flechas">
             <button type="button" onclick="moverCarrusel('destPista', -1)" aria-label="Anterior">‹</button>
             <button type="button" onclick="moverCarrusel('destPista', 1)" aria-label="Siguiente">›</button>
@@ -762,7 +762,7 @@
     <div class="modal-exito-texto" id="textoExito"></div>
     <!-- Invitación a activar avisos justo después de pedir (solo si el aparato los permite y aún no están activos) -->
     <div id="bloqueCampanaExito" style="display:none; margin-top:18px; padding:14px; border-radius:10px;
-         background:#F3F8EE; border:1px solid #D5E5C6; text-align:left;">
+         background:#F6F6F4; border:1px solid #E6E6E2; text-align:left;">
       <div style="font-weight:600; font-size:.92rem; margin-bottom:4px;">🔔 ¿Querés que te avisemos?</div>
       <div id="textoCampanaExito" style="font-size:.85rem; color:var(--texto); line-height:1.5; margin-bottom:10px;">
         Activá los avisos y te escribimos cuando te toque volver a pedir.
@@ -1713,7 +1713,7 @@ function pintarMiPedido(d, token) {
   if (entregado || cancelado) { try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {} refrescarFranjaPedido(); }
 
   // Pasos
-  const caja = _el("div", undefined, "background:#F3F8EE;border:1px solid #D5E5C6;border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;");
+  const caja = _el("div", undefined, "background:#F6F6F4;border:1px solid #E6E6E2;border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;");
   if (cancelado) caja.appendChild(_el("div", "Este pedido fue cancelado.", "font-size:.92rem;"));
   else {
     const pasos = _el("div", undefined, "display:flex;justify-content:center;gap:6px;flex-wrap:wrap;font-size:.82rem;margin-bottom:6px;");
