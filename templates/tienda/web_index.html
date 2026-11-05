@@ -252,8 +252,7 @@
     .agregar:hover { background: var(--verde); color: #fff; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
-    .destacados { margin-bottom: 14px; min-width: 0; max-width: 100%; background: #EEF3E4; border: 1px solid #D9E5C7;
-                  border-radius: 18px; padding: 22px 22px 16px; }
+    .destacados { margin-bottom: 6px; min-width: 0; max-width: 100%; }
     .titulo-lista { display: flex; align-items: center; gap: 14px; margin: 30px 0 18px; }
     .titulo-lista h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); white-space: nowrap; }
     .titulo-lista::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
@@ -270,8 +269,21 @@
     .dest-etq { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--naranja); color: #fff; font-size: .62rem;
                 font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
     .dest-etq.vendido { background: var(--verde); }
+    /* Tarjeta del carrusel: borde fino, esquinas redondeadas y misma altura para todas */
+    .dest-pista { align-items: stretch; padding: 2px 2px 8px; }
+    .dest-item { display: flex; }
+    .dest-item .prod { width: 100%; background: var(--blanco); border: 1px solid var(--borde); border-radius: 14px;
+                       overflow: hidden; box-shadow: 0 1px 2px rgba(26,28,24,.04); }
+    .dest-item .prod-img { aspect-ratio: 1 / 1; border-radius: 0; }
+    .dest-item .prod-body { padding: 12px 12px 14px; flex: 1; }
+    .dest-item .prod h4 { font-size: .98rem; line-height: 1.25; }
+    .dest-item .fila-precio { flex-direction: column; align-items: stretch; gap: 10px; margin-top: auto; padding-top: 8px; }
+    .dest-item .precio { font-size: 1rem; }
+    .dest-item .agregar, .dest-item .stepper { width: 100%; height: 38px; padding-block: 0; justify-content: center; text-align: center; }
+    .dest-item .stepper button { height: 100%; }
+    .dest-item .stepper { display: flex; justify-content: space-between; }
+    .dest-etq { top: 10px; left: 10px; }
     @media (max-width: 600px) {
-      .destacados { padding: 16px 14px 10px; border-radius: 14px; }
       .dest-item { flex-basis: 44%; }
       .dest-flechas { display: none; }
       .dest-head h3 { font-size: 1.15rem; }
