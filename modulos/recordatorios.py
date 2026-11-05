@@ -12,8 +12,11 @@ recordatorios_bp = Blueprint("recordatorios_bp", __name__)
 # ─────────────────────────────────────────────
 @recordatorios_bp.route("/api/recordatorios/pendiente")
 def recordatorios_pendiente():
-    celular = (request.args.get("celular") or "").strip()
-    if not celular:
+    # Solo los 8 dígitos (ignora espacios, guiones y +506)
+    celular = "".join(c for c in (request.args.get("celular") or "") if c.isdigit())
+    if len(celular) > 8 and celular.startswith("506"):
+        celular = celular[3:]
+    if len(celular) != 8:
         return jsonify({"pendiente": False})
 
     with obtener_conexion() as conn:
@@ -22,7 +25,9 @@ def recordatorios_pendiente():
             SELECT nh.id, nh.mensaje
             FROM notificaciones_historial nh
             JOIN clientes c ON c.id = nh.cliente_id
-            WHERE c.celular = %s AND nh.enviado = TRUE AND nh.leido = FALSE
+            WHERE RIGHT(REGEXP_REPLACE(COALESCE(c.celular, ''), '[^0-9]', '', 'g'), 8) = %s
+              AND nh.enviado = TRUE AND nh.leido = FALSE
+              AND nh.creado > NOW() - INTERVAL '3 days'   -- el aviso vence a los 3 días
             ORDER BY nh.creado DESC
             LIMIT 1
         """, (celular,))

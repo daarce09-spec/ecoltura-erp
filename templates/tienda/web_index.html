@@ -1682,6 +1682,13 @@ function mostrarBannerRecordatorio(mensaje) {
   document.getElementById('textoRecordatorio').textContent = mensaje;
   document.getElementById('bannerRecordatorio').style.display = 'block';
 
+  // El aviso se muestra UNA sola vez: apenas se ve, queda marcado como leído
+  // (así no reaparece cada vez que el cliente entra a la tienda).
+  if (notifIdPendiente) {
+    fetch('/api/recordatorios/marcar-leido/' + notifIdPendiente, { method: 'POST' }).catch(() => {});
+    notifIdPendiente = null;
+  }
+
   // Limpia la bolita del ícono apenas el cliente ve el mensaje
   if ('clearAppBadge' in navigator) {
     navigator.clearAppBadge().catch(() => {});
