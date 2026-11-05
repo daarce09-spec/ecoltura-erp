@@ -1791,6 +1791,12 @@ function pintarMiPedido(d, token) {
   } else if (d.viernes) {
     cuerpo.appendChild(_el("div", "¡Estamos preparando tu pedido con mucho cariño! 🌱 Los viernes lo dejamos listo para la entrega, así que ya no se puede cambiar desde aquí. Si necesitás algo, escribinos por WhatsApp y con gusto te ayudamos.",
       "margin-top:16px;padding:12px;border-radius:12px;background:#F6F6F4;text-align:center;font-size:.88rem;color:var(--gris);"));
+    const wa = _el("a", "💬 Escribir por WhatsApp");
+    wa.className = "btn-confirmar";
+    wa.href = "https://wa.me/50689935973?text=" + encodeURIComponent("Hola, quiero hacer un cambio en mi pedido #" + d.numero);
+    wa.target = "_blank"; wa.rel = "noopener";
+    wa.style.cssText = "display:block;width:100%;margin-top:10px;text-align:center;text-decoration:none;box-sizing:border-box;";
+    cuerpo.appendChild(wa);
   }
 }
 
