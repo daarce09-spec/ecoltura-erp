@@ -1788,6 +1788,9 @@ function pintarMiPedido(d, token) {
       abrirMiPedido();
     };
     cuerpo.appendChild(bCan); cuerpo.appendChild(conf);
+  } else if (d.viernes) {
+    cuerpo.appendChild(_el("div", "¡Estamos preparando tu pedido con mucho cariño! 🌱 Los viernes lo dejamos listo para la entrega, así que ya no se puede cambiar desde aquí. Si necesitás algo, escribinos por WhatsApp y con gusto te ayudamos.",
+      "margin-top:16px;padding:12px;border-radius:12px;background:#F6F6F4;text-align:center;font-size:.88rem;color:var(--gris);"));
   }
 }
 
@@ -1805,13 +1808,15 @@ async function refrescarFranjaPedido() {
   try {
     const r = await fetch("/api/pedido/" + encodeURIComponent(g.token));
     const d = await r.json();
-    if (!d.ok || !d.editable) {
+    if (!d.ok || (!d.editable && !d.viernes)) {
       try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {}
       franja.style.display = "none";
       return;
     }
     document.getElementById("franjaTitulo").textContent = `Pedido #${d.numero} en preparación`;
-    document.getElementById("franjaDetalle").textContent = "Editalo o agregá más productos";
+    document.getElementById("franjaDetalle").textContent = d.viernes
+      ? "Lo estamos preparando con cariño 🌱 ¿Un cambio? Escribinos por WhatsApp"
+      : "Editalo o agregá más productos";
     document.getElementById("franjaSalir").style.display = "none";
     franja.style.display = "flex";
   } catch(e) { franja.style.display = "none"; }

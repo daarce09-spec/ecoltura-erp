@@ -162,6 +162,8 @@ function pintar(d) {
       ultimaFirma = ''; cargar();
     };
     cont.appendChild(b); cont.appendChild(conf);
+  } else if (d.viernes) {
+    cont.appendChild(el('div', 'msj', '¡Estamos preparando tu pedido con mucho cariño! 🌱 Los viernes lo dejamos listo para la entrega, así que ya no se puede cambiar desde aquí. Si necesitás algo, escribinos por WhatsApp y con gusto te ayudamos.'));
   } else {
     const a = el('a', 'btn p', 'Volver a la tienda');
     a.href = '/';

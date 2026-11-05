@@ -10,6 +10,14 @@ from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
 from modulos.categorias import asegurar_categorias
 from datetime import datetime, timedelta
 
+
+def _es_viernes():
+    """Los viernes los pedidos no se pueden modificar ni cancelar (hora de Costa Rica, UTC-6)."""
+    return (datetime.utcnow() - timedelta(hours=6)).weekday() == 4
+
+
+MSJ_VIERNES = "¡Ya estamos preparando tu pedido! 🌱 Para hacerle cambios, escribinos por WhatsApp y con gusto te ayudamos."
+
 web_bp = Blueprint("web_bp", __name__)
 
 # El orden de las categorías de la tienda sale de la tabla `categorias` (se administra desde el Admin)
@@ -351,7 +359,7 @@ def api_pedidos():
             WHERE estado = 'Pendiente' AND {SQL_CEL_LIMPIO} = %s
             ORDER BY id DESC LIMIT 1
         """, (celular,))
-        abierto = cur.fetchone()
+        abierto = None if _es_viernes() else cur.fetchone()  # viernes: no se une, se crea uno aparte
 
         if abierto:
             pedido_id, token = abierto
@@ -509,7 +517,8 @@ def api_pedido_estado(token):
         "ok": True,
         "numero": pid,
         "estado": ESTADO_CLIENTE.get(estado, "Preparando"),
-        "editable": estado == "Pendiente",
+        "editable": estado == "Pendiente" and not _es_viernes(),
+        "viernes": estado == "Pendiente" and _es_viernes(),
         "pagado": bool(metodo) and metodo != "Por cobrar",
         "nombre": nombre,
         "total": total,
@@ -539,6 +548,8 @@ def api_pedido_editar(token):
         pedido_id, estado, nombre = fila
         if estado != "Pendiente":
             return jsonify({"ok": False, "error": "Este pedido ya no se puede modificar."}), 409
+        if _es_viernes():
+            return jsonify({"ok": False, "error": MSJ_VIERNES}), 409
 
         # Los productos que ya estaban en el pedido se pueden dejar aunque hoy no estén en la tienda
         existentes = _leer_lineas(cur, pedido_id)
@@ -580,6 +591,8 @@ def api_pedido_cancelar(token):
         pedido_id, estado, nombre = fila
         if estado != "Pendiente":
             return jsonify({"ok": False, "error": "Este pedido ya no se puede cancelar."}), 409
+        if _es_viernes():
+            return jsonify({"ok": False, "error": MSJ_VIERNES}), 409
         cur.execute("UPDATE pedidos SET estado = 'Rechazado', gestionado = NOW() WHERE id = %s", (pedido_id,))
         conn.commit()
     try:
