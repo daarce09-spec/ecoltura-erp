@@ -6,6 +6,21 @@ productos_bp = Blueprint("productos_bp", __name__)
 
 asegurar_categorias()
 
+
+# Columna "destacado": los productos marcados salen primero en el carrusel de la tienda
+def _asegurar_destacado():
+    try:
+        conn = obtener_conexion()
+        cur = conn.cursor()
+        cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
+        conn.commit()
+        cur.close()
+        conn.close()
+    except Exception as ex:
+        print("No se pudo asegurar la columna destacado:", ex)
+
+_asegurar_destacado()
+
 # Misma limpieza de categoría del lado de la base: sin espacios de más y sin distinguir mayúsculas
 SQL_CAT = "LOWER(REGEXP_REPLACE(TRIM(COALESCE(categoria, '')), '\\s+', ' ', 'g'))"
 
@@ -51,7 +66,7 @@ def productos():
     cur  = conn.cursor()
     cur.execute(
         """SELECT id, nombre, categoria, unidad, precio, visible_web,
-                  grupo_id, grupo_nombre, nombre_variante
+                  grupo_id, grupo_nombre, nombre_variante, COALESCE(destacado, FALSE)
            FROM productos ORDER BY nombre ASC"""
     )
     lista = cur.fetchall()
@@ -80,6 +95,25 @@ def toggle_web(id):
     cur.close()
     conn.close()
     return jsonify({"visible_web": nuevo})
+
+
+# =====================================================
+# TOGGLE DESTACADO (AJAX)
+# =====================================================
+@productos_bp.route("/productos/toggle-destacado/<int:id>", methods=["POST"])
+def toggle_destacado(id):
+    """Alterna destacado: el producto sale primero en el carrusel de la tienda."""
+    conn = obtener_conexion()
+    cur  = conn.cursor()
+    cur.execute(
+        "UPDATE productos SET destacado = NOT COALESCE(destacado, FALSE) WHERE id = %s RETURNING destacado",
+        (id,)
+    )
+    nuevo = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"destacado": nuevo})
 
 
 # =====================================================

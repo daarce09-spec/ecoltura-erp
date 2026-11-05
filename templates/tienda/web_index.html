@@ -251,6 +251,27 @@
                letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
     .agregar:hover { background: var(--verde); color: #fff; }
 
+    /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
+    .destacados { margin-bottom: 26px; }
+    .dest-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
+    .dest-head h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); }
+    .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--naranja); font-weight: 600; }
+    .dest-flechas { display: flex; gap: 8px; }
+    .dest-flechas button { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--borde); background: var(--blanco);
+                           color: var(--verde-os); font-size: 1.1rem; cursor: pointer; line-height: 1; }
+    .dest-pista { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px;
+                  scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+    .dest-pista::-webkit-scrollbar { display: none; }
+    .dest-item { flex: 0 0 190px; scroll-snap-align: start; position: relative; }
+    .dest-etq { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--naranja); color: #fff; font-size: .62rem;
+                font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
+    .dest-etq.vendido { background: var(--verde); }
+    @media (max-width: 600px) {
+      .dest-item { flex-basis: 44%; }
+      .dest-flechas { display: none; }
+      .dest-head h3 { font-size: 1.15rem; }
+    }
+
     /* Este bloque va DESPUÉS de las reglas base de .prod-img / .prod h4 / .precio / .agregar
        a propósito: en CSS, con la misma especificidad, gana la regla que aparece más abajo
        en el archivo — así este override de móvil manda de verdad sobre el aspect-ratio 4/5. */
@@ -636,6 +657,18 @@
         <button onclick="document.getElementById('bannerNotif').style.display='none'; localStorage.setItem('ecoltura_notif_cerrado','1');"
                 style="background:transparent; border:none; color:var(--gris); font-size:1.3rem;
                 cursor:pointer; line-height:1; padding:0 4px;" title="Cerrar">×</button>
+      </div>
+
+      <!-- Carrusel: destacados primero y luego los más vendidos -->
+      <div class="destacados" id="destacados" style="display:none">
+        <div class="dest-head">
+          <div><div class="eyebrow">Favoritos de la finca</div><h3>Lo que más piden</h3></div>
+          <div class="dest-flechas">
+            <button type="button" onclick="moverDestacados(-1)" aria-label="Anterior">‹</button>
+            <button type="button" onclick="moverDestacados(1)" aria-label="Siguiente">›</button>
+          </div>
+        </div>
+        <div class="dest-pista" id="destPista"></div>
       </div>
 
       <!-- Barra de filtros: categorías + buscador juntos -->
@@ -1284,6 +1317,7 @@ function renderTarjetaGrupo(g) {
 }
 
 function renderProductos() {
+  renderDestacados();
   const q = normalizarTexto(document.getElementById("buscar").value).trim();
   let lista = PRODUCTOS.filter(p =>
     p.id !== ID_EXPRESS &&
@@ -1309,7 +1343,11 @@ function renderProductos() {
     grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda.</div>';
     return;
   }
-  grid.innerHTML = lista.map(p => {
+  grid.innerHTML = lista.map(tarjetaProducto).join("");
+}
+
+// Tarjeta de un producto (la misma en la lista y en el carrusel)
+function tarjetaProducto(p) {
     if (p.esGrupo) return renderTarjetaGrupo(p);
 
     const pesos = (p.pesos && p.pesos.length > 0) ? p.pesos : null;
@@ -1344,7 +1382,34 @@ function renderProductos() {
         </div>
       </div>
     </div>`;
-  }).join("");
+}
+
+// Carrusel: primero los que marcó el Admin como "Destacar", luego los más vendidos
+// (últimos 60 días) hasta completar 8. Solo se ve sin filtros ni búsqueda.
+const MAX_DESTACADOS = 8;
+function listaDestacados() {
+  const base = PRODUCTOS.filter(p => p.id !== ID_EXPRESS);
+  const marcados = base.filter(p => p.destacado).map(p => ({ p, tipo: "dest" }));
+  const usados = new Set(marcados.map(x => x.p.id));
+  const vendidos = base.filter(p => !usados.has(p.id) && p.ventas > 0)
+    .sort((a, b) => b.ventas - a.ventas)
+    .map(p => ({ p, tipo: "vendido" }));
+  return marcados.concat(vendidos).slice(0, MAX_DESTACADOS);
+}
+
+function renderDestacados() {
+  const cont = document.getElementById("destacados");
+  const buscando = document.getElementById("buscar").value.trim() !== "";
+  const lista = (filtroCat === "Todos" && !buscando) ? listaDestacados() : [];
+  if (lista.length === 0) { cont.style.display = "none"; return; }
+  cont.style.display = "block";
+  document.getElementById("destPista").innerHTML = lista.map(({ p, tipo }) =>
+    `<div class="dest-item"><span class="dest-etq ${tipo === "vendido" ? "vendido" : ""}">${tipo === "vendido" ? "Más vendido" : "Destacado"}</span>${tarjetaProducto(p)}</div>`
+  ).join("");
+}
+function moverDestacados(dir) {
+  const pista = document.getElementById("destPista");
+  pista.scrollBy({ left: dir * 420, behavior: "smooth" });
 }
 
 function actualizarPedido(id, delta) {

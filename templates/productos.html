@@ -65,6 +65,10 @@
               <i class="bi bi-globe me-1"></i>Web
               <small class="d-block text-muted fw-normal" style="font-size:.65rem">visible en la tienda</small>
             </th>
+            <th class="text-center">
+              <i class="bi bi-star me-1"></i>Destacar
+              <small class="d-block text-muted fw-normal" style="font-size:.65rem">sale primero arriba</small>
+            </th>
             <th></th>
           </tr>
         </thead>
@@ -102,6 +106,17 @@
                        {{ 'checked' if p[5] else '' }}
                        style="width:2.2em;height:1.15em;cursor:pointer"
                        title="{{ 'Visible en web' if p[5] else 'Oculto en web' }}">
+              </div>
+            </td>
+
+            <!-- Toggle destacado -->
+            <td class="text-center">
+              <div class="form-check form-switch d-flex justify-content-center mb-0">
+                <input class="form-check-input toggle-destacado" type="checkbox"
+                       data-id="{{ p[0] }}"
+                       {{ 'checked' if p[9] else '' }}
+                       style="width:2.2em;height:1.15em;cursor:pointer"
+                       title="{{ 'Destacado' if p[9] else 'No destacado' }}">
               </div>
             </td>
 
@@ -437,6 +452,23 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           self.title = data.visible_web ? 'Visible en web' : 'Oculto en web';
+        })
+        .catch(function() {
+          self.checked = !self.checked;
+          alert('Error al actualizar. Intente de nuevo.');
+        });
+    });
+  });
+
+  // ===== Toggle destacado con AJAX =====
+  document.querySelectorAll('.toggle-destacado').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var id = this.dataset.id;
+      var self = this;
+      fetch('/productos/toggle-destacado/' + id, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          self.title = data.destacado ? 'Destacado' : 'No destacado';
         })
         .catch(function() {
           self.checked = !self.checked;

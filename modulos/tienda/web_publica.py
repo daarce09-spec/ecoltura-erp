@@ -15,6 +15,18 @@ web_bp = Blueprint("web_bp", __name__)
 # El orden de las categorías de la tienda sale de la tabla `categorias` (se administra desde el Admin)
 asegurar_categorias()
 
+# Columna "destacado" (la maneja el Admin); aquí se asegura por si la tienda arranca primero
+def _asegurar_destacado():
+    try:
+        with obtener_conexion() as conn:
+            cur = conn.cursor()
+            cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
+            conn.commit()
+    except Exception as ex:
+        print("No se pudo asegurar la columna destacado:", ex)
+
+_asegurar_destacado()
+
 
 def normalizar_celular(valor):
     """Deja solo los 8 dígitos del número: ignora guiones, espacios, paréntesis y el +506."""
@@ -72,7 +84,8 @@ def api_productos():
                 ) AS stock_real,
                 p.grupo_id,
                 p.grupo_nombre,
-                p.nombre_variante
+                p.nombre_variante,
+                COALESCE(p.destacado, FALSE)
             FROM productos p
             WHERE p.visible_web = TRUE OR p.id = 118   -- Express (envío) va siempre
             ORDER BY
@@ -82,6 +95,24 @@ def api_productos():
                 p.nombre
         """)
         rows = cur.fetchall()
+
+        # "Más vendidos": cuántas ventas tuvo cada producto en los últimos 60 días.
+        # Si algo falla aquí, la tienda sigue funcionando sin ese dato.
+        ventas_por_producto = {}
+        try:
+            cur.execute("SAVEPOINT rk")
+            cur.execute("""
+                SELECT vd.producto_id, COUNT(DISTINCT v.id)
+                FROM ventas_detalle vd JOIN ventas v ON v.id = vd.venta_id
+                WHERE v.fecha_venta::timestamp >= NOW() - INTERVAL '60 days'
+                  AND COALESCE(v.estado, '') NOT ILIKE 'anul%'
+                GROUP BY vd.producto_id
+            """)
+            ventas_por_producto = {r[0]: int(r[1]) for r in cur.fetchall()}
+            cur.execute("RELEASE SAVEPOINT rk")
+        except Exception as ex:
+            print("No se pudo calcular más vendidos:", ex)
+            cur.execute("ROLLBACK TO SAVEPOINT rk")
 
         # Pesos preestablecidos (kg/g) por producto — parametrizables desde
         # la tabla producto_pesos, sin necesidad de tocar código para
@@ -103,6 +134,8 @@ def api_productos():
             "grupo_id":       r[6],
             "grupo_nombre":   r[7],
             "nombre_variante": r[8],
+            "destacado": bool(r[9]),
+            "ventas": ventas_por_producto.get(r[0], 0),
         }
         for r in rows
         if float(r[5]) > 0 or r[0] == 118   # solo con stock; Express (118) siempre, aunque su stock llegue a 0
@@ -125,10 +158,14 @@ def api_productos():
                     "nombre": gnom or p["nombre"],
                     "categoria": p["categoria"],
                     "variantes": [],
+                    "destacado": False,
+                    "ventas": 0,
                 }
                 grupos[gid] = entrada
                 resultado.append(entrada)
             grupos[gid]["variantes"].append(p)
+            grupos[gid]["destacado"] = grupos[gid]["destacado"] or p["destacado"]
+            grupos[gid]["ventas"] += p["ventas"]
         else:
             del p["nombre_variante"]
             resultado.append(p)
