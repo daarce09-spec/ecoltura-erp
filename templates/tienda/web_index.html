@@ -566,7 +566,7 @@
       <h1>De la finca, <em>hasta su mesa.</em></h1>
       <p>Cultivado de manera regenerativa por productores locales y entregado hasta la puerta de su casa.
          Alimento en su punto exacto, de nuestra familia para la suya.</p>
-      <a class="cta-hero" href="#tienda" onclick="event.preventDefault();document.getElementById('tienda').scrollIntoView({behavior:'smooth'})">Ver la cosecha del día</a>
+      <a class="cta-hero" href="#tienda" onclick="event.preventDefault();document.getElementById('tienda').scrollIntoView({behavior:'smooth'})">Ver los productos</a>
       <!-- Link "Conocer la finca" oculto temporalmente — reactivar quitando este comentario
       <a class="cta-linea" href="#" onclick="irPagina('finca');return false;">Conocer la finca</a>
       -->
@@ -579,9 +579,9 @@
     <div class="franja-inner">
       <div>
         <span class="eyebrow" id="fechaHoy"></span>
-        <h2>Cosecha del día</h2>
-        <div class="sub">Seleccione sus productos y envíe el pedido. Lo alistamos con producto
-          recién cosechado y le contactamos para coordinar la entrega.
+        <h2>Nuestros productos</h2>
+        <div class="sub">Elegí tus productos y enviá el pedido. Te escribimos por WhatsApp
+          para confirmarlo y coordinar la entrega.
           El pago se realiza al recibir en efectivo o SINPE Móvil.</div>
       </div>
     </div>
@@ -633,7 +633,7 @@
         </div>
       </div>
       <div class="grid-prod" id="gridProductos">
-        <div class="cargando-prod">Cargando la cosecha del día...</div>
+        <div class="cargando-prod">Cargando productos...</div>
       </div>
     </div>
 
@@ -664,7 +664,7 @@
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
     <div class="modal-titulo">Confirmar pedido</div>
     <div class="modal-detalle" id="modalDetalle"></div>
-    <div class="modal-nota">Al confirmar, su pedido llega a nuestra bandeja. Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
+    <div class="modal-nota">Te escribiremos por WhatsApp para confirmar tu pedido y coordinar la entrega.</div>
     <div class="modal-botones">
       <button class="btn-cancelar" onclick="cerrarModal('overlayConfirm')">Editar</button>
       <button class="btn-confirmar" id="btnConfirmar" onclick="enviarPedido()">Confirmar y enviar</button>
@@ -1273,7 +1273,7 @@ function renderProductos() {
 
   const grid = document.getElementById("gridProductos");
   if (lista.length === 0) {
-    grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda en la cosecha de hoy.</div>';
+    grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda.</div>';
     return;
   }
   grid.innerHTML = lista.map(p => {
@@ -1438,7 +1438,7 @@ async function enviarPedido() {
       } catch(e) {}
       // textContent: el nombre lo escribe el cliente, no se inserta como HTML
       document.getElementById("textoExito").textContent =
-        `Hola ${nombre}, su pedido de ECOLTURA está siendo alistado. Gracias por apoyar productos locales.`;
+        `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
