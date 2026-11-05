@@ -106,14 +106,18 @@ def toggle_destacado(id):
     conn = obtener_conexion()
     cur  = conn.cursor()
     cur.execute(
-        "UPDATE productos SET destacado = NOT COALESCE(destacado, FALSE) WHERE id = %s RETURNING destacado",
+        """UPDATE productos
+              SET destacado = NOT COALESCE(destacado, FALSE),
+                  visible_web = CASE WHEN COALESCE(destacado, FALSE) = FALSE THEN TRUE ELSE visible_web END
+            WHERE id = %s RETURNING destacado, visible_web""",
         (id,)
     )
-    nuevo = cur.fetchone()[0]
+    nuevo, visible = cur.fetchone()
     conn.commit()
     cur.close()
     conn.close()
-    return jsonify({"destacado": nuevo})
+    # Al destacar un producto, también queda visible en la web (si no, no saldría en la tienda)
+    return jsonify({"destacado": nuevo, "visible_web": visible})
 
 
 # =====================================================

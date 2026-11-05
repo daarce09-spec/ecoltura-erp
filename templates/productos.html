@@ -469,6 +469,10 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           self.title = data.destacado ? 'Destacado' : 'No destacado';
+          // Al destacar, el producto también queda visible en la web
+          var fila = self.closest('tr');
+          var web = fila ? fila.querySelector('.toggle-web') : null;
+          if (web && data.visible_web) { web.checked = true; web.title = 'Visible en web'; }
         })
         .catch(function() {
           self.checked = !self.checked;
