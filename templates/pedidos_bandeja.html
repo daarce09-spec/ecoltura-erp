@@ -6,8 +6,8 @@
   .kb-tile { background:white; border:1px solid #e5efe9; border-radius:14px; padding:12px 16px; height:100%; }
   .kb-tile .t-lab { font-size:.74rem; text-transform:uppercase; letter-spacing:.5px; color:#777; font-weight:700; }
   .kb-tile .t-val { font-size:1.35rem; font-weight:800; color:#1b4332; line-height:1.2; }
-  .kb-tile.cobrar { border-left:4px solid #d9742e; }
-  .kb-tile.cobrar .t-val { color:#9a4a12; }
+  .kb-tile.cobrar { border-left:4px solid #b3261e; }
+  .kb-tile.cobrar .t-val { color:#b3261e; }
   .kb-tile.ok { border-left:4px solid #2d6a4f; }
 
   .periodos { display:flex; gap:6px; flex-wrap:wrap; }
@@ -21,12 +21,19 @@
   .kb-tab.activo { background:#1b4332; border-color:#1b4332; color:white; }
   .kb-tab .n { opacity:.75; margin-left:4px; }
 
-  .kb-board { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; align-items:start; }
+  .kb-board { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; }
   .kb-col { background:#f4f7f5; border-radius:16px; padding:12px; min-height:140px; }
   .kb-col-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
                  font-weight:800; font-size:.9rem; color:#1b4332; }
   .kb-col-head .cnt { background:white; border-radius:999px; padding:1px 10px; font-size:.78rem; color:#555; }
-  .kb-col.c-cobrar .kb-col-head { color:#9a4a12; }
+  .filtro-ent { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
+  .fe-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px; padding:3px 12px;
+            font-size:.76rem; font-weight:700; color:#555; cursor:pointer; }
+  .fe-btn.activo { background:#1b4332; border-color:#1b4332; color:white; }
+  .fe-btn.rojo.activo { background:#b3261e; border-color:#b3261e; }
+  .tag { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:800; }
+  .tag-cobrar { background:#FBE4E1; color:#b3261e; }
+  .tag-cobrado { background:#D1E7DD; color:#0A4A2A; }
   .kb-vacio { text-align:center; color:#9aa; font-size:.82rem; padding:20px 6px; }
 
   .kb-card { background:white; border:1px solid #eceff0; border-radius:12px; padding:12px 14px; margin-bottom:10px;
@@ -39,8 +46,8 @@
   .kb-card .acciones .btn { font-size:.78rem; border-radius:9px; font-weight:600; }
   .marca-mod { display:inline-block; background:#FCEBC8; color:#6B4510; border-radius:999px;
                padding:1px 8px; font-size:.68rem; font-weight:700; margin-left:4px; }
-  .c-cobrar .kb-card { border-left:3px solid #d9742e; }
-  .c-pagado .kb-card { opacity:.92; }
+  .kb-card.por-cobrar { border-left:4px solid #b3261e; background:#FFFAF9; }
+  .kb-card.por-cobrar .monto { color:#b3261e; }
 
   details.rech summary { cursor:pointer; font-weight:700; color:#842029; font-size:.9rem; }
 
@@ -110,10 +117,8 @@
 </div>
 
 {% set cols = [
-  ('preparando', 'Preparando', columnas.preparando),
-  ('listo',      'Listo',      columnas.listo),
-  ('cobrar',     'Por cobrar', columnas.cobrar),
-  ('pagado',     'Pagado',     columnas.pagado)
+  ('pendientes', 'Pendientes', columnas.pendientes),
+  ('entregados', 'Entregados', columnas.entregados)
 ] %}
 
 <!-- Pestañas (solo en celular) -->
@@ -124,7 +129,8 @@
 </div>
 
 {% macro tarjeta(p, tipo) %}
-<div class="kb-card">
+<div class="kb-card {{ 'por-cobrar' if tipo == 'entregados' and p.por_cobrar }}"
+     {% if tipo == 'entregados' %}data-estado="{{ 'cobrar' if p.por_cobrar else 'cobrado' }}"{% endif %}>
   <div class="d-flex justify-content-between align-items-start gap-2">
     <div style="min-width:0">
       <div class="nom">#{{ p.id }} · {{ p.nombre }}{% if p.modificado %}<span class="marca-mod">Modificado</span>{% endif %}</div>
@@ -135,52 +141,56 @@
     </div>
     <div class="monto">₡{{ "{:,.0f}".format(p.total) }}</div>
   </div>
+  {% if tipo == 'entregados' %}
+    <div class="mt-2">
+      {% if p.por_cobrar %}<span class="tag tag-cobrar">Por cobrar</span>
+      {% else %}<span class="tag tag-cobrado"><i class="bi bi-check-lg"></i> Cobrado{% if p.metodo %} · {{ p.metodo }}{% endif %}</span>{% endif %}
+    </div>
+  {% endif %}
   {% if p.notas %}<div class="nota"><i class="bi bi-chat-left-text me-1"></i>{{ p.notas[:60] }}{% if p.notas|length > 60 %}…{% endif %}</div>{% endif %}
   <div class="acciones">
-    {% if tipo == 'preparando' %}
-      <form method="POST" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" hx-boost="false" class="m-0">
-        <input type="hidden" name="valor" value="Listo">
-        <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i>Marcar listo</button>
-      </form>
-    {% elif tipo == 'listo' %}
+    {% if tipo == 'pendientes' %}
       <button type="button" class="btn btn-success js-vender"
               data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
         <i class="bi bi-bag-check me-1"></i>Pasar a venta
       </button>
-      <form method="POST" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" hx-boost="false" class="m-0">
-        <input type="hidden" name="valor" value="Preparando">
-        <button class="btn btn-outline-secondary" type="submit" title="Volver a Preparando"><i class="bi bi-arrow-counterclockwise"></i></button>
-      </form>
-    {% elif tipo == 'cobrar' %}
-      <button type="button" class="btn btn-success js-pagar"
+    {% elif p.por_cobrar %}
+      <button type="button" class="btn btn-danger js-pagar"
               data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
-        <i class="bi bi-cash-coin me-1"></i>Marcar pagado
+        <i class="bi bi-cash-coin me-1"></i>Marcar cobrado
       </button>
     {% endif %}
     <a href="{{ url_for('pedidos_bp.pedido_detalle', id=p.id) }}" class="btn btn-outline-dark"><i class="bi bi-eye me-1"></i>Detalle</a>
-    {% if tipo in ('preparando', 'listo', 'cobrar') and p.cel8 %}
+    {% if (tipo == 'pendientes' or p.por_cobrar) and p.cel8 %}
       <a href="https://wa.me/506{{ p.cel8 }}?text={{ ('Hola ' ~ (p.nombre.split()[0] if p.nombre else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
          target="_blank" class="btn btn-outline-success" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
     {% endif %}
-    {% if tipo == 'pagado' and p.venta_id %}
+    {% if tipo == 'entregados' and p.venta_id %}
       <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=p.venta_id) }}" hx-boost="false" class="btn btn-outline-secondary" title="Comprobante"><i class="bi bi-receipt"></i></a>
     {% endif %}
   </div>
-  {% if tipo == 'pagado' and p.metodo %}
-    <div class="meta mt-2"><i class="bi bi-check-circle-fill text-success me-1"></i>{{ p.metodo }}</div>
-  {% endif %}
 </div>
 {% endmacro %}
 
 <div class="kb-board" id="kbBoard">
-  {% for clave, titulo, lista in cols %}
-  <div class="kb-col c-{{ clave }}" data-col="{{ clave }}">
-    <div class="kb-col-head"><span>{{ titulo }}</span><span class="cnt">{{ lista|length }}</span></div>
-    {% for p in lista %}{{ tarjeta(p, clave) }}{% else %}
-      <div class="kb-vacio">Sin pedidos</div>
+  <div class="kb-col c-pendientes" data-col="pendientes">
+    <div class="kb-col-head"><span>Pendientes</span><span class="cnt">{{ columnas.pendientes|length }}</span></div>
+    {% for p in columnas.pendientes %}{{ tarjeta(p, 'pendientes') }}{% else %}
+      <div class="kb-vacio">No hay pedidos pendientes</div>
     {% endfor %}
   </div>
-  {% endfor %}
+
+  <div class="kb-col c-entregados" data-col="entregados">
+    <div class="kb-col-head"><span>Entregados</span><span class="cnt">{{ columnas.entregados|length }}</span></div>
+    <div class="filtro-ent" id="filtroEnt">
+      <button type="button" class="fe-btn activo" data-f="todos">Todos</button>
+      <button type="button" class="fe-btn rojo" data-f="cobrar">Por cobrar ({{ n_cobrar }})</button>
+      <button type="button" class="fe-btn" data-f="cobrado">Cobrados ({{ n_cobrados }})</button>
+    </div>
+    {% for p in columnas.entregados %}{{ tarjeta(p, 'entregados') }}{% else %}
+      <div class="kb-vacio">Sin entregados en este periodo</div>
+    {% endfor %}
+  </div>
 </div>
 
 {% if rechazados %}
@@ -225,7 +235,7 @@
               {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
             </select>
           </div>
-          <div id="avisoNoPago" class="small text-muted" style="display:none">Va a quedar en <b>Por cobrar</b> hasta que la marques como pagada.</div>
+          <div id="avisoNoPago" class="small text-muted" style="display:none">Va a quedar como <b>Por cobrar</b> hasta que la marques como cobrada.</div>
         </div>
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
@@ -243,7 +253,7 @@
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;border:none">
       <div class="modal-header text-white" style="background:#2d6a4f;border-radius:16px 16px 0 0">
-        <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Marcar pagado</h5>
+        <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Marcar cobrado</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" id="formPagar" hx-boost="false">
@@ -258,7 +268,7 @@
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
           <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px">
-            <i class="bi bi-check-lg me-1"></i>Confirmar pago
+            <i class="bi bi-check-lg me-1"></i>Confirmar cobro
           </button>
         </div>
       </form>
@@ -343,10 +353,19 @@
     try { sessionStorage.setItem('kbCol', clave); } catch (e) {}
   }
   tabs.forEach(t => t.addEventListener('click', () => mostrarCol(t.dataset.col)));
-  let inicial = 'preparando';
+  let inicial = 'pendientes';
   try { inicial = sessionStorage.getItem('kbCol') || inicial; } catch (e) {}
-  if (!tabs.some(t => t.dataset.col === inicial)) inicial = 'preparando';
+  if (!tabs.some(t => t.dataset.col === inicial)) inicial = 'pendientes';
   mostrarCol(inicial);
+
+  // ── Filtro dentro de Entregados: todos / por cobrar / cobrados ──
+  const botonesF = Array.from(document.querySelectorAll('#filtroEnt .fe-btn'));
+  botonesF.forEach(b => b.addEventListener('click', () => {
+    botonesF.forEach(x => x.classList.toggle('activo', x === b));
+    document.querySelectorAll('.c-entregados .kb-card').forEach(card => {
+      card.style.display = (b.dataset.f === 'todos' || card.dataset.estado === b.dataset.f) ? '' : 'none';
+    });
+  }));
 
   // ── Modal: pasar a venta ──
   const mVender = document.getElementById('modalVender');

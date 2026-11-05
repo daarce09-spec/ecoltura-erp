@@ -63,7 +63,7 @@ def _neto_linea(cantidad, precio, tipo, valor):
 
 # ─────────────────────────────────────────────
 #  BANDEJA PRINCIPAL (tablero Kanban)
-#    Preparando -> Listo -> Por cobrar -> Pagado
+#    Pendientes -> (pasar a venta) -> Entregados (por cobrar / cobrado)
 # ─────────────────────────────────────────────
 def _ultimos_8(celular):
     digitos = "".join(ch for ch in str(celular or "") if ch.isdigit())
@@ -117,7 +117,7 @@ def bandeja_pedidos():
         """, params)
         filas = cur.fetchall()
 
-    columnas = {"preparando": [], "listo": [], "cobrar": [], "pagado": []}
+    columnas = {"pendientes": [], "entregados": []}
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
@@ -130,14 +130,13 @@ def bandeja_pedidos():
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)
-            columnas["listo" if seg == "Listo" else "preparando"].append(tarjeta)
+            columnas["pendientes"].append(tarjeta)
         elif estado == "Resuelto":
             es_cobrar = (metodo == "Por cobrar")
+            tarjeta["por_cobrar"] = es_cobrar
+            columnas["entregados"].append(tarjeta)
             if es_cobrar:
                 por_cobrar += total
-                columnas["cobrar"].append(tarjeta)
-            else:
-                columnas["pagado"].append(tarjeta)
             if inicio is None or (gestionado and gestionado >= inicio):
                 facturado += total
                 if not es_cobrar:
@@ -145,11 +144,18 @@ def bandeja_pedidos():
         else:
             rechazados.append(tarjeta)
 
+    # Entregados: primero los que faltan por cobrar, después los cobrados (lo más reciente arriba)
+    columnas["entregados"].sort(key=lambda t: (not t["por_cobrar"],
+                                               -(t["gestionado"].timestamp() if t["gestionado"] else 0)))
+    n_cobrar = sum(1 for t in columnas["entregados"] if t["por_cobrar"])
+    n_cobrados = len(columnas["entregados"]) - n_cobrar
+
     resumen = {"por_entregar": por_entregar, "facturado": facturado,
                "cobrado": cobrado, "por_cobrar": por_cobrar}
     return render_template("pedidos_bandeja.html", columnas=columnas, rechazados=rechazados,
                            resumen=resumen, periodo=periodo,
-                           pendientes=len(columnas["preparando"]) + len(columnas["listo"]),
+                           n_cobrar=n_cobrar, n_cobrados=n_cobrados,
+                           pendientes=len(columnas["pendientes"]),
                            metodos=METODOS_PAGO)
 
 
@@ -192,7 +198,7 @@ def pedido_pagar(id):
                         (metodo, fila[0]))
             cur.execute("UPDATE pedidos SET pagado_en = NOW() WHERE id = %s", (id,))
             conn.commit()
-            flash(f"Pedido #{id} marcado como pagado ({metodo}).", "success")
+            flash(f"Pedido #{id} marcado como cobrado ({metodo}).", "success")
     if request.form.get("volver") == "detalle":
         return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
     return redirect(url_for("pedidos_bp.bandeja_pedidos"))
