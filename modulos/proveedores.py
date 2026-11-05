@@ -15,6 +15,14 @@ from db.conexion import obtener_conexion
 proveedores_bp = Blueprint("proveedores_bp", __name__)
 
 
+def normalizar_telefono(valor):
+    """Solo los 8 dígitos: ignora guiones, espacios, paréntesis y el +506."""
+    digitos = "".join(c for c in str(valor or "") if c.isdigit())
+    if len(digitos) > 8 and digitos.startswith("506"):
+        digitos = digitos[3:]
+    return digitos
+
+
 def asegurar_tablas():
     """Crea las tablas si no existen (seguro de correr muchas veces)."""
     try:
@@ -104,9 +112,11 @@ def api_lista():
 def api_guardar():
     data = request.get_json(silent=True) or {}
     nombre = " ".join(str(data.get("nombre", "")).split())
-    telefono = " ".join(str(data.get("telefono", "")).split())
+    telefono = normalizar_telefono(data.get("telefono"))
     if not nombre:
         return jsonify(ok=False, error="Escribí el nombre del proveedor."), 400
+    if telefono and len(telefono) != 8:
+        return jsonify(ok=False, error="El teléfono debe tener 8 dígitos (sin el +506)."), 400
 
     with obtener_conexion() as conn:
         cur = conn.cursor()
