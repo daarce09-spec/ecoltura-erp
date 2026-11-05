@@ -1382,6 +1382,7 @@ function abrirModalConfirmacion() {
   asegurarExpress();
   if (lineasReales().length === 0) { alert("Agregue al menos un producto."); return; }
   if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
+  if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
   if (!direccion) { alert("Indique la dirección de entrega."); return; }
 
   let total = 0;
@@ -1489,6 +1490,7 @@ async function enviarReserva() {
   const celular  = document.getElementById("visCelular").value.trim();
   const personas = parseInt(document.getElementById("visPersonas").value);
   if (!nombre || !celular)      { alert("Indique su nombre y celular."); return; }
+  if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
   if (!fechaSeleccionadaId)     { alert("Seleccione una fecha disponible."); return; }
 
   try {
@@ -1525,14 +1527,35 @@ document.addEventListener("keydown", e => {
 // ── INICIALIZAR ────────────────────────────────────
 // ── PRECARGA DE DATOS DEL CLIENTE ──
 // 1. Desde el navegador (mismo dispositivo)
+// Celular de Costa Rica: solo números, máximo 8 dígitos, mostrado como 8888-7777.
+// Si pegan +506 8888-7777, se ignora el 506.
+function formatearCelular(valor) {
+  let d = String(valor || "").replace(/\D/g, "");
+  if (d.length > 8 && d.startsWith("506")) d = d.slice(3);
+  d = d.slice(0, 8);
+  return d.length > 4 ? d.slice(0, 4) + "-" + d.slice(4) : d;
+}
+function activarFormatoCelular(input) {
+  if (!input) return;
+  input.setAttribute("maxlength", "14");     // deja pegar "+506 8888-7777"; se recorta a 8 dígitos
+  input.setAttribute("inputmode", "numeric");
+  input.setAttribute("autocomplete", "tel-national");
+  input.addEventListener("input", function () { this.value = formatearCelular(this.value); });
+  input.value = formatearCelular(input.value);
+}
+
 let celularRecordado = "";
 try {
   const guardado = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
   if (guardado.nombre)    document.getElementById("pedNombre").value    = guardado.nombre;
-  if (guardado.celular)   document.getElementById("pedCelular").value   = guardado.celular;
+  if (guardado.celular)   document.getElementById("pedCelular").value   = formatearCelular(guardado.celular);
   if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
 } catch(e) {}
+
+activarFormatoCelular(document.getElementById("pedCelular"));
+activarFormatoCelular(document.getElementById("notifCelInput"));
+activarFormatoCelular(document.getElementById("visCelular"));
 
 // 2. Al escribir el celular (8+ dígitos), buscar en la BD y precargar nombre/dirección
 let timerCelular = null;

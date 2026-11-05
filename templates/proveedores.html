@@ -58,7 +58,7 @@
         <label class="form-label small mb-1">Nombre</label>
         <input type="text" id="fNombre" class="form-control form-control-sm mb-2" maxlength="120">
         <label class="form-label small mb-1">Teléfono</label>
-        <input type="tel" id="fTelefono" class="form-control form-control-sm mb-2" maxlength="40" inputmode="tel">
+        <input type="tel" id="fTelefono" class="form-control form-control-sm mb-2" maxlength="14" inputmode="numeric" placeholder="8888-7777">
         <div id="fError" class="text-danger small mb-2" style="display:none"></div>
         <div class="d-flex gap-2">
           <button class="btn btn-success btn-sm" onclick="guardarProv()">Guardar</button>
@@ -119,6 +119,13 @@
   let provs = [], sel = null, prods = [], filtro = "todos";
 
   const $ = id => document.getElementById(id);
+  // Teléfono de Costa Rica: solo números, máximo 8, mostrado como 8888-7777
+  const fmtTel = v => {
+    let d = String(v == null ? "" : v).replace(/\D/g, "");
+    if (d.length > 8 && d.startsWith("506")) d = d.slice(3);
+    d = d.slice(0, 8);
+    return d.length > 4 ? d.slice(0, 4) + "-" + d.slice(4) : d;
+  };
   const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g,
         c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 
@@ -148,7 +155,7 @@
     if (!provs.length) { cont.innerHTML = '<div class="text-muted small">Todavía no hay proveedores. Creá el primero con "Nuevo".</div>'; return; }
     cont.innerHTML = provs.map(p => `
       <div class="prov-item ${sel && sel.id === p.id ? "sel" : ""}" onclick="window.__selProv(${p.id})">
-        <div><div class="nom">${esc(p.nombre)}</div><div class="tel">${esc(p.telefono) || "Sin teléfono"}</div></div>
+        <div><div class="nom">${esc(p.nombre)}</div><div class="tel">${esc(fmtTel(p.telefono)) || "Sin teléfono"}</div></div>
         <div class="cuenta">${p.n_productos} producto${p.n_productos === 1 ? "" : "s"}<br>${p.n_oficiales} oficial${p.n_oficiales === 1 ? "" : "es"}</div>
       </div>`).join("");
   }
@@ -160,7 +167,7 @@
     $("vacioProd").style.display = "none";
     $("contenidoProd").style.display = "";
     $("tituloProv").textContent = sel.nombre;
-    $("subProv").textContent = sel.telefono ? "Tel. " + sel.telefono : "Sin teléfono";
+    $("subProv").textContent = sel.telefono ? "Tel. " + fmtTel(sel.telefono) : "Sin teléfono";
     await cargarProd();
     if (window.innerWidth < 992) $("panelProd").scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -233,12 +240,15 @@
     await cargarProd();
   }
 
+  // Mientras escribe: solo números, máximo 8 dígitos, con guion
+  $("fTelefono").addEventListener("input", function () { this.value = fmtTel(this.value); });
+
   // ── formulario de proveedor ──
   window.abrirForm = function (p) {
     $("formProv").style.display = "";
     $("fId").value = p ? p.id : "";
     $("fNombre").value = p ? p.nombre : "";
-    $("fTelefono").value = p ? p.telefono : "";
+    $("fTelefono").value = !p ? "" : (String(p.telefono || "").replace(/\D/g, "").length === 8 ? fmtTel(p.telefono) : (p.telefono || ""));
     $("fError").style.display = "none";
     $("btnEliminar").style.display = p ? "" : "none";
     $("fNombre").focus();
