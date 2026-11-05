@@ -608,6 +608,9 @@ def _generar_pdf_hojas(pedidos, fecha):
 def pedido_detalle(id):
     with obtener_conexion() as conn:
         cur = conn.cursor()
+        # Al abrir el pedido se quita la marca "Modificado" (ya lo vieron)
+        cur.execute("UPDATE pedidos SET modificado = FALSE WHERE id = %s AND modificado = TRUE", (id,))
+        conn.commit()
         cur.execute("""
             SELECT p.id, p.nombre_contacto, p.celular, p.cedula,
                    p.total_estimado, p.estado, p.creado, p.notas,
@@ -1004,6 +1007,13 @@ def pedido_convertir(id):
         """, (venta_id, ya_pago, id))
 
         conn.commit()
+
+    # Aviso al cliente (si activó la campana): su pedido ya va en camino / fue entregado
+    try:
+        from modulos.push import notificar_cliente
+        notificar_cliente(celular, "ECOLTURA", "Tu pedido fue entregado. ¡Gracias por apoyar productos locales! 🌱", "/")
+    except Exception as ex:
+        print(f"No se pudo avisar al cliente del pedido #{id}: {ex}")
 
     estado_pago = "cobrada" if ya_pago else "por cobrar"
     flash(f"Pedido #{id} convertido en venta #{venta_id}, {estado_pago}.", "success")

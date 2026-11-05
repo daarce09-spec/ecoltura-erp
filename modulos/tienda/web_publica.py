@@ -295,58 +295,261 @@ def api_pedidos():
         # 1a. Si este celular activó antes la campana sin ser cliente, se vincula ahora
         vincular_suscripciones_huerfanas(cur)
 
-        # 1b. Express (envío) es obligatorio: se descarta lo que mande el cliente
-        #     para ese producto y se agrega siempre 1 con el precio de la base.
-        ID_EXPRESS = 118
-        items = [i for i in items if int(i["producto_id"]) != ID_EXPRESS]
-        if not items:
+        # 2. Validar productos y agrupar cantidades (si un producto viene repetido, se suma)
+        try:
+            nuevos = _agrupar_items(items)
+        except (ValueError, KeyError, TypeError):
+            return jsonify({"ok": False, "error": "El pedido tiene datos inválidos."}), 400
+        nuevos.pop(ID_EXPRESS, None)
+        if not nuevos:
             return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
-
-        # 2. Calcular total estimado y validar precios
-        producto_ids = [i["producto_id"] for i in items]
-        cur.execute(
-            "SELECT id, precio FROM productos WHERE id = ANY(%s) AND visible_web = TRUE",
-            (producto_ids,)
-        )
-        precios = {r[0]: float(r[1]) for r in cur.fetchall()}
-
-        if not set(producto_ids).issubset(precios.keys()):
+        precios = _precios_disponibles(cur, list(nuevos.keys()))
+        if precios is None:
             return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
 
-        cur.execute("SELECT precio FROM productos WHERE id = %s", (ID_EXPRESS,))
-        row_exp = cur.fetchone()
-        if row_exp:
-            precios[ID_EXPRESS] = float(row_exp[0])
-            items.append({"producto_id": ID_EXPRESS, "cantidad": 1})
+        # 3. ¿Ya tiene un pedido abierto con este celular? Entonces se une a ese:
+        #    así el cliente nunca tiene dos pedidos pendientes a la vez.
+        cur.execute(f"""
+            SELECT id, token FROM pedidos
+            WHERE estado = 'Pendiente' AND {SQL_CEL_LIMPIO} = %s
+            ORDER BY id DESC LIMIT 1
+        """, (celular,))
+        abierto = cur.fetchone()
 
-        total = sum(round(precios[i["producto_id"]] * float(i["cantidad"])) for i in items)   # colones enteros
-
-        # 3. Insertar pedido (la dirección va en notas para que el admin la vea)
-        notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
-        cur.execute("""
-            INSERT INTO pedidos
-                (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado)
-            VALUES (%s, %s, '', %s, %s, %s, 'Pendiente', NOW())
-            RETURNING id
-        """, (cliente_id, nombre, celular, notas_completa, total))
-        pedido_id = cur.fetchone()[0]
-
-        # 4. Insertar detalle
-        for item in items:
+        if abierto:
+            pedido_id, token = abierto
+            existentes = _leer_lineas(cur, pedido_id)
+            for pid, cant in nuevos.items():
+                if pid in existentes:
+                    cant_vieja, precio, tipo, valor = existentes[pid]
+                    cur.execute("""UPDATE pedidos_detalle SET cantidad = %s
+                                   WHERE pedido_id = %s AND producto_id = %s""",
+                                (cant_vieja + cant, pedido_id, pid))
+                else:
+                    cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
+                                   VALUES (%s, %s, %s, %s)""", (pedido_id, pid, cant, precios[pid]))
+            _asegurar_express(cur, pedido_id)
+            total = _recalcular_total_pedido(cur, pedido_id)
+            extra = f" ➕ {notas}" if notas else ""
+            cur.execute("""UPDATE pedidos SET modificado = TRUE, modificado_en = NOW(),
+                                  notas = COALESCE(notas, '') || %s
+                           WHERE id = %s""", (extra, pedido_id))
+            conn.commit()
+            unido = True
+        else:
+            # 4. Pedido nuevo (la dirección va en notas para que el admin la vea)
+            notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
             cur.execute("""
-                INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
-                VALUES (%s, %s, %s, %s)
-            """, (pedido_id, item["producto_id"], float(item["cantidad"]), precios[item["producto_id"]]))
-
-        conn.commit()
+                INSERT INTO pedidos
+                    (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado)
+                VALUES (%s, %s, '', %s, %s, 0, 'Pendiente', NOW())
+                RETURNING id, token
+            """, (cliente_id, nombre, celular, notas_completa))
+            pedido_id, token = cur.fetchone()
+            for pid, cant in nuevos.items():
+                cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
+                               VALUES (%s, %s, %s, %s)""", (pedido_id, pid, cant, precios[pid]))
+            _asegurar_express(cur, pedido_id)
+            total = _recalcular_total_pedido(cur, pedido_id)
+            conn.commit()
+            unido = False
 
     # Aviso al celular de quienes tienen activadas las notificaciones del admin
     try:
-        notificar_admins("🛒 Nuevo pedido web", f"{nombre} · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
+        if unido:
+            notificar_admins(f"🛒 Pedido #{pedido_id} actualizado", f"{nombre} agregó productos · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
+        else:
+            notificar_admins("🛒 Nuevo pedido web", f"{nombre} · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
     except Exception as ex:
         print(f"No se pudo avisar del pedido #{pedido_id}: {ex}")
 
-    return jsonify({"ok": True, "pedido_id": pedido_id})
+    return jsonify({"ok": True, "pedido_id": pedido_id, "token": token, "unido": unido})
+
+
+# ─────────────────────────────────────────────
+#  SEGUIMIENTO DEL PEDIDO (lo que ve el cliente)
+#  El enlace privado lleva un código largo (token) que solo conoce el cliente.
+#  Preparando = Pendiente · Entregado = Resuelto · Cancelado = Rechazado
+# ─────────────────────────────────────────────
+ID_EXPRESS = 118
+ESTADO_CLIENTE = {"Pendiente": "Preparando", "Resuelto": "Entregado", "Rechazado": "Cancelado"}
+
+
+def _agrupar_items(items):
+    """{producto_id: cantidad} sumando repetidos; ignora cantidades <= 0."""
+    out = {}
+    for i in items:
+        pid = int(i["producto_id"])
+        cant = float(i["cantidad"])
+        if cant > 0:
+            out[pid] = out.get(pid, 0.0) + cant
+    return out
+
+
+def _precios_disponibles(cur, ids):
+    """{id: precio} si TODOS están visibles en la web; None si alguno no lo está."""
+    if not ids:
+        return {}
+    cur.execute("SELECT id, precio FROM productos WHERE id = ANY(%s) AND visible_web = TRUE", (ids,))
+    precios = {r[0]: float(r[1]) for r in cur.fetchall()}
+    return precios if set(ids).issubset(precios.keys()) else None
+
+
+def _leer_lineas(cur, pedido_id):
+    cur.execute("""SELECT producto_id, cantidad, precio_unitario,
+                          COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
+                   FROM pedidos_detalle WHERE pedido_id = %s""", (pedido_id,))
+    return {r[0]: (float(r[1]), float(r[2]), r[3], float(r[4])) for r in cur.fetchall()}
+
+
+def _asegurar_express(cur, pedido_id):
+    """El envío (Express) va siempre una vez, al precio actual de la base."""
+    cur.execute("SELECT precio FROM productos WHERE id = %s", (ID_EXPRESS,))
+    fila = cur.fetchone()
+    if not fila:
+        return
+    cur.execute("SELECT 1 FROM pedidos_detalle WHERE pedido_id = %s AND producto_id = %s", (pedido_id, ID_EXPRESS))
+    if not cur.fetchone():
+        cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
+                       VALUES (%s, %s, 1, %s)""", (pedido_id, ID_EXPRESS, float(fila[0])))
+
+
+def _desc(subtotal, tipo, valor):
+    valor = float(valor or 0)
+    if valor <= 0 or subtotal <= 0:
+        return 0.0
+    if tipo == 'porcentaje':
+        return float(round(subtotal * min(valor, 100.0) / 100.0))
+    return float(round(min(valor, subtotal)))
+
+
+def _recalcular_total_pedido(cur, pedido_id):
+    """Igual que el Admin: suma de líneas (con su descuento) menos el descuento general."""
+    subtotal = 0.0
+    for cant, precio, tipo, valor in _leer_lineas(cur, pedido_id).values():
+        base = float(round(cant * precio))
+        subtotal += float(round(base - _desc(base, tipo, valor)))
+    cur.execute("SELECT COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0) FROM pedidos WHERE id = %s", (pedido_id,))
+    tipo, valor = cur.fetchone()
+    total = float(round(subtotal - _desc(subtotal, tipo, valor)))
+    cur.execute("UPDATE pedidos SET total_estimado = %s WHERE id = %s", (total, pedido_id))
+    return total
+
+
+@web_bp.route("/pedido/<token>")
+def pagina_pedido(token):
+    return render_template("tienda/web_pedido.html", token=token)
+
+
+@web_bp.route("/api/pedido/<token>")
+def api_pedido_estado(token):
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("""
+            SELECT p.id, p.estado, p.nombre_contacto, p.total_estimado, p.creado, v.metodo_pago
+            FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
+            WHERE p.token = %s
+        """, (token,))
+        fila = cur.fetchone()
+        if not fila:
+            return jsonify({"ok": False, "error": "No encontramos este pedido."}), 404
+        pid, estado, nombre, total, creado, metodo = fila
+        cur.execute("""
+            SELECT d.producto_id, pr.nombre, pr.unidad, d.cantidad, d.precio_unitario,
+                   COALESCE(d.descuento_tipo, 'monto'), COALESCE(d.descuento_valor, 0)
+            FROM pedidos_detalle d JOIN productos pr ON pr.id = d.producto_id
+            WHERE d.pedido_id = %s ORDER BY (d.producto_id = %s), pr.nombre
+        """, (pid, ID_EXPRESS))
+        items, suma = [], 0.0
+        for prod, nom, uni, cant, precio, tipo, valor in cur.fetchall():
+            base = float(round(float(cant) * float(precio)))
+            neto = float(round(base - _desc(base, tipo, valor)))
+            suma += neto
+            items.append({"producto_id": prod, "nombre": nom, "unidad": uni, "cantidad": float(cant),
+                          "subtotal": neto, "envio": prod == ID_EXPRESS})
+    total = float(total or 0)
+    return jsonify({
+        "ok": True,
+        "numero": pid,
+        "estado": ESTADO_CLIENTE.get(estado, "Preparando"),
+        "editable": estado == "Pendiente",
+        "pagado": bool(metodo) and metodo != "Por cobrar",
+        "nombre": nombre,
+        "total": total,
+        "descuento": max(0.0, suma - total),
+        "items": items,
+    })
+
+
+@web_bp.route("/api/pedido/<token>/editar", methods=["POST"])
+def api_pedido_editar(token):
+    """Reemplaza las líneas del pedido por las que manda el cliente (mientras siga Preparando)."""
+    data = request.get_json(force=True)
+    try:
+        nuevos = _agrupar_items(data.get("items", []))
+    except (ValueError, KeyError, TypeError):
+        return jsonify({"ok": False, "error": "El pedido tiene datos inválidos."}), 400
+    nuevos.pop(ID_EXPRESS, None)
+    if not nuevos:
+        return jsonify({"ok": False, "error": "El pedido no puede quedar vacío. Si ya no lo quiere, puede cancelarlo."}), 400
+
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, estado, nombre_contacto FROM pedidos WHERE token = %s FOR UPDATE", (token,))
+        fila = cur.fetchone()
+        if not fila:
+            return jsonify({"ok": False, "error": "No encontramos este pedido."}), 404
+        pedido_id, estado, nombre = fila
+        if estado != "Pendiente":
+            return jsonify({"ok": False, "error": "Este pedido ya no se puede modificar."}), 409
+
+        # Los productos que ya estaban en el pedido se pueden dejar aunque hoy no estén en la tienda
+        existentes = _leer_lineas(cur, pedido_id)
+        por_validar = [p for p in nuevos if p not in existentes]
+        precios = _precios_disponibles(cur, por_validar)
+        if precios is None:
+            return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
+
+        for pid in list(existentes.keys()):
+            if pid != ID_EXPRESS and pid not in nuevos:
+                cur.execute("DELETE FROM pedidos_detalle WHERE pedido_id = %s AND producto_id = %s", (pedido_id, pid))
+        for pid, cant in nuevos.items():
+            if pid in existentes:
+                cur.execute("UPDATE pedidos_detalle SET cantidad = %s WHERE pedido_id = %s AND producto_id = %s",
+                            (cant, pedido_id, pid))
+            else:
+                cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
+                               VALUES (%s, %s, %s, %s)""", (pedido_id, pid, cant, precios[pid]))
+        _asegurar_express(cur, pedido_id)
+        total = _recalcular_total_pedido(cur, pedido_id)
+        cur.execute("UPDATE pedidos SET modificado = TRUE, modificado_en = NOW() WHERE id = %s", (pedido_id,))
+        conn.commit()
+
+    try:
+        notificar_admins(f"✏️ Pedido #{pedido_id} modificado", f"{nombre} cambió su pedido · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
+    except Exception as ex:
+        print(f"No se pudo avisar de la edición del pedido #{pedido_id}: {ex}")
+    return jsonify({"ok": True, "pedido_id": pedido_id, "total": total})
+
+
+@web_bp.route("/api/pedido/<token>/cancelar", methods=["POST"])
+def api_pedido_cancelar(token):
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT id, estado, nombre_contacto FROM pedidos WHERE token = %s FOR UPDATE", (token,))
+        fila = cur.fetchone()
+        if not fila:
+            return jsonify({"ok": False, "error": "No encontramos este pedido."}), 404
+        pedido_id, estado, nombre = fila
+        if estado != "Pendiente":
+            return jsonify({"ok": False, "error": "Este pedido ya no se puede cancelar."}), 409
+        cur.execute("UPDATE pedidos SET estado = 'Rechazado', gestionado = NOW() WHERE id = %s", (pedido_id,))
+        conn.commit()
+    try:
+        notificar_admins(f"❌ Pedido #{pedido_id} cancelado", f"{nombre} canceló su pedido", f"/admin/pedidos/{pedido_id}")
+    except Exception as ex:
+        print(f"No se pudo avisar de la cancelación del pedido #{pedido_id}: {ex}")
+    return jsonify({"ok": True})
 
 
 # ─────────────────────────────────────────────

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi pedido — ECOLTURA</title>
+  <meta name="robots" content="noindex">
+  <link rel="icon" type="image/png" href="/static/img/apple-touch-icon.png?v=2">
+  <meta name="theme-color" content="#3E6B22">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root { --crema:#F4F1EA; --blanco:#fff; --borde:#E2E0DA; --texto:#55554F; --gris:#8C8C85;
+            --verde:#3E6B22; --verde-os:#2E5117; --lima:#A4C93C; --naranja:#D9742E; --carbon:#3F3F41; }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Inter',sans-serif; background:var(--crema); color:var(--texto); line-height:1.55;
+           font-size:15px; -webkit-font-smoothing:antialiased; }
+    .wrap { max-width:520px; margin:0 auto; padding:20px 16px 40px; }
+    .logo { text-align:center; margin-bottom:14px; }
+    .logo img { height:52px; width:auto; }
+    h1 { font-family:'Fraunces',serif; font-weight:600; color:var(--verde-os); font-size:1.5rem; text-align:center; }
+    .sub { text-align:center; color:var(--gris); font-size:.88rem; margin:2px 0 18px; }
+    .card { background:var(--blanco); border:1px solid var(--borde); border-radius:16px; padding:18px; margin-bottom:14px; }
+
+    .pasos { display:flex; align-items:flex-start; }
+    .paso { flex:1; text-align:center; position:relative; font-size:.8rem; color:var(--gris); }
+    .paso .dot { width:30px; height:30px; border-radius:50%; margin:0 auto 6px; display:flex; align-items:center;
+                 justify-content:center; background:#ECEAE3; color:var(--gris); font-weight:600; position:relative; z-index:1; }
+    .paso::before { content:""; position:absolute; top:14px; left:-50%; width:100%; height:3px; background:#ECEAE3; }
+    .paso:first-child::before { display:none; }
+    .paso.on { color:var(--verde-os); font-weight:600; }
+    .paso.on .dot { background:var(--verde); color:#fff; }
+    .paso.on::before { background:var(--verde); }
+    .paso.actual .dot { box-shadow:0 0 0 5px rgba(164,201,60,.35); }
+    .msj { text-align:center; margin-top:14px; color:var(--texto); font-size:.92rem; }
+
+    .fila { display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid #F0EEE8; font-size:.92rem; }
+    .fila:last-child { border-bottom:0; }
+    .fila .n { flex:1; }
+    .fila .m { white-space:nowrap; font-weight:600; color:var(--carbon); }
+    .fila.envio { color:var(--gris); }
+    .fila.desc .m { color:var(--verde); }
+    .total { display:flex; justify-content:space-between; padding-top:12px; margin-top:4px; border-top:2px solid var(--borde);
+             font-family:'Fraunces',serif; font-size:1.2rem; color:var(--verde-os); font-weight:600; }
+    .pago { margin-top:12px; font-size:.88rem; color:var(--gris); text-align:center; }
+    .pago.ok { color:var(--verde); font-weight:600; }
+
+    .btn { display:block; width:100%; text-align:center; text-decoration:none; border:none; cursor:pointer;
+           border-radius:12px; padding:14px; font-size:.98rem; font-weight:600; font-family:inherit; margin-top:10px; }
+    .btn.p { background:var(--verde); color:#fff; }
+    .btn.s { background:var(--blanco); color:var(--verde-os); border:1.5px solid var(--verde); }
+    .btn.t { background:transparent; color:var(--gris); font-weight:500; font-size:.88rem; padding:10px; }
+    .confirma { display:none; margin-top:10px; padding:14px; border-radius:12px; background:#FBF3EC; border:1px solid #F0D9C4;
+                text-align:center; font-size:.9rem; }
+    .confirma .btn { margin-top:8px; }
+    .vacio { text-align:center; padding:40px 10px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <div class="logo"><a href="/"><img src="/static/img/ecoltura-logo.png" alt="ECOLTURA"></a></div>
+  <div id="contenido"><div class="vacio" style="color:var(--gris)">Cargando tu pedido…</div></div>
+</div>
+
+<script>
+const TOKEN = {{ token|tojson }};
+const fmt = n => '₡' + Math.round(n).toLocaleString('es-CR');
+const cont = document.getElementById('contenido');
+
+function el(tag, cls, txt) {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt !== undefined) e.textContent = txt;
+  return e;
+}
+
+function limpiarRecordado() {
+  try {
+    const g = JSON.parse(localStorage.getItem('ecoltura_pedido') || '{}');
+    if (g.token === TOKEN) localStorage.removeItem('ecoltura_pedido');
+  } catch(e) {}
+}
+
+function cantidadTexto(i) {
+  const c = i.cantidad;
+  if ((i.unidad || '').toLowerCase().startsWith('gramo')) return c >= 1000 ? (c / 1000).toLocaleString('es-CR') + ' kg' : c + ' g';
+  const n = Number.isInteger(c) ? c : c.toLocaleString('es-CR');
+  return n + ' ' + (i.unidad || '');
+}
+
+function pintar(d) {
+  cont.innerHTML = '';
+  const cancelado = d.estado === 'Cancelado';
+  const entregado = d.estado === 'Entregado';
+  if (cancelado || entregado) limpiarRecordado();
+
+  cont.appendChild(el('h1', '', 'Pedido #' + d.numero));
+  cont.appendChild(el('div', 'sub', 'Hola ' + (d.nombre || '').split(' ')[0] + ' 🌱'));
+
+  // Estado
+  const c1 = el('div', 'card');
+  if (cancelado) {
+    c1.appendChild(el('div', 'msj', 'Este pedido fue cancelado. Cuando quieras, podés hacer uno nuevo.'));
+  } else {
+    const pasos = el('div', 'pasos');
+    [['Recibido', true, false], ['Preparando', true, !entregado], ['Entregado', entregado, entregado]].forEach(([t, on, act], k) => {
+      const p = el('div', 'paso' + (on ? ' on' : '') + (act ? ' actual' : ''));
+      p.appendChild(el('div', 'dot', on ? '✓' : String(k + 1)));
+      p.appendChild(document.createTextNode(t));
+      pasos.appendChild(p);
+    });
+    c1.appendChild(pasos);
+    c1.appendChild(el('div', 'msj', entregado
+      ? '¡Tu pedido fue entregado! Gracias por apoyar productos locales.'
+      : 'Estamos preparando tu pedido. Te escribimos por WhatsApp para coordinar la entrega.'));
+  }
+  cont.appendChild(c1);
+
+  // Detalle
+  const c2 = el('div', 'card');
+  d.items.forEach(i => {
+    const f = el('div', 'fila' + (i.envio ? ' envio' : ''));
+    f.appendChild(el('span', 'n', i.envio ? i.nombre : i.nombre + ' · ' + cantidadTexto(i)));
+    f.appendChild(el('span', 'm', fmt(i.subtotal)));
+    c2.appendChild(f);
+  });
+  if (d.descuento > 0) {
+    const f = el('div', 'fila desc');
+    f.appendChild(el('span', 'n', 'Descuento'));
+    f.appendChild(el('span', 'm', '− ' + fmt(d.descuento)));
+    c2.appendChild(f);
+  }
+  const t = el('div', 'total');
+  t.appendChild(el('span', '', 'Total'));
+  t.appendChild(el('span', '', fmt(d.total)));
+  c2.appendChild(t);
+  if (d.pagado) c2.appendChild(el('div', 'pago ok', '✓ Pago recibido'));
+  else if (!cancelado && !entregado) c2.appendChild(el('div', 'pago', 'El pago lo coordinamos con vos al entregar.'));
+  cont.appendChild(c2);
+
+  // Acciones
+  if (d.editable) {
+    const a = el('a', 'btn p', '✏️ Editar o agregar productos');
+    a.href = '/?editar=' + encodeURIComponent(TOKEN);
+    cont.appendChild(a);
+
+    const b = el('button', 'btn t', 'Cancelar pedido');
+    const conf = el('div', 'confirma');
+    conf.appendChild(el('div', '', '¿Seguro que querés cancelar el pedido?'));
+    const si = el('button', 'btn p', 'Sí, cancelar');
+    const no = el('button', 'btn t', 'No, mantenerlo');
+    conf.appendChild(si); conf.appendChild(no);
+    b.onclick = () => { conf.style.display = 'block'; b.style.display = 'none'; };
+    no.onclick = () => { conf.style.display = 'none'; b.style.display = 'block'; };
+    si.onclick = async () => {
+      si.disabled = true; si.textContent = 'Cancelando…';
+      try {
+        const r = await fetch('/api/pedido/' + encodeURIComponent(TOKEN) + '/cancelar', { method: 'POST' });
+        const j = await r.json();
+        if (!j.ok) alert(j.error || 'No se pudo cancelar.');
+      } catch(e) { alert('Error de conexión. Intentá de nuevo.'); }
+      ultimaFirma = ''; cargar();
+    };
+    cont.appendChild(b); cont.appendChild(conf);
+  } else {
+    const a = el('a', 'btn p', 'Volver a la tienda');
+    a.href = '/';
+    cont.appendChild(a);
+  }
+}
+
+let ultimaFirma = '';
+async function cargar() {
+  try {
+    const r = await fetch('/api/pedido/' + encodeURIComponent(TOKEN));
+    const d = await r.json();
+    if (!d.ok) {
+      limpiarRecordado();
+      cont.innerHTML = '';
+      const v = el('div', 'vacio');
+      v.appendChild(el('p', '', d.error || 'No encontramos este pedido.'));
+      const a = el('a', 'btn p', 'Ir a la tienda'); a.href = '/';
+      v.appendChild(a);
+      cont.appendChild(v);
+      return;
+    }
+    const firma = JSON.stringify(d);
+    if (firma !== ultimaFirma) { ultimaFirma = firma; pintar(d); }
+  } catch(e) {
+    cont.innerHTML = '';
+    cont.appendChild(el('div', 'vacio', 'No pudimos cargar tu pedido. Revisá tu conexión.'));
+  }
+}
+cargar();
+// Se actualiza solo cuando el pedido cambia de estado
+setInterval(() => { if (!document.hidden) cargar(); }, 30000);
+</script>
+</body>
+</html>

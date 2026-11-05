@@ -182,6 +182,32 @@ def notificar_admins(titulo, cuerpo, url="/"):
 
 
 # ─────────────────────────────────────────────
+#  Avisar a UN cliente por su celular (últimos 8 dígitos), en segundo plano.
+#  Se usa, por ejemplo, cuando su pedido pasa a Entregado.
+# ─────────────────────────────────────────────
+def notificar_cliente(celular, titulo, cuerpo, url="/"):
+    cel = _solo_8_digitos(celular)[-8:]
+    if len(cel) != 8:
+        return
+    def _enviar():
+        try:
+            with obtener_conexion() as conn:
+                cur = conn.cursor()
+                cur.execute(f"""
+                    SELECT endpoint, p256dh, auth FROM push_subscriptions
+                    WHERE tipo = 'cliente' AND activo = TRUE
+                      AND ({_sql_cel('celular')} = %s
+                           OR cliente_id IN (SELECT id FROM clientes WHERE {_sql_cel('celular')} = %s))
+                """, (cel, cel))
+                subs = cur.fetchall()
+            for s in subs:
+                enviar_push(s, titulo, cuerpo, url=url)
+        except Exception as ex:
+            print(f"Error notificando al cliente: {ex}")
+    threading.Thread(target=_enviar, daemon=True).start()
+
+
+# ─────────────────────────────────────────────
 #  API: enviar notificación manual a UN cliente (desde /menu)
 # ─────────────────────────────────────────────
 @push_bp.route("/api/push/enviar-cliente", methods=["POST"])

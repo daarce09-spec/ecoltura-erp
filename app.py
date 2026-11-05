@@ -65,7 +65,7 @@ app.register_blueprint(recordatorios_bp)
 #   Servicio del ADMIN     →  TIENDA_URL=https://miecoltura.up.railway.app
 #       si alguien abre la raíz "/" lo manda a la tienda (un solo link público).
 RUTAS_PUBLICAS = (
-    "/api/productos", "/api/version", "/api/cliente/", "/api/pedidos", "/api/visitas/",
+    "/api/productos", "/api/version", "/api/cliente/", "/api/pedidos", "/api/pedido/", "/pedido/", "/api/visitas/",
     "/api/push/public-key", "/api/push/subscribe",
     "/api/recordatorios/marcar-leido/", "/api/recordatorios/pendiente",
     "/static/", "/sw.js", "/favicon.ico",
