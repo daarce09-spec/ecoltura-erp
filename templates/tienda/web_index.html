@@ -211,8 +211,8 @@
 
     /* Grid tienda */
     .tienda { max-width: 1160px; margin: 0 auto; padding: 28px 24px 120px;
-              display: grid; grid-template-columns: 1fr 320px; gap: 36px; align-items: start; }
-    @media (max-width: 960px) { .tienda { grid-template-columns: 1fr; padding: 22px 16px 100px; } }
+              display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 36px; align-items: start; }
+    @media (max-width: 960px) { .tienda { grid-template-columns: minmax(0, 1fr); padding: 22px 16px 100px; } }
 
     /* Chips / filtros */
     .chips { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 26px;
@@ -252,7 +252,7 @@
     .agregar:hover { background: var(--verde); color: #fff; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
-    .destacados { margin-bottom: 26px; }
+    .destacados { margin-bottom: 26px; min-width: 0; max-width: 100%; }
     .dest-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
     .dest-head h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); }
     .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--naranja); font-weight: 600; }
@@ -1409,8 +1409,31 @@ function renderDestacados() {
 }
 function moverDestacados(dir) {
   const pista = document.getElementById("destPista");
-  pista.scrollBy({ left: dir * 420, behavior: "smooth" });
+  const paso = (pista.firstElementChild ? pista.firstElementChild.offsetWidth : 200) + 16;
+  const alFinal = pista.scrollLeft + pista.clientWidth >= pista.scrollWidth - 4;
+  if (dir > 0 && alFinal) pista.scrollTo({ left: 0, behavior: "smooth" });   // vuelve al inicio
+  else pista.scrollBy({ left: dir * paso, behavior: "smooth" });
 }
+
+// El carrusel avanza solo cada 4 segundos; se detiene mientras el cliente lo toca,
+// pasa el mouse por encima o la pestaña no está a la vista.
+let destPausado = false;
+(function () {
+  const pista = document.getElementById("destPista");
+  const caja = document.getElementById("destacados");
+  const pausa = () => { destPausado = true; };
+  const sigue = () => { destPausado = false; };
+  ["mouseenter", "touchstart", "focusin", "pointerdown"].forEach(ev => caja.addEventListener(ev, pausa, { passive: true }));
+  ["mouseleave", "focusout"].forEach(ev => caja.addEventListener(ev, sigue));
+  caja.addEventListener("touchend", () => setTimeout(sigue, 6000), { passive: true });
+  const reducido = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reducido) return;
+  setInterval(() => {
+    if (destPausado || document.hidden || caja.style.display === "none") return;
+    if (pista.scrollWidth <= pista.clientWidth + 4) return;   // todo cabe: no hay nada que mover
+    moverDestacados(1);
+  }, 4000);
+})();
 
 function actualizarPedido(id, delta) {
   pedido[id] = Math.max(0, (pedido[id] || 0) + delta);
