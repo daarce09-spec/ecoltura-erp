@@ -1,32 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 Web Pública ECOLTURA
-Ubicación: modulos/web_publica.py
-Blueprint registrado en app.py como: from modulos.web_publica import web_bp
+Ubicación: modulos/tienda/web_publica.py
+Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_bp
 """
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
+from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
 from datetime import datetime, timedelta
 
 web_bp = Blueprint("web_bp", __name__)
-
-
-def normalizar_celular(valor):
-    """Deja solo los 8 dígitos del número: ignora guiones, espacios, paréntesis y el +506."""
-    digitos = "".join(c for c in str(valor or "") if c.isdigit())
-    if len(digitos) > 8 and digitos.startswith("506"):
-        digitos = digitos[3:]
-    return digitos
-
-# Compara contra los últimos 8 dígitos de lo guardado (aunque esté como 8888-7777 o +506 8888 7777)
-SQL_CEL_LIMPIO = "RIGHT(REGEXP_REPLACE(COALESCE(celular, ''), '[^0-9]', '', 'g'), 8)"
 
 # ─────────────────────────────────────────────
 #  PÁGINA PRINCIPAL (sirve el HTML de la web)
 # ─────────────────────────────────────────────
 @web_bp.route("/")
 def index():
-    return render_template("web_index.html")
+    return render_template("tienda/web_index.html")
 
 
 # ─────────────────────────────────────────────
@@ -64,9 +54,12 @@ def api_productos():
                     ), 0)
                     FROM inventario_movimientos
                     WHERE producto_id = p.id
-                ) AS stock_real
+                ) AS stock_real,
+                p.grupo_id,
+                p.grupo_nombre,
+                p.nombre_variante
             FROM productos p
-            WHERE p.visible_web = TRUE
+            WHERE p.visible_web = TRUE OR p.id = 118   -- Express (envío) va siempre
             ORDER BY
                 CASE p.categoria
                     WHEN 'Verduras' THEN 1
@@ -82,6 +75,14 @@ def api_productos():
         """)
         rows = cur.fetchall()
 
+        # Pesos preestablecidos (kg/g) por producto — parametrizables desde
+        # la tabla producto_pesos, sin necesidad de tocar código para
+        # agregar o quitar opciones.
+        cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, gramos")
+        pesos_por_producto = {}
+        for producto_id, gramos in cur.fetchall():
+            pesos_por_producto.setdefault(producto_id, []).append(gramos)
+
     productos = [
         {
             "id":        r[0],
@@ -90,11 +91,41 @@ def api_productos():
             "unidad":    r[3],
             "precio":    float(r[4]),
             "stock":     float(r[5]),
+            "pesos":     pesos_por_producto.get(r[0], []),
+            "grupo_id":       r[6],
+            "grupo_nombre":   r[7],
+            "nombre_variante": r[8],
         }
         for r in rows
-        if float(r[5]) > 0          # solo productos con stock disponible
+        if float(r[5]) > 0 or r[0] == 118   # solo con stock; Express (118) siempre, aunque su stock llegue a 0
     ]
-    return jsonify(productos)
+
+    # Agrupar productos que comparten grupo_id en una sola tarjeta con
+    # variantes (ej. "Miel de abeja" con 1.4kg / 750g / 360g) — parametrizable
+    # desde las columnas grupo_id/grupo_nombre/nombre_variante, sin tocar código.
+    grupos = {}
+    resultado = []
+    for p in productos:
+        gid = p.pop("grupo_id")
+        gnom = p.pop("grupo_nombre")
+        p["nombre_variante"] = p.pop("nombre_variante")
+        if gid:
+            if gid not in grupos:
+                entrada = {
+                    "esGrupo": True,
+                    "id": f"g{gid}",
+                    "nombre": gnom or p["nombre"],
+                    "categoria": p["categoria"],
+                    "variantes": [],
+                }
+                grupos[gid] = entrada
+                resultado.append(entrada)
+            grupos[gid]["variantes"].append(p)
+        else:
+            del p["nombre_variante"]
+            resultado.append(p)
+
+    return jsonify(resultado)
 
 
 # ─────────────────────────────────────────────
@@ -106,7 +137,7 @@ def api_productos():
 def api_cliente_por_celular(celular):
     """Si el celular ya existe, devuelve nombre, dirección Y el historial combinado
     de TODOS los clientes que comparten ese celular (familia que comparte teléfono)."""
-    celular = normalizar_celular(celular)
+    celular = celular.strip()
     if len(celular) < 8:
         return jsonify({"existe": False})
 
@@ -115,7 +146,7 @@ def api_cliente_por_celular(celular):
 
         # 1. Todos los clientes con ese celular (puede haber varios: familia)
         cur.execute(
-            f"SELECT id, nombre, direccion FROM clientes WHERE {SQL_CEL_LIMPIO} = %s ORDER BY id",
+            "SELECT id, nombre, direccion FROM clientes WHERE celular = %s ORDER BY id",
             (celular,)
         )
         clientes = cur.fetchall()
@@ -212,15 +243,13 @@ def api_pedidos():
     data = request.get_json(force=True)
 
     nombre    = (data.get("nombre")    or "").strip()
-    celular   = normalizar_celular(data.get("celular"))
+    celular   = (data.get("celular")   or "").strip()
     direccion = (data.get("direccion") or "").strip()
     notas     = (data.get("notas")     or "").strip()
     items     = data.get("items", [])
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
-    if len(celular) != 8:
-        return jsonify({"ok": False, "error": "El celular debe tener 8 dígitos."}), 400
     if not direccion:
         return jsonify({"ok": False, "error": "La dirección de entrega es obligatoria."}), 400
     if not items:
@@ -231,7 +260,7 @@ def api_pedidos():
 
         # 1. Buscar o crear cliente — MATCH POR CELULAR
         cliente_id = None
-        cur.execute(f"SELECT id FROM clientes WHERE {SQL_CEL_LIMPIO} = %s ORDER BY id LIMIT 1", (celular,))
+        cur.execute("SELECT id FROM clientes WHERE celular = %s LIMIT 1", (celular,))
         row = cur.fetchone()
         if row:
             cliente_id = row[0]
@@ -253,6 +282,16 @@ def api_pedidos():
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
 
+        # 1a. Si este celular activó antes la campana sin ser cliente, se vincula ahora
+        vincular_suscripciones_huerfanas(cur)
+
+        # 1b. Express (envío) es obligatorio: se descarta lo que mande el cliente
+        #     para ese producto y se agrega siempre 1 con el precio de la base.
+        ID_EXPRESS = 118
+        items = [i for i in items if int(i["producto_id"]) != ID_EXPRESS]
+        if not items:
+            return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
+
         # 2. Calcular total estimado y validar precios
         producto_ids = [i["producto_id"] for i in items]
         cur.execute(
@@ -261,10 +300,16 @@ def api_pedidos():
         )
         precios = {r[0]: float(r[1]) for r in cur.fetchall()}
 
-        if len(precios) != len(producto_ids):
+        if not set(producto_ids).issubset(precios.keys()):
             return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
 
-        total = sum(precios[i["producto_id"]] * float(i["cantidad"]) for i in items)
+        cur.execute("SELECT precio FROM productos WHERE id = %s", (ID_EXPRESS,))
+        row_exp = cur.fetchone()
+        if row_exp:
+            precios[ID_EXPRESS] = float(row_exp[0])
+            items.append({"producto_id": ID_EXPRESS, "cantidad": 1})
+
+        total = sum(round(precios[i["producto_id"]] * float(i["cantidad"])) for i in items)   # colones enteros
 
         # 3. Insertar pedido (la dirección va en notas para que el admin la vea)
         notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
@@ -284,6 +329,12 @@ def api_pedidos():
             """, (pedido_id, item["producto_id"], float(item["cantidad"]), precios[item["producto_id"]]))
 
         conn.commit()
+
+    # Aviso al celular de quienes tienen activadas las notificaciones del admin
+    try:
+        notificar_admins("🛒 Nuevo pedido web", f"{nombre} · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
+    except Exception as ex:
+        print(f"No se pudo avisar del pedido #{pedido_id}: {ex}")
 
     return jsonify({"ok": True, "pedido_id": pedido_id})
 
@@ -346,7 +397,7 @@ def api_visitas_reservar():
 
     fecha_id = data.get("fecha_id")
     nombre   = (data.get("nombre")  or "").strip()
-    celular  = normalizar_celular(data.get("celular"))
+    celular  = (data.get("celular") or "").strip()
     personas = int(data.get("personas", 1))
 
     if not all([fecha_id, nombre, celular]):
