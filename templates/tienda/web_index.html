@@ -678,7 +678,17 @@
     <div style="margin-bottom:14px"><img src="/static/img/ecoltura-logo.png" alt="ECOLTURA" style="height:60px;width:auto"></div>
     <div class="modal-exito-titulo">¡Pedido recibido!</div>
     <div class="modal-exito-texto" id="textoExito"></div>
-    <button class="btn-confirmar" style="margin-top:22px;width:100%" onclick="cerrarModal('overlayExito')">Cerrar</button>
+    <!-- Invitación a activar avisos justo después de pedir (solo si el aparato los permite y aún no están activos) -->
+    <div id="bloqueCampanaExito" style="display:none; margin-top:18px; padding:14px; border-radius:10px;
+         background:#F3F8EE; border:1px solid #D5E5C6; text-align:left;">
+      <div style="font-weight:600; font-size:.92rem; margin-bottom:4px;">🔔 ¿Querés que te avisemos?</div>
+      <div id="textoCampanaExito" style="font-size:.85rem; color:var(--texto); line-height:1.5; margin-bottom:10px;">
+        Activá los avisos y te escribimos cuando te toque volver a pedir.
+      </div>
+      <button id="btnCampanaExito" class="btn-confirmar" style="width:100%"
+              onclick="cerrarModal('overlayExito'); activarNotificacionesCliente()">Activar avisos</button>
+    </div>
+    <button class="btn-confirmar" style="margin-top:18px;width:100%" onclick="cerrarModal('overlayExito')">Cerrar</button>
   </div>
 </div>
 
@@ -1440,6 +1450,7 @@ async function enviarPedido() {
       // textContent: el nombre lo escribe el cliente, no se inserta como HTML
       document.getElementById("textoExito").textContent =
         `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
+      prepararBloqueCampanaExito();
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
@@ -1717,7 +1728,47 @@ async function confirmarCelularYActivar() {
   await suscribirPush(cel);
 }
 
+// ¿Este aparato puede recibir notificaciones web?
+function notificacionesSoportadas() {
+  return ('Notification' in window) && ('serviceWorker' in navigator) && ('PushManager' in window);
+}
+function esIPhone() { return /iPhone|iPad|iPod/i.test(navigator.userAgent); }
+
+// En el modal de "Pedido recibido": ofrece la campana si falta activarla,
+// o explica cómo habilitarla en iPhone si la tienda no está instalada.
+function prepararBloqueCampanaExito() {
+  const bloque = document.getElementById('bloqueCampanaExito');
+  if (!bloque) return;
+  const texto = document.getElementById('textoCampanaExito');
+  const btn = document.getElementById('btnCampanaExito');
+  bloque.style.display = 'none';
+  if (!MOSTRAR_INVITACION_NOTIF) return;
+  if (notificacionesSoportadas()) {
+    if (Notification.permission === 'granted' || Notification.permission === 'denied') return;
+    texto.textContent = 'Activá los avisos y te escribimos cuando te toque volver a pedir.';
+    btn.style.display = '';
+    bloque.style.display = 'block';
+  } else if (esIPhone()) {
+    texto.textContent = 'Para recibir avisos en iPhone, agregá la tienda a tu pantalla de inicio: tocá Compartir y luego "Agregar a pantalla de inicio". Después abrila desde ese ícono.';
+    btn.style.display = 'none';
+    bloque.style.display = 'block';
+  }
+}
+
+function mostrarModalNoSoportado() {
+  const ayuda = esIPhone()
+    ? 'En iPhone, los avisos solo funcionan si la tienda está en tu pantalla de inicio. Tocá <b>Compartir</b>, luego <b>"Agregar a pantalla de inicio"</b>, y abrila desde ese ícono.'
+    : 'Este navegador no permite recibir avisos. Probá con Chrome o instalando la tienda en tu pantalla de inicio.';
+  document.getElementById('modalPermisoContenido').innerHTML = `
+    <div class="modal-titulo">🔔 Avisos no disponibles</div>
+    <p style="font-size:.9rem; color:var(--texto); line-height:1.6; margin-bottom:18px;">${ayuda}</p>
+    <button class="btn-confirmar" style="width:100%" onclick="cerrarModal('overlayPermiso')">Entendido</button>
+  `;
+  abrirModal('overlayPermiso');
+}
+
 async function suscribirPush(cel) {
+  if (!notificacionesSoportadas()) { mostrarModalNoSoportado(); return; }
   const estado = Notification.permission;
 
   if (estado === 'denied') {
@@ -1807,7 +1858,7 @@ async function continuarSuscripcion(cel) {
     if (d.ok && d.vinculado) {
       mostrarToast('🔔 ¡Notificaciones activadas! Te avisaremos cuándo te toque tu pedido.', 'ok');
     } else if (d.ok && !d.vinculado) {
-      mostrarToast('Se activó el permiso, pero ese celular no coincide con ningún pedido anterior. Revisá que esté bien escrito.', 'aviso');
+      mostrarToast('🔔 Avisos activados. Te empezarán a llegar cuando hagás tu primer pedido con este número.', 'ok');
     } else {
       mostrarToast('Ocurrió un error al activar. Intentá de nuevo.', 'error');
     }
