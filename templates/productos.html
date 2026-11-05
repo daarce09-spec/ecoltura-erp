@@ -2,13 +2,27 @@
 {% block title %}Productos{% endblock %}
 {% block content %}
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<style>
+  .fila-grupo-badge { font-size:.72rem; }
+  .barra-seleccion { position: sticky; top: 0; z-index: 20; }
+  .tabla-prod td, .tabla-prod th { vertical-align: middle; }
+  .chip-peso { display:inline-flex; align-items:center; gap:6px; background:#eef5e8; border:1px solid #cfe1c2;
+               border-radius:999px; padding:4px 10px; font-weight:600; font-size:.85rem; }
+  .chip-peso button { border:none; background:transparent; color:#7a3b2e; padding:0 2px; line-height:1; }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
   <h2 class="fw-bold text-success mb-0">
     <i class="bi bi-basket3 me-2"></i>Catálogo de Productos
   </h2>
-  <button class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevo">
-    + Nuevo producto
-  </button>
+  <div class="d-flex gap-2">
+    <button class="btn btn-outline-success fw-bold" id="btnCategorias">
+      <i class="bi bi-tags me-1"></i>Categorías
+    </button>
+    <button class="btn btn-success fw-bold" data-bs-toggle="modal" data-bs-target="#modalNuevo">
+      + Nuevo producto
+    </button>
+  </div>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -25,12 +39,24 @@
          placeholder="🔍 Buscar producto por nombre...">
 </div>
 
+<!-- Barra que aparece al marcar productos para agruparlos -->
+<div id="barraSeleccion" class="alert alert-success barra-seleccion d-flex justify-content-between align-items-center flex-wrap gap-2 py-2 px-3 mb-3" style="display:none !important">
+  <div class="fw-bold"><span id="nSeleccionados">0</span> producto(s) marcados</div>
+  <div class="d-flex gap-2">
+    <button class="btn btn-success btn-sm fw-bold" id="btnAgrupar">
+      <i class="bi bi-collection me-1"></i>Agrupar como opciones
+    </button>
+    <button class="btn btn-light btn-sm" id="btnLimpiarSel">Limpiar</button>
+  </div>
+</div>
+
 <div class="card shadow-sm">
   <div class="card-body p-0">
     <div class="table-responsive">
-      <table class="table table-hover align-middle mb-0">
+      <table class="table table-hover align-middle mb-0 tabla-prod">
         <thead class="table-light">
           <tr>
+            <th style="width:36px"></th>
             <th>Nombre</th>
             <th>Categoría</th>
             <th>Unidad</th>
@@ -44,10 +70,26 @@
         </thead>
         <tbody id="tablaProductos">
           {% for p in productos %}
-          <tr data-nombre="{{ p[1]|lower }}">
-            <td class="fw-bold">{{ p[1] }}</td>
+          <tr data-nombre="{{ (p[1] ~ ' ' ~ (p[7] or '') ~ ' ' ~ (p[8] or ''))|lower }}"
+              data-id="{{ p[0] }}" data-prod="{{ p[1] }}" data-cat="{{ (p[2] or '')|trim }}"
+              data-gid="{{ p[6] or '' }}">
             <td>
-              <span class="badge bg-light text-dark border">{{ p[2] or '—' }}</span>
+              <input type="checkbox" class="form-check-input chk-sel" data-id="{{ p[0] }}"
+                     {{ 'disabled title="Ya está en un grupo"' if p[6] else '' }}>
+            </td>
+            <td class="fw-bold">
+              {{ p[1] }}
+              {% if p[6] %}
+              <div>
+                <a href="#" class="badge bg-success-subtle text-success-emphasis border text-decoration-none fila-grupo-badge btn-ver-grupo"
+                   data-gid="{{ p[6] }}">
+                  <i class="bi bi-collection me-1"></i>{{ p[7] }} · {{ p[8] }}
+                </a>
+              </div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-light text-dark border">{{ (p[2] or '—')|trim }}</span>
             </td>
             <td>{{ p[3] }}</td>
             <td class="text-end">₡{{ "{:,.0f}".format(p[4]) }}</td>
@@ -63,12 +105,15 @@
               </div>
             </td>
 
-            <td class="text-end">
+            <td class="text-end text-nowrap">
+              <button class="btn btn-sm btn-outline-secondary btn-pesos" data-id="{{ p[0] }}" title="Pesos preestablecidos">
+                <i class="bi bi-sliders"></i>
+              </button>
               <button class="btn btn-sm btn-outline-secondary btn-editar"
                       data-bs-toggle="modal" data-bs-target="#modalEditar"
                       data-id="{{ p[0] }}"
                       data-nombre="{{ p[1] }}"
-                      data-categoria="{{ p[2] or '' }}"
+                      data-categoria="{{ (p[2] or '')|trim }}"
                       data-unidad="{{ p[3] }}"
                       data-precio="{{ p[4] }}"
                       data-action="{{ url_for('productos_bp.editar_producto', id=p[0]) }}">
@@ -91,8 +136,14 @@
   </div>
   <div class="card-footer text-muted small">
     {{ productos|length }} productos · El switch <i class="bi bi-globe"></i> controla si el producto aparece en la tienda web pública.
+    Marcá varios con la casilla para agruparlos como opciones (sabores, tamaños...).
   </div>
 </div>
+
+<!-- Lista de categorías para los selectores (la usa el JS) -->
+<select id="plantillaCategorias" class="d-none">
+  {% for c in categorias %}<option value="{{ c }}">{{ c }}</option>{% endfor %}
+</select>
 
 <!-- ===== UN SOLO Modal editar (se llena dinámicamente) ===== -->
 <div class="modal fade" id="modalEditar" tabindex="-1">
@@ -111,7 +162,7 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Categoría</label>
-            <input type="text" name="categoria_edit" id="edit_categoria" class="form-control">
+            <select name="categoria_edit" id="edit_categoria" class="form-select js-cat-select"></select>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Unidad</label>
@@ -148,7 +199,8 @@
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Categoría</label>
-            <input type="text" name="categoria" class="form-control" placeholder="Verduras, Frutas, Lácteos...">
+            <select name="categoria" class="form-select js-cat-select"></select>
+            <div class="form-text">¿Falta una? Crearla en el botón «Categorías».</div>
           </div>
           <div class="mb-3">
             <label class="form-label fw-bold">Unidad</label>
@@ -168,6 +220,137 @@
   </div>
 </div>
 
+<!-- ===== Modal categorías ===== -->
+<div class="modal fade" id="modalCategorias" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-tags me-2"></i>Categorías</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted small mb-3">
+          El orden de esta lista es el orden de las pestañas en la tienda. Si renombrás una, los productos se actualizan solos.
+        </div>
+        <div id="catError" class="alert alert-danger py-2" style="display:none"></div>
+        <div id="listaCategorias" class="list-group mb-3"></div>
+        <div class="input-group">
+          <input type="text" id="catNueva" class="form-control" maxlength="80" placeholder="Nueva categoría (ej. Panadería)">
+          <button class="btn btn-success fw-bold" id="btnCatAgregar">Agregar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal agrupar (crear grupo) ===== -->
+<div class="modal fade" id="modalAgrupar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-collection me-2"></i>Agrupar como opciones</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="text-muted small mb-3">
+          En la tienda se verá una sola tarjeta con estas opciones (ej. «Yogurt aflanado» con Fresa y Mora).
+        </div>
+        <div id="agError" class="alert alert-danger py-2" style="display:none"></div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Nombre del grupo</label>
+          <input type="text" id="agNombre" class="form-control" maxlength="120" placeholder="Ej. Yogurt aflanado">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Categoría</label>
+          <select id="agCategoria" class="form-select js-cat-select"></select>
+        </div>
+        <label class="form-label fw-bold">Nombre de cada opción</label>
+        <div id="agItems" class="d-flex flex-column gap-2"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success fw-bold px-4" id="btnAgCrear">Crear grupo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal editar grupo ===== -->
+<div class="modal fade" id="modalGrupo" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-collection me-2"></i>Editar grupo</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="grError" class="alert alert-danger py-2" style="display:none"></div>
+        <input type="hidden" id="grGid">
+        <div class="mb-3">
+          <label class="form-label fw-bold">Nombre del grupo</label>
+          <input type="text" id="grNombre" class="form-control" maxlength="120">
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-bold">Categoría</label>
+          <select id="grCategoria" class="form-select js-cat-select"></select>
+        </div>
+        <label class="form-label fw-bold">Opciones</label>
+        <div id="grItems" class="d-flex flex-column gap-2 mb-3"></div>
+        <div class="border rounded p-2 bg-light">
+          <div class="fw-bold small mb-2">Agregar otro producto al grupo</div>
+          <div class="d-flex gap-2 flex-wrap">
+            <select id="grAgregarProd" class="form-select" style="flex:2 1 180px"></select>
+            <input type="text" id="grAgregarVar" class="form-control" style="flex:1 1 120px" maxlength="60" placeholder="Nombre de la opción">
+            <button class="btn btn-outline-success fw-bold" id="btnGrAgregar">Agregar</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer justify-content-between">
+        <button type="button" class="btn btn-outline-danger" id="btnGrDeshacer">Deshacer grupo</button>
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-success fw-bold px-4" id="btnGrGuardar">Guardar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal pesos ===== -->
+<div class="modal fade" id="modalPesos" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-success text-white">
+        <h5 class="modal-title fw-bold"><i class="bi bi-sliders me-2"></i>Pesos preestablecidos</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div class="fw-bold mb-1" id="pesNombre"></div>
+        <div class="text-muted small mb-3">
+          Son los botones de peso que ve el cliente en la tienda (ej. 250 g, 500 g, 1 kg). Sin pesos, el producto se vende por unidad.
+        </div>
+        <div id="pesError" class="alert alert-danger py-2" style="display:none"></div>
+        <div id="pesChips" class="d-flex flex-wrap gap-2 mb-3"></div>
+        <div class="input-group mb-2">
+          <input type="number" id="pesNuevo" class="form-control" min="1" max="100000" step="1" placeholder="Gramos (ej. 250)">
+          <span class="input-group-text">g</span>
+          <button class="btn btn-outline-success fw-bold" id="btnPesAgregar">Agregar</button>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <button class="btn btn-sm btn-light border btn-pes-rapido" data-g="250">250 g</button>
+          <button class="btn btn-sm btn-light border btn-pes-rapido" data-g="500">500 g</button>
+          <button class="btn btn-sm btn-light border btn-pes-rapido" data-g="1000">1 kg</button>
+          <button class="btn btn-sm btn-light border btn-pes-rapido" data-g="2000">2 kg</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success fw-bold px-4" id="btnPesGuardar">Guardar pesos</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // "DOMContentLoaded" solo se dispara UNA vez por sesión del navegador.
 // Con la navegación boosted de htmx este módulo se reinserta cada vez
@@ -177,15 +360,54 @@
 // inmediato (IIFE).
 (function() {
 
+  var $ = function(id) { return document.getElementById(id); };
+  var esc = function(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c) {
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  };
+  var modal = function(id) { return bootstrap.Modal.getOrCreateInstance($(id)); };
+
+  // Llamada JSON al servidor; lanza Error con el mensaje del servidor si algo falla
+  function api(url, cuerpo) {
+    var opciones = cuerpo === undefined ? {} : {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cuerpo)
+    };
+    return fetch(url, opciones).then(function(r) {
+      return r.json().catch(function() { return {}; }).then(function(j) {
+        if (!r.ok || j.ok === false) throw new Error(j.error || 'No se pudo completar la acción.');
+        return j;
+      });
+    });
+  }
+  function mostrarError(id, msg) { var el = $(id); el.textContent = msg; el.style.display = ''; }
+  function ocultarError(id) { $(id).style.display = 'none'; }
+
+  // ===== Lista de categorías para los selectores =====
+  function categoriasLista() {
+    return Array.prototype.map.call($('plantillaCategorias').options, function(o) { return o.value; });
+  }
+  // Llena un <select> con las categorías y deja marcada la indicada (si no está en la lista, la agrega)
+  function llenarSelectCategoria(sel, valor) {
+    var cats = categoriasLista();
+    if (valor && cats.map(function(c) { return c.toLowerCase(); }).indexOf(valor.toLowerCase()) === -1) cats.push(valor);
+    sel.innerHTML = '<option value="">— Sin categoría —</option>' +
+      cats.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join('');
+    var buscado = (valor || '').toLowerCase();
+    var op = Array.prototype.filter.call(sel.options, function(o) { return o.value.toLowerCase() === buscado; })[0];
+    sel.value = op ? op.value : '';
+  }
+  llenarSelectCategoria(document.querySelector('#modalNuevo .js-cat-select'), '');
+
   // ===== Editar: llenar el modal único al hacer clic =====
   // Bootstrap abre el modal solo (data-bs-toggle). Aquí solo llenamos los datos.
   document.querySelectorAll('.btn-editar').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      document.getElementById('edit_nombre').value    = this.getAttribute('data-nombre');
-      document.getElementById('edit_categoria').value = this.getAttribute('data-categoria');
-      document.getElementById('edit_unidad').value    = this.getAttribute('data-unidad');
-      document.getElementById('edit_precio').value    = this.getAttribute('data-precio');
-      document.getElementById('formEditar').action    = this.getAttribute('data-action');
+      $('edit_nombre').value    = this.getAttribute('data-nombre');
+      llenarSelectCategoria($('edit_categoria'), this.getAttribute('data-categoria'));
+      $('edit_unidad').value    = this.getAttribute('data-unidad');
+      $('edit_precio').value    = this.getAttribute('data-precio');
+      $('formEditar').action    = this.getAttribute('data-action');
     });
   });
 
@@ -194,8 +416,8 @@
     setTimeout(function() { a.classList.remove('show'); setTimeout(function() { a.remove(); }, 200); }, 4000);
   });
 
-  // ===== Buscador en vivo =====
-  var buscador = document.getElementById('buscadorProd');
+  // ===== Buscador en vivo (nombre, grupo y opción) =====
+  var buscador = $('buscadorProd');
   if (buscador) {
     buscador.addEventListener('input', function() {
       var texto = this.value.toLowerCase().trim();
@@ -221,6 +443,282 @@
           alert('Error al actualizar. Intente de nuevo.');
         });
     });
+  });
+
+  // =====================================================
+  //  CATEGORÍAS
+  // =====================================================
+  function cargarCategorias() {
+    return api('/productos/categorias/api/lista').then(function(j) {
+      var cont = $('listaCategorias');
+      var cats = j.categorias;
+      cont.innerHTML = cats.map(function(c, i) {
+        return '<div class="list-group-item d-flex align-items-center gap-2" data-id="' + c.id + '">' +
+          '<input type="text" class="form-control form-control-sm cat-nombre" value="' + esc(c.nombre) + '" maxlength="80">' +
+          '<span class="badge bg-light text-dark border" title="Productos en esta categoría">' + c.n + '</span>' +
+          '<button class="btn btn-sm btn-outline-secondary cat-subir" ' + (i === 0 ? 'disabled' : '') + ' title="Subir"><i class="bi bi-arrow-up"></i></button>' +
+          '<button class="btn btn-sm btn-outline-secondary cat-bajar" ' + (i === cats.length - 1 ? 'disabled' : '') + ' title="Bajar"><i class="bi bi-arrow-down"></i></button>' +
+          '<button class="btn btn-sm btn-success cat-guardar" title="Guardar nombre"><i class="bi bi-check-lg"></i></button>' +
+          '<button class="btn btn-sm btn-outline-danger cat-eliminar" title="Eliminar"><i class="bi bi-trash"></i></button>' +
+          '</div>';
+      }).join('') || '<div class="text-muted small p-2">Todavía no hay categorías.</div>';
+    });
+  }
+
+  $('btnCategorias').addEventListener('click', function() {
+    ocultarError('catError');
+    cargarCategorias().then(function() { modal('modalCategorias').show(); })
+      .catch(function(e) { alert(e.message); });
+  });
+
+  // Al cerrar el modal se recarga la página para que los selectores tengan la lista nueva
+  $('modalCategorias').addEventListener('hidden.bs.modal', function() {
+    if (window.__catCambio) { window.__catCambio = false; window.location.reload(); }
+  });
+
+  $('btnCatAgregar').addEventListener('click', function() {
+    ocultarError('catError');
+    var nombre = $('catNueva').value;
+    api('/productos/categorias/api/guardar', { nombre: nombre }).then(function() {
+      $('catNueva').value = ''; window.__catCambio = true; return cargarCategorias();
+    }).catch(function(e) { mostrarError('catError', e.message); });
+  });
+
+  $('listaCategorias').addEventListener('click', function(ev) {
+    var btn = ev.target.closest('button');
+    if (!btn) return;
+    var fila = btn.closest('[data-id]');
+    var id = parseInt(fila.dataset.id, 10);
+    ocultarError('catError');
+    if (btn.classList.contains('cat-guardar')) {
+      api('/productos/categorias/api/guardar', { id: id, nombre: fila.querySelector('.cat-nombre').value })
+        .then(function() { window.__catCambio = true; return cargarCategorias(); })
+        .catch(function(e) { mostrarError('catError', e.message); });
+    } else if (btn.classList.contains('cat-eliminar')) {
+      if (!confirm('¿Eliminar esta categoría?')) return;
+      api('/productos/categorias/api/' + id + '/eliminar', {})
+        .then(function() { window.__catCambio = true; return cargarCategorias(); })
+        .catch(function(e) { mostrarError('catError', e.message); });
+    } else if (btn.classList.contains('cat-subir') || btn.classList.contains('cat-bajar')) {
+      var filas = Array.prototype.slice.call($('listaCategorias').children);
+      var pos = filas.indexOf(fila);
+      var otro = btn.classList.contains('cat-subir') ? pos - 1 : pos + 1;
+      if (otro < 0 || otro >= filas.length) return;
+      var tmp = filas[pos]; filas[pos] = filas[otro]; filas[otro] = tmp;
+      var ids = filas.map(function(f) { return parseInt(f.dataset.id, 10); });
+      api('/productos/categorias/api/orden', { ids: ids })
+        .then(function() { window.__catCambio = true; return cargarCategorias(); })
+        .catch(function(e) { mostrarError('catError', e.message); });
+    }
+  });
+
+  // =====================================================
+  //  AGRUPAR (crear un grupo desde varios productos marcados)
+  // =====================================================
+  function marcados() {
+    return Array.prototype.filter.call(document.querySelectorAll('.chk-sel'), function(c) { return c.checked; })
+      .map(function(c) { return parseInt(c.dataset.id, 10); });
+  }
+  function actualizarBarra() {
+    var n = marcados().length;
+    var barra = $('barraSeleccion');
+    $('nSeleccionados').textContent = n;
+    barra.style.setProperty('display', n ? 'flex' : 'none', 'important');
+  }
+  document.querySelectorAll('.chk-sel').forEach(function(c) { c.addEventListener('change', actualizarBarra); });
+  $('btnLimpiarSel').addEventListener('click', function() {
+    document.querySelectorAll('.chk-sel').forEach(function(c) { c.checked = false; });
+    actualizarBarra();
+  });
+
+  function datosProducto(id) {
+    var tr = document.querySelector('#tablaProductos tr[data-id="' + id + '"]');
+    return { id: id, nombre: tr.dataset.prod, cat: tr.dataset.cat, gid: tr.dataset.gid };
+  }
+
+  // Sugerencia: lo que tienen en común al inicio los nombres es el grupo, y lo que sobra es la opción
+  function prefijoComun(nombres) {
+    var palabras = nombres.map(function(n) { return n.trim().split(/\s+/); });
+    var comun = [];
+    for (var i = 0; ; i++) {
+      var p = palabras[0][i];
+      if (p === undefined) break;
+      var todos = palabras.every(function(w) { return w[i] !== undefined && w[i].toLowerCase() === p.toLowerCase(); });
+      if (!todos) break;
+      comun.push(p);
+    }
+    // Si algún nombre quedaría vacío (nombres iguales o uno contenido en otro), no se sugiere prefijo
+    if (palabras.some(function(w) { return w.length <= comun.length; })) return [];
+    return comun;
+  }
+
+  $('btnAgrupar').addEventListener('click', function() {
+    var ids = marcados();
+    if (ids.length < 2) { alert('Marcá al menos 2 productos para agruparlos.'); return; }
+    var prods = ids.map(datosProducto);
+    var comun = prefijoComun(prods.map(function(p) { return p.nombre; }));
+    $('agNombre').value = comun.join(' ');
+    var cat = prods[0].cat;
+    llenarSelectCategoria($('agCategoria'), cat);
+    $('agItems').innerHTML = prods.map(function(p) {
+      var variante = comun.length ? p.nombre.trim().split(/\s+/).slice(comun.length).join(' ') : p.nombre;
+      return '<div class="d-flex align-items-center gap-2" data-id="' + p.id + '">' +
+        '<div class="text-muted small" style="flex:1 1 45%">' + esc(p.nombre) + '</div>' +
+        '<i class="bi bi-arrow-right text-muted"></i>' +
+        '<input type="text" class="form-control form-control-sm ag-variante" style="flex:1 1 45%" maxlength="60" value="' + esc(variante) + '" placeholder="Opción">' +
+        '</div>';
+    }).join('');
+    var distintas = prods.some(function(p) { return p.cat.toLowerCase() !== cat.toLowerCase(); });
+    if (distintas) mostrarError('agError', 'Los productos tienen categorías distintas: todos pasarán a la categoría que elijas abajo.');
+    else ocultarError('agError');
+    modal('modalAgrupar').show();
+  });
+
+  $('btnAgCrear').addEventListener('click', function() {
+    ocultarError('agError');
+    var items = Array.prototype.map.call($('agItems').children, function(f) {
+      return { id: parseInt(f.dataset.id, 10), variante: f.querySelector('.ag-variante').value };
+    });
+    api('/productos/grupos/api/crear', {
+      nombre: $('agNombre').value, categoria: $('agCategoria').value, items: items
+    }).then(function() { window.location.reload(); })
+      .catch(function(e) { mostrarError('agError', e.message); });
+  });
+
+  // =====================================================
+  //  EDITAR GRUPO
+  // =====================================================
+  function cargarGrupo(gid) {
+    return api('/productos/grupos/api/' + gid).then(function(g) {
+      $('grGid').value = g.gid;
+      $('grNombre').value = g.nombre;
+      llenarSelectCategoria($('grCategoria'), g.categoria);
+      $('grItems').innerHTML = g.items.map(function(it) {
+        return '<div class="d-flex align-items-center gap-2" data-id="' + it.id + '">' +
+          '<div class="text-muted small" style="flex:1 1 40%">' + esc(it.nombre) + '</div>' +
+          '<i class="bi bi-arrow-right text-muted"></i>' +
+          '<input type="text" class="form-control form-control-sm gr-variante" style="flex:1 1 40%" maxlength="60" value="' + esc(it.variante) + '">' +
+          '<button class="btn btn-sm btn-outline-danger gr-quitar" title="Sacar del grupo"><i class="bi bi-x-lg"></i></button>' +
+          '</div>';
+      }).join('');
+      // Productos que todavía no están en ningún grupo, para poder sumarlos
+      var libres = Array.prototype.filter.call(document.querySelectorAll('#tablaProductos tr'), function(tr) { return !tr.dataset.gid; });
+      $('grAgregarProd').innerHTML = '<option value="">— Elegí un producto —</option>' + libres.map(function(tr) {
+        return '<option value="' + tr.dataset.id + '">' + esc(tr.dataset.prod) + '</option>';
+      }).join('');
+      $('grAgregarVar').value = '';
+    });
+  }
+
+  document.querySelectorAll('.btn-ver-grupo').forEach(function(a) {
+    a.addEventListener('click', function(ev) {
+      ev.preventDefault();
+      ocultarError('grError');
+      cargarGrupo(this.dataset.gid).then(function() { modal('modalGrupo').show(); })
+        .catch(function(e) { alert(e.message); });
+    });
+  });
+
+  // Al cerrar el modal se recarga la página para ver los cambios en la tabla
+  $('modalGrupo').addEventListener('hidden.bs.modal', function() {
+    if (window.__grCambio) { window.__grCambio = false; window.location.reload(); }
+  });
+
+  $('btnGrGuardar').addEventListener('click', function() {
+    ocultarError('grError');
+    var gid = $('grGid').value;
+    var items = Array.prototype.map.call($('grItems').children, function(f) {
+      return { id: parseInt(f.dataset.id, 10), variante: f.querySelector('.gr-variante').value };
+    });
+    api('/productos/grupos/api/' + gid + '/guardar', {
+      nombre: $('grNombre').value, categoria: $('grCategoria').value, items: items
+    }).then(function() { window.__grCambio = true; modal('modalGrupo').hide(); })
+      .catch(function(e) { mostrarError('grError', e.message); });
+  });
+
+  $('grItems').addEventListener('click', function(ev) {
+    var btn = ev.target.closest('.gr-quitar');
+    if (!btn) return;
+    ocultarError('grError');
+    var fila = btn.closest('[data-id]');
+    if (!confirm('¿Sacar este producto del grupo? Queda como producto suelto.')) return;
+    api('/productos/grupos/api/quitar', { id: parseInt(fila.dataset.id, 10) }).then(function() {
+      window.__grCambio = true;
+      // Si el grupo se deshizo solo (quedaba 1), se cierra; si no, se vuelve a cargar
+      return api('/productos/grupos/api/' + $('grGid').value).then(function() {
+        return cargarGrupo($('grGid').value);
+      }).catch(function() { modal('modalGrupo').hide(); });
+    }).catch(function(e) { mostrarError('grError', e.message); });
+  });
+
+  $('btnGrAgregar').addEventListener('click', function() {
+    ocultarError('grError');
+    var pid = parseInt($('grAgregarProd').value, 10);
+    if (!pid) { mostrarError('grError', 'Elegí el producto que querés agregar.'); return; }
+    api('/productos/grupos/api/' + $('grGid').value + '/agregar', { id: pid, variante: $('grAgregarVar').value })
+      .then(function() { window.__grCambio = true; return cargarGrupo($('grGid').value); })
+      .catch(function(e) { mostrarError('grError', e.message); });
+  });
+
+  $('btnGrDeshacer').addEventListener('click', function() {
+    if (!confirm('¿Deshacer el grupo? Los productos quedan sueltos, cada uno con su tarjeta en la tienda.')) return;
+    api('/productos/grupos/api/' + $('grGid').value + '/deshacer', {})
+      .then(function() { window.__grCambio = true; modal('modalGrupo').hide(); })
+      .catch(function(e) { mostrarError('grError', e.message); });
+  });
+
+  // =====================================================
+  //  PESOS PREESTABLECIDOS
+  // =====================================================
+  var pesosActuales = [];
+  var pesoProductoId = null;
+
+  function etiquetaPeso(g) { return g >= 1000 && g % 1000 === 0 ? (g / 1000) + ' kg' : g + ' g'; }
+  function pintarPesos() {
+    pesosActuales.sort(function(a, b) { return a - b; });
+    $('pesChips').innerHTML = pesosActuales.length
+      ? pesosActuales.map(function(g) {
+          return '<span class="chip-peso">' + etiquetaPeso(g) + '<button data-g="' + g + '" title="Quitar">&times;</button></span>';
+        }).join('')
+      : '<span class="text-muted small">Sin pesos: se vende por unidad.</span>';
+  }
+  function sumarPeso(g) {
+    g = parseInt(g, 10);
+    if (!g || g < 1 || g > 100000) { mostrarError('pesError', 'Escribí un peso entre 1 y 100,000 gramos.'); return; }
+    ocultarError('pesError');
+    if (pesosActuales.indexOf(g) === -1) pesosActuales.push(g);
+    pintarPesos();
+  }
+
+  document.querySelectorAll('.btn-pesos').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      pesoProductoId = parseInt(this.dataset.id, 10);
+      ocultarError('pesError');
+      api('/productos/pesos/api/' + pesoProductoId).then(function(j) {
+        $('pesNombre').textContent = j.nombre;
+        pesosActuales = j.gramos.slice();
+        $('pesNuevo').value = '';
+        pintarPesos();
+        modal('modalPesos').show();
+      }).catch(function(e) { alert(e.message); });
+    });
+  });
+  $('btnPesAgregar').addEventListener('click', function() { sumarPeso($('pesNuevo').value); $('pesNuevo').value = ''; });
+  document.querySelectorAll('.btn-pes-rapido').forEach(function(b) {
+    b.addEventListener('click', function() { sumarPeso(this.dataset.g); });
+  });
+  $('pesChips').addEventListener('click', function(ev) {
+    var btn = ev.target.closest('button');
+    if (!btn) return;
+    var g = parseInt(btn.dataset.g, 10);
+    pesosActuales = pesosActuales.filter(function(x) { return x !== g; });
+    pintarPesos();
+  });
+  $('btnPesGuardar').addEventListener('click', function() {
+    ocultarError('pesError');
+    api('/productos/pesos/api/' + pesoProductoId + '/guardar', { gramos: pesosActuales })
+      .then(function() { modal('modalPesos').hide(); })
+      .catch(function(e) { mostrarError('pesError', e.message); });
   });
 
 })();

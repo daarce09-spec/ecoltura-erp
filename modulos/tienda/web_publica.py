@@ -7,9 +7,13 @@ Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
 from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
+from modulos.categorias import asegurar_categorias
 from datetime import datetime, timedelta
 
 web_bp = Blueprint("web_bp", __name__)
+
+# El orden de las categorías de la tienda sale de la tabla `categorias` (se administra desde el Admin)
+asegurar_categorias()
 
 
 def normalizar_celular(valor):
@@ -72,16 +76,9 @@ def api_productos():
             FROM productos p
             WHERE p.visible_web = TRUE OR p.id = 118   -- Express (envío) va siempre
             ORDER BY
-                CASE p.categoria
-                    WHEN 'Verduras' THEN 1
-                    WHEN 'Frutas'   THEN 2
-                    WHEN 'Hierbas'  THEN 3
-                    WHEN 'Lácteos'  THEN 4
-                    WHEN 'Huevos'   THEN 5
-                    WHEN 'Miel'     THEN 6
-                    WHEN 'Hongos'   THEN 7
-                    ELSE 99
-                END,
+                COALESCE((SELECT c.orden FROM categorias c
+                          WHERE LOWER(c.nombre) = LOWER(REGEXP_REPLACE(TRIM(COALESCE(p.categoria, '')), '\\s+', ' ', 'g'))
+                          LIMIT 1), 999),
                 p.nombre
         """)
         rows = cur.fetchall()
@@ -98,7 +95,7 @@ def api_productos():
         {
             "id":        r[0],
             "nombre":    r[1],
-            "categoria": r[2],
+            "categoria": " ".join(str(r[2] or "General").split()) or "General",
             "unidad":    r[3],
             "precio":    float(r[4]),
             "stock":     float(r[5]),
