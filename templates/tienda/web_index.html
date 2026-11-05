@@ -31,6 +31,7 @@
       --verde:      #3E6B22;   /* hoja oscura del logo – acción */
       --verde-os:   #2E5117;
       --lima:       #A4C93C;   /* hoja clara – microacento */
+      --rojo:       #D93025;   /* reservado: descuentos y ofertas */
       --naranja:    #D9742E;   /* tagline del logo – eyebrows y precios */
       --header-sol: rgba(62,107,34,0.96);  /* verde para header sólido */
     }
@@ -124,7 +125,7 @@
     header {
       position: fixed; top: 0; left: 0; width: 100%; padding: 10px 40px;
       display: flex; justify-content: space-between; align-items: center;
-      z-index: 100; background: #fff; border-bottom: 3px solid var(--lima);
+      z-index: 100; background: #fff; border-bottom: 1px solid var(--borde);
     }
     .logo { display: flex; align-items: center; text-decoration: none; }
     .logo img { height: 46px; width: auto; }
@@ -134,7 +135,7 @@
            cursor: pointer; padding: 8px 0; border-bottom: 2px solid transparent;
            color: #888; transition: color .15s, border-color .15s; }
     .tab:hover  { color: #3E6B22; }
-    .tab.activa { color: #3E6B22; border-bottom-color: #A4C93C; }
+    .tab.activa { color: #3E6B22; border-bottom-color: #3E6B22; }
     @media (max-width: 600px) { header { padding: 10px 16px; } .tabs { gap: 16px; } }
 
     /* ── PÁGINAS ── */
@@ -193,9 +194,9 @@
                  margin-top: 6px; color: var(--negro); font-weight: 400; }
     .franja .sub { font-size: .9rem; color: var(--gris); max-width: 52ch; margin-top: 6px; }
     .buscador-wrap input { width: 240px; max-width: 100%; padding: 10px 15px;
-                           border: 1px solid var(--borde); border-radius: 999px;
+                           border: 1px solid transparent; border-radius: 999px;
                            font-family: 'Inter'; font-size: .9rem;
-                           background: var(--blanco); outline: none; }
+                           background: var(--crema); outline: none; }
     .buscador-wrap input:focus { border-color: var(--verde); }
 
     /* Barra de filtros: categorías + buscador en una línea */
@@ -250,6 +251,10 @@
                padding: 8px 18px; font-family: 'Inter'; font-weight: 600; font-size: .74rem;
                letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
     .agregar:hover { background: var(--verde); color: #fff; }
+    .agregar.mas { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 1px solid var(--borde); background: #fff; color: var(--negro);
+                   font-size: 1.35rem; line-height: 1; letter-spacing: 0; text-transform: none; display: grid; place-items: center;
+                   box-shadow: 0 1px 4px rgba(0,0,0,.16); flex-shrink: 0; }
+    .agregar.mas:hover { background: var(--verde); border-color: var(--verde); color: #fff; }
 
     /* ── Avisos de arriba: pedido en curso y repetir compra (una sola línea, compactos) ── */
     .aviso { align-items: center; gap: 10px; border-radius: 12px; padding: 10px 12px 10px 14px; margin-bottom: 10px;
@@ -268,10 +273,10 @@
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
     .destacados { margin-bottom: 26px; min-width: 0; max-width: 100%; }
     .titulo-lista { display: flex; align-items: center; gap: 14px; margin: 30px 0 18px; }
-    .titulo-lista h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); white-space: nowrap; }
+    .titulo-lista h3 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -.01em; color: var(--negro); white-space: nowrap; }
     .titulo-lista::after { content: ""; flex: 1; height: 1px; background: var(--borde); }
     .dest-head { display: flex; justify-content: space-between; align-items: end; gap: 12px; margin-bottom: 12px; }
-    .dest-head h3 { font-family: 'Fraunces', serif; font-weight: 500; font-size: 1.35rem; color: var(--negro); }
+    .dest-head h3 { font-family: 'Inter', sans-serif; font-weight: 700; font-size: 1.3rem; letter-spacing: -.01em; color: var(--negro); }
     .dest-head .eyebrow { font-size: .68rem; letter-spacing: .14em; text-transform: uppercase; color: var(--verde); font-weight: 600; }
     .dest-flechas { display: flex; gap: 8px; align-items: center; }
     .dest-todo { width: auto !important; height: auto !important; border-radius: 99px !important; padding: 7px 14px; font: 600 .78rem 'Inter', sans-serif !important; white-space: nowrap; }
@@ -281,22 +286,24 @@
                   scrollbar-width: none; -webkit-overflow-scrolling: touch; }
     .dest-pista::-webkit-scrollbar { display: none; }
     .dest-item { flex: 0 0 190px; scroll-snap-align: start; position: relative; }
-    .dest-etq { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--naranja); color: #fff; font-size: .62rem;
+    .dest-etq { position: absolute; top: 8px; left: 8px; z-index: 2; background: var(--verde); color: #fff; font-size: .62rem;
                 font-weight: 700; letter-spacing: .06em; text-transform: uppercase; padding: 3px 8px; border-radius: 4px; }
-    .dest-etq.vendido { background: var(--verde); }
+    .dest-etq { background: var(--verde); }
+    .dest-etq.vendido { background: #E4F1DA; color: var(--verde-os); }
     /* Tarjeta del carrusel: borde fino, esquinas redondeadas y misma altura para todas */
     .dest-pista { align-items: stretch; padding: 2px 2px 8px; }
     .dest-item { display: flex; }
     .dest-item .prod { width: 100%; background: var(--blanco); border: 1px solid var(--borde); border-radius: 14px;
                        overflow: hidden; box-shadow: 0 1px 2px rgba(26,28,24,.04); }
     .dest-item .prod-img { aspect-ratio: 1 / 1; border-radius: 0; }
-    .dest-item .prod-body { padding: 12px 12px 14px; flex: 1; }
+    .dest-item .prod-body { padding: 12px 10px 12px 12px; flex: 1; }
     .dest-item .prod h4 { font-size: .98rem; line-height: 1.25; }
-    .dest-item .fila-precio { flex-direction: column; align-items: stretch; gap: 10px; margin-top: auto; padding-top: 8px; }
-    .dest-item .precio { font-size: 1rem; }
-    .dest-item .agregar, .dest-item .stepper { width: 100%; height: 38px; padding-block: 0; justify-content: center; text-align: center; }
+    .dest-item .fila-precio { flex-wrap: wrap; align-items: center; row-gap: 8px; margin-top: auto; padding-top: 8px; }
+    .dest-item .precio { font-size: .92rem; white-space: nowrap; }
+    .dest-item .fila-precio { column-gap: 6px; flex-wrap: wrap; }
+    .dest-item .agregar:not(.mas), .dest-item .stepper { flex: 1 1 100%; height: 36px; padding-block: 0; justify-content: center; text-align: center; }
+    .dest-item .stepper { justify-content: space-between; }
     .dest-item .stepper button { height: 100%; }
-    .dest-item .stepper { display: flex; justify-content: space-between; }
     .dest-etq { top: 10px; left: 10px; }
     @media (max-width: 600px) {
       .dest-item { flex-basis: 44%; }
@@ -317,12 +324,12 @@
       .agregar { padding: 6px 12px; font-size: .68rem; }
     }
 
-    .stepper { display: flex; align-items: center; border: 1.5px solid var(--verde); }
+    .stepper { display: flex; align-items: center; border: 1.5px solid var(--verde); border-radius: 999px; overflow: hidden; }
     .stepper button { background: none; border: none; width: 30px; height: 31px;
                       font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
     .stepper button:hover { background: var(--verde); color: #fff; }
     .stepper b { min-width: 28px; text-align: center; color: var(--negro); font-size: .9rem; }
-    .agregar.activo-peso { background: var(--verde); color: #fff; padding: 8px 10px; font-size: .68rem; }
+    .agregar.activo-peso { background: var(--verde); color: #fff; padding: 8px 12px; font-size: .68rem; border-radius: 999px; }
     .fila-peso-modal { display: flex; align-items: center; justify-content: space-between;
                         gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--borde); }
     .fila-peso-modal:last-of-type { border-bottom: none; }
@@ -374,13 +381,14 @@
     .micro { font-size: .72rem; color: var(--gris); margin-top: 10px; text-align: center; line-height: 1.5; }
 
     /* Barra móvil */
-    .barra-movil { display: none; position: fixed; bottom: 0; left: 0; right: 0; z-index: 150;
-                   background: var(--negro); color: #fff; padding: 14px 18px;
-                   justify-content: space-between; align-items: center; font-size: .88rem;
-                   box-shadow: 0 -4px 16px rgba(0,0,0,.14); cursor: pointer; }
-    .barra-movil .ir { font-weight: 600; font-size: .74rem; letter-spacing: 1.5px;
-                       text-transform: uppercase; border: 1px solid rgba(255,255,255,.4);
-                       padding: 8px 16px; }
+    .barra-movil { display: none; position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); z-index: 150;
+                   background: #fff; color: var(--negro); padding: 7px 7px 7px 20px; border: 1px solid var(--borde); border-radius: 999px;
+                   justify-content: space-between; align-items: center; font-size: .9rem;
+                   box-shadow: 0 6px 20px rgba(0,0,0,.16); cursor: pointer; transition: background .2s, color .2s; }
+    .barra-movil .ir { font-weight: 600; font-size: .85rem; background: var(--verde); color: #fff; border: none;
+                       border-radius: 999px; padding: 11px 20px; }
+    .barra-movil.lleno { background: var(--verde); border-color: var(--verde); color: #fff; }
+    .barra-movil.lleno .ir { background: #fff; color: var(--verde-os); }
     @media (max-width: 960px) { .resumen { position: static; max-height: none; overflow: visible; } #zonaResumen, #zonaResumen:has(.item-res) { overflow: visible; min-height: 0; } .barra-movil { display: flex; } }
 
     /* ── MODAL DE CONFIRMACIÓN DE PEDIDO ── */
@@ -1316,7 +1324,7 @@ function renderModalVariante() {
 function renderTarjetaGrupo(g) {
   const totalUnidades = g.variantes.reduce((s, v) => s + (pedido[v.id] || 0), 0);
   const control = totalUnidades === 0
-    ? `<button class="agregar" onclick="abrirModalVariante('${g.id}')">Añadir</button>`
+    ? `<button class="agregar mas" aria-label="Añadir" onclick="abrirModalVariante('${g.id}')">+</button>`
     : `<button class="agregar activo-peso" onclick="abrirModalVariante('${g.id}')">${totalUnidades} · Editar</button>`;
 
   const desde = Math.min(...g.variantes.map(v => v.precio));
@@ -1384,10 +1392,10 @@ function tarjetaProducto(p) {
     let control;
     if (pesos) {
       control = cant === 0
-        ? `<button class="agregar" onclick="abrirModalPeso(${p.id})">Añadir</button>`
+        ? `<button class="agregar mas" aria-label="Añadir" onclick="abrirModalPeso(${p.id})">+</button>`
         : `<button class="agregar activo-peso" onclick="abrirModalPeso(${p.id})">${formatoPeso(cant)} · Editar</button>`;
     } else if (cant === 0) {
-      control = `<button class="agregar" onclick="actualizarPedido(${p.id},1)">Añadir</button>`;
+      control = `<button class="agregar mas" aria-label="Añadir" onclick="actualizarPedido(${p.id},1)">+</button>`;
     } else {
       control = `<div class="stepper"><button onclick="actualizarPedido(${p.id},-1)">−</button><b>${cant}</b><button onclick="actualizarPedido(${p.id},1)">+</button></div>`;
     }
@@ -1546,6 +1554,7 @@ function renderResumen() {
   document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
   document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
   document.getElementById("cantMovil").textContent   = unds;
+  const barraMovil = document.querySelector(".barra-movil"); if (barraMovil) barraMovil.classList.toggle("lleno", unds > 0);
 }
 
 // ── MODAL CONFIRMACIÓN ─────────────────────────────
