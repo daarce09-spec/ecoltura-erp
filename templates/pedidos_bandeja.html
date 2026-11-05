@@ -3,29 +3,56 @@
 {% block content %}
 
 <style>
-  .pedido-card {
-    background: white; border-radius: 16px; padding: 20px 24px;
-    box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid #f0f0f0;
-    margin-bottom: 14px; transition: box-shadow .2s;
+  .kb-tile { background:white; border:1px solid #e5efe9; border-radius:14px; padding:12px 16px; height:100%; }
+  .kb-tile .t-lab { font-size:.74rem; text-transform:uppercase; letter-spacing:.5px; color:#777; font-weight:700; }
+  .kb-tile .t-val { font-size:1.35rem; font-weight:800; color:#1b4332; line-height:1.2; }
+  .kb-tile.cobrar { border-left:4px solid #d9742e; }
+  .kb-tile.cobrar .t-val { color:#9a4a12; }
+  .kb-tile.ok { border-left:4px solid #2d6a4f; }
+
+  .periodos { display:flex; gap:6px; flex-wrap:wrap; }
+  .per-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px; padding:5px 14px;
+             font-size:.8rem; font-weight:600; color:#555; text-decoration:none; }
+  .per-btn.activo { background:#2d6a4f; border-color:#2d6a4f; color:white; }
+
+  .kb-tabs { display:none; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
+  .kb-tab { flex:0 0 auto; border:1.5px solid #dee2e6; background:white; border-radius:999px;
+            padding:6px 14px; font-size:.82rem; font-weight:700; color:#555; cursor:pointer; white-space:nowrap; }
+  .kb-tab.activo { background:#1b4332; border-color:#1b4332; color:white; }
+  .kb-tab .n { opacity:.75; margin-left:4px; }
+
+  .kb-board { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:14px; align-items:start; }
+  .kb-col { background:#f4f7f5; border-radius:16px; padding:12px; min-height:140px; }
+  .kb-col-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+                 font-weight:800; font-size:.9rem; color:#1b4332; }
+  .kb-col-head .cnt { background:white; border-radius:999px; padding:1px 10px; font-size:.78rem; color:#555; }
+  .kb-col.c-cobrar .kb-col-head { color:#9a4a12; }
+  .kb-vacio { text-align:center; color:#9aa; font-size:.82rem; padding:20px 6px; }
+
+  .kb-card { background:white; border:1px solid #eceff0; border-radius:12px; padding:12px 14px; margin-bottom:10px;
+             box-shadow:0 1px 6px rgba(0,0,0,.05); }
+  .kb-card .nom { font-weight:700; color:#1b4332; font-size:.98rem; line-height:1.25; }
+  .kb-card .meta { font-size:.76rem; color:#777; margin-top:2px; }
+  .kb-card .monto { font-weight:800; color:#2d6a4f; font-size:1.1rem; }
+  .kb-card .nota { font-size:.76rem; color:#666; margin-top:6px; }
+  .kb-card .acciones { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  .kb-card .acciones .btn { font-size:.78rem; border-radius:9px; font-weight:600; }
+  .marca-mod { display:inline-block; background:#FCEBC8; color:#6B4510; border-radius:999px;
+               padding:1px 8px; font-size:.68rem; font-weight:700; margin-left:4px; }
+  .c-cobrar .kb-card { border-left:3px solid #d9742e; }
+  .c-pagado .kb-card { opacity:.92; }
+
+  details.rech summary { cursor:pointer; font-weight:700; color:#842029; font-size:.9rem; }
+
+  @media (max-width: 991px) {
+    .kb-tabs { display:flex; }
+    .kb-board { display:block; }
+    .kb-col { display:none; }
+    .kb-col.visible { display:block; }
   }
-  .pedido-card:hover { box-shadow: 0 6px 24px rgba(0,0,0,.1); }
-  .pedido-card.pendiente { border-left: 4px solid #ffc107; }
-  .pedido-card.resuelto  { border-left: 4px solid #2d6a4f; }
-  .pedido-card.rechazado { border-left: 4px solid #dc3545; opacity:.7; }
-  .badge-est { font-size:.72rem; padding:4px 12px; border-radius:999px; font-weight:700; }
-  .badge-Pendiente  { background:#FFF3CD; color:#856404; }
-  .badge-Resuelto   { background:#D1E7DD; color:#0A4A2A; }
-  .badge-Rechazado  { background:#F8D7DA; color:#842029; }
-  .info-chip { font-size:.82rem; color:#666; display:inline-flex; align-items:center; gap:5px; }
-  .empty-state { text-align:center; padding:60px 20px; color:#aaa; }
-  .empty-state i { font-size:3rem; display:block; margin-bottom:12px; }
-  .filtros { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; }
-  .filtro-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px;
-                padding:6px 16px; font-size:.82rem; font-weight:600; cursor:pointer; color:#555; }
-  .filtro-btn.activo { background:#2d6a4f; border-color:#2d6a4f; color:white; }
 </style>
 
-<div class="d-flex justify-content-between align-items-center mb-4">
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <div>
     <h2 class="fw-bold mb-1" style="color:#1b4332">
       <i class="bi bi-bag-check me-2"></i>Pedidos Web
@@ -33,9 +60,6 @@
     <small class="text-muted">Pedidos recibidos desde la tienda en línea</small>
   </div>
   <div class="d-flex gap-2">
-    {% if pendientes > 0 %}
-    <span class="badge bg-danger py-2 px-3" style="font-size:.8rem">{{ pendientes }} pendiente{{ 's' if pendientes != 1 }}</span>
-    {% endif %}
     {% if pendientes > 0 %}
     <button type="button" id="btnExportarPdf" class="btn btn-success btn-sm"
             data-url="{{ url_for('pedidos_bp.exportar_pdf') }}" data-archivo="pedidos_pendientes"
@@ -55,159 +79,302 @@
   {% endfor %}
 {% endwith %}
 
-{# Por defecto se ven siempre los Pendientes (aunque no haya ninguno) #}
-{% set por_defecto = 'pendiente' %}
-<div class="filtros">
-  <button class="filtro-btn {{ 'activo' if por_defecto == 'todos' }}" onclick="filtrar('todos', this)">Todos</button>
-  <button class="filtro-btn {{ 'activo' if por_defecto == 'pendiente' }}" onclick="filtrar('pendiente', this)">Pendientes</button>
-  <button class="filtro-btn" onclick="filtrar('resuelto', this)">Resueltos</button>
-  <button class="filtro-btn" onclick="filtrar('rechazado', this)">Rechazados</button>
+<!-- Resumen de dinero -->
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3"><div class="kb-tile">
+    <div class="t-lab">Por entregar</div>
+    <div class="t-val">₡{{ "{:,.0f}".format(resumen.por_entregar) }}</div>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="kb-tile">
+    <div class="t-lab">Facturado</div>
+    <div class="t-val">₡{{ "{:,.0f}".format(resumen.facturado) }}</div>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="kb-tile ok">
+    <div class="t-lab">Cobrado</div>
+    <div class="t-val">₡{{ "{:,.0f}".format(resumen.cobrado) }}</div>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="kb-tile cobrar">
+    <div class="t-lab">Por cobrar</div>
+    <div class="t-val">₡{{ "{:,.0f}".format(resumen.por_cobrar) }}</div>
+  </div></div>
 </div>
 
-<div id="resumenMonto" class="d-flex justify-content-between align-items-center flex-wrap gap-2"
-     style="background:white;border:1px solid #e5efe9;border-left:4px solid #2d6a4f;border-radius:12px;padding:12px 18px;margin-bottom:16px;">
-  <span class="text-muted" style="font-size:.9rem">
-    <span id="resumenEtiqueta">Pendientes</span> · <span id="resumenCantidad">0</span> pedido<span id="resumenPlural">s</span>
-  </span>
-  <span class="fw-bold" style="font-size:1.3rem;color:#2d6a4f">Monto total: <span id="resumenTotal">₡0</span></span>
-</div>
-
-{% if not pedidos %}
-  <div class="empty-state">
-    <i class="bi bi-inbox"></i>
-    No hay pedidos todavía. Cuando alguien haga un pedido en la web aparecerá aquí.
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+  <span class="text-muted small">Facturado y cobrado se calculan del periodo; por cobrar es todo lo pendiente.</span>
+  <div class="periodos">
+    <a class="per-btn {{ 'activo' if periodo == 'hoy' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='hoy') }}">Hoy</a>
+    <a class="per-btn {{ 'activo' if periodo == 'semana' }}" href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='semana') }}">7 días</a>
+    <a class="per-btn {{ 'activo' if periodo == 'mes' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='mes') }}">Este mes</a>
+    <a class="per-btn {{ 'activo' if periodo == 'todo' }}"   href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='todo') }}">Todo</a>
   </div>
-{% else %}
-  <div id="listaPedidos">
-    {% for p in pedidos %}
-    <div class="pedido-card {{ p[5]|lower }}" data-estado="{{ p[5]|lower }}" data-total="{{ p[4]|float }}">
-      <div class="row align-items-center g-3">
+</div>
 
-        <div class="col-md-4">
-          <div class="fw-bold fs-5" style="color:#1b4332">{{ p[1] }}</div>
-          <div class="d-flex gap-3 mt-1 flex-wrap">
-            {% if p[3] %}
-            <span class="info-chip"><i class="bi bi-person-badge"></i>{{ p[3] }}</span>
-            {% endif %}
-            <span class="info-chip"><i class="bi bi-phone"></i>{{ p[2] }}</span>
-          </div>
-          <div class="info-chip mt-1"><i class="bi bi-clock"></i>{{ p[6].strftime('%d/%m/%Y %I:%M %p') }}</div>
-        </div>
+{% set cols = [
+  ('preparando', 'Preparando', columnas.preparando),
+  ('listo',      'Listo',      columnas.listo),
+  ('cobrar',     'Por cobrar', columnas.cobrar),
+  ('pagado',     'Pagado',     columnas.pagado)
+] %}
 
-        <div class="col-md-3 text-center">
-          <div class="fw-bold" style="font-size:1.4rem;color:#2d6a4f">₡{{ "{:,.0f}".format(p[4]) }}</div>
-          <span class="badge-est badge-{{ p[5] }}">{{ p[5] }}</span>
-        </div>
+<!-- Pestañas (solo en celular) -->
+<div class="kb-tabs" id="kbTabs">
+  {% for clave, titulo, lista in cols %}
+  <button type="button" class="kb-tab" data-col="{{ clave }}">{{ titulo }}<span class="n">{{ lista|length }}</span></button>
+  {% endfor %}
+</div>
 
-        <div class="col-md-3">
-          {% if p[7] %}
-          <div class="info-chip"><i class="bi bi-chat-left-text"></i>{{ p[7][:70] }}{% if p[7]|length > 70 %}...{% endif %}</div>
-          {% endif %}
-        </div>
-
-        <div class="col-md-2 d-flex flex-column gap-2">
-          <a href="{{ url_for('pedidos_bp.pedido_detalle', id=p[0]) }}"
-             class="btn btn-sm fw-bold" style="background:#1b4332;color:white;border-radius:10px">
-            <i class="bi bi-eye me-1"></i>Ver detalle
-          </a>
-          {% if p[5] == 'Pendiente' %}
-          <a href="https://wa.me/506{{ p[2]|replace('-','') }}?text={{ ('Hola ' ~ (p[1].split()[0] if p[1] else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
-             target="_blank" class="btn btn-sm btn-success fw-bold" style="border-radius:10px">
-            <i class="bi bi-whatsapp me-1"></i>WhatsApp
-          </a>
-          {% endif %}
-        </div>
-
+{% macro tarjeta(p, tipo) %}
+<div class="kb-card">
+  <div class="d-flex justify-content-between align-items-start gap-2">
+    <div style="min-width:0">
+      <div class="nom">#{{ p.id }} · {{ p.nombre }}{% if p.modificado %}<span class="marca-mod">Modificado</span>{% endif %}</div>
+      <div class="meta">
+        {% if p.creado %}{{ p.creado.strftime('%d/%m %I:%M %p') }}{% endif %}
+        · {{ p.n_items }} producto{{ '' if p.n_items == 1 else 's' }}
       </div>
+    </div>
+    <div class="monto">₡{{ "{:,.0f}".format(p.total) }}</div>
+  </div>
+  {% if p.notas %}<div class="nota"><i class="bi bi-chat-left-text me-1"></i>{{ p.notas[:60] }}{% if p.notas|length > 60 %}…{% endif %}</div>{% endif %}
+  <div class="acciones">
+    {% if tipo == 'preparando' %}
+      <form method="POST" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" hx-boost="false" class="m-0">
+        <input type="hidden" name="valor" value="Listo">
+        <button class="btn btn-success" type="submit"><i class="bi bi-check2-circle me-1"></i>Marcar listo</button>
+      </form>
+    {% elif tipo == 'listo' %}
+      <button type="button" class="btn btn-success js-vender"
+              data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
+        <i class="bi bi-bag-check me-1"></i>Pasar a venta
+      </button>
+      <form method="POST" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" hx-boost="false" class="m-0">
+        <input type="hidden" name="valor" value="Preparando">
+        <button class="btn btn-outline-secondary" type="submit" title="Volver a Preparando"><i class="bi bi-arrow-counterclockwise"></i></button>
+      </form>
+    {% elif tipo == 'cobrar' %}
+      <button type="button" class="btn btn-success js-pagar"
+              data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
+        <i class="bi bi-cash-coin me-1"></i>Marcar pagado
+      </button>
+    {% endif %}
+    <a href="{{ url_for('pedidos_bp.pedido_detalle', id=p.id) }}" class="btn btn-outline-dark"><i class="bi bi-eye me-1"></i>Detalle</a>
+    {% if tipo in ('preparando', 'listo', 'cobrar') and p.cel8 %}
+      <a href="https://wa.me/506{{ p.cel8 }}?text={{ ('Hola ' ~ (p.nombre.split()[0] if p.nombre else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
+         target="_blank" class="btn btn-outline-success" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+    {% endif %}
+    {% if tipo == 'pagado' and p.venta_id %}
+      <a href="{{ url_for('ventas_bp.ticket_venta', venta_id=p.venta_id) }}" hx-boost="false" class="btn btn-outline-secondary" title="Comprobante"><i class="bi bi-receipt"></i></a>
+    {% endif %}
+  </div>
+  {% if tipo == 'pagado' and p.metodo %}
+    <div class="meta mt-2"><i class="bi bi-check-circle-fill text-success me-1"></i>{{ p.metodo }}</div>
+  {% endif %}
+</div>
+{% endmacro %}
+
+<div class="kb-board" id="kbBoard">
+  {% for clave, titulo, lista in cols %}
+  <div class="kb-col c-{{ clave }}" data-col="{{ clave }}">
+    <div class="kb-col-head"><span>{{ titulo }}</span><span class="cnt">{{ lista|length }}</span></div>
+    {% for p in lista %}{{ tarjeta(p, clave) }}{% else %}
+      <div class="kb-vacio">Sin pedidos</div>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div>
+
+{% if rechazados %}
+<details class="rech mt-4">
+  <summary>Rechazados ({{ rechazados|length }})</summary>
+  <div class="mt-2">
+    {% for p in rechazados %}
+    <div class="kb-card" style="opacity:.75">
+      <div class="d-flex justify-content-between align-items-center gap-2">
+        <div class="nom">#{{ p.id }} · {{ p.nombre }}</div>
+        <a href="{{ url_for('pedidos_bp.pedido_detalle', id=p.id) }}" class="btn btn-outline-dark btn-sm">Detalle</a>
+      </div>
+      <div class="meta">{% if p.creado %}{{ p.creado.strftime('%d/%m/%Y %I:%M %p') }}{% endif %} · ₡{{ "{:,.0f}".format(p.total) }}</div>
     </div>
     {% endfor %}
   </div>
+</details>
 {% endif %}
 
+<!-- ===== Modal: pasar a venta ===== -->
+<div class="modal fade" id="modalVender" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none">
+      <div class="modal-header text-white" style="background:#1b4332;border-radius:16px 16px 0 0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-bag-check me-2"></i>Pasar a venta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formVender" hx-boost="false">
+        <input type="hidden" name="volver" value="bandeja">
+        <div class="modal-body p-4">
+          <p class="mb-3">Se genera una venta por <strong id="vTotal"></strong> a nombre de <strong id="vNombre"></strong>. El inventario se descuenta.</p>
+          <div class="fw-bold mb-2">¿Ya recibió el pago?</div>
+          <div class="d-flex gap-2 mb-3">
+            <input type="radio" class="btn-check" name="pago" id="pagoSi" value="si" autocomplete="off">
+            <label class="btn btn-outline-success flex-fill fw-bold" for="pagoSi">Sí, ya pagó</label>
+            <input type="radio" class="btn-check" name="pago" id="pagoNo" value="no" autocomplete="off">
+            <label class="btn btn-outline-warning flex-fill fw-bold" for="pagoNo">Todavía no</label>
+          </div>
+          <div id="zonaMetodoV" style="display:none">
+            <label class="form-label small fw-bold text-muted mb-1">¿Cómo pagó?</label>
+            <select name="metodo" class="form-select">
+              {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+            </select>
+          </div>
+          <div id="avisoNoPago" class="small text-muted" style="display:none">Va a quedar en <b>Por cobrar</b> hasta que la marques como pagada.</div>
+        </div>
+        <div class="modal-footer border-0 p-4 pt-0">
+          <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" id="btnVender" class="btn fw-bold px-4 text-white" style="background:#1b4332;border-radius:10px" disabled>
+            <i class="bi bi-check-lg me-1"></i>Generar venta
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Modal: marcar pagado ===== -->
+<div class="modal fade" id="modalPagar" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="border-radius:16px;border:none">
+      <div class="modal-header text-white" style="background:#2d6a4f;border-radius:16px 16px 0 0">
+        <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Marcar pagado</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <form method="POST" id="formPagar" hx-boost="false">
+        <input type="hidden" name="volver" value="bandeja">
+        <div class="modal-body p-4">
+          <p class="mb-3"><strong id="pNombre"></strong> pagó <strong id="pTotal"></strong>.</p>
+          <label class="form-label small fw-bold text-muted mb-1">¿Cómo pagó?</label>
+          <select name="metodo" class="form-select">
+            {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="modal-footer border-0 p-4 pt-0">
+          <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-success fw-bold px-4" style="border-radius:10px">
+            <i class="bi bi-check-lg me-1"></i>Confirmar pago
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <script>
-// Descarga la lista en PDF sin salir de la app (en el celular abre el menú
-// de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC se descarga directo).
-// Entrega el PDF: en el celular lo comparte/abre; en la computadora lo descarga.
-// Devuelve 'ok' o 'necesita-toque' (el navegador del celular exige un toque nuevo
-// para compartir cuando el PDF tardó en generarse; sin esto el PDF "no aparecía").
-async function entregarPdf(blob, nombre, esReintento, urlDirecta) {
-  const archivo = new File([blob], nombre, { type: 'application/pdf' });
-  const esCelular = window.matchMedia('(pointer: coarse)').matches;
-  if (esCelular) {
-    if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
-      try { await navigator.share({ files: [archivo], title: nombre }); return 'ok'; }
-      catch (e) {
-        if (e && e.name === 'AbortError') return 'ok';      // la persona cerró el menú de compartir
-        if (!esReintento) return 'necesita-toque';           // el permiso del toque venció
+// IIFE: htmx re-ejecuta este script en cada navegación; así no chocan los const.
+(function () {
+  // Descarga la lista en PDF sin salir de la app (en el celular abre el menú
+  // de compartir: guardar en Archivos, imprimir, WhatsApp...; en PC se descarga directo).
+  // Devuelve 'ok' o 'necesita-toque' (el navegador del celular exige un toque nuevo
+  // para compartir cuando el PDF tardó en generarse; sin esto el PDF "no aparecía").
+  async function entregarPdf(blob, nombre, esReintento, urlDirecta) {
+    const archivo = new File([blob], nombre, { type: 'application/pdf' });
+    const esCelular = window.matchMedia('(pointer: coarse)').matches;
+    if (esCelular) {
+      if (navigator.canShare && navigator.canShare({ files: [archivo] })) {
+        try { await navigator.share({ files: [archivo], title: nombre }); return 'ok'; }
+        catch (e) {
+          if (e && e.name === 'AbortError') return 'ok';      // la persona cerró el menú de compartir
+          if (!esReintento) return 'necesita-toque';           // el permiso del toque venció
+        }
+      } else if (!esReintento) {
+        return 'necesita-toque';
       }
-    } else if (!esReintento) {
-      return 'necesita-toque';
+      // Último recurso en celular: pedir el PDF directo al servidor para que el
+      // sistema lo descargue con su aviso normal ("Descarga completa · Abrir")
+      const d = document.createElement('a');
+      d.href = urlDirecta; d.download = nombre;
+      document.body.appendChild(d); d.click(); d.remove();
+      return 'ok';
     }
-    // Último recurso en celular: pedir el PDF directo al servidor para que el
-    // sistema lo descargue con su aviso normal ("Descarga completa · Abrir")
-    const d = document.createElement('a');
-    d.href = urlDirecta; d.download = nombre;
-    document.body.appendChild(d); d.click(); d.remove();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob); a.download = nombre;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
     return 'ok';
   }
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = nombre;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 10000);
-  return 'ok';
-}
 
-async function descargarListaPdf(btn) {
-  const txt = btn.querySelector('span');
-  // Segundo toque: el PDF ya está listo, se entrega de inmediato con un toque nuevo
-  if (btn._pdfListo) {
-    const listo = btn._pdfListo; btn._pdfListo = null;
-    txt.textContent = btn._textoOriginal || 'Exportar PDF';
-    try { await entregarPdf(listo.blob, listo.nombre, true, btn.dataset.url); }
-    catch (e) { alert('No se pudo abrir el PDF. Intentá de nuevo.'); }
-    return;
-  }
-  const original = txt.textContent;
-  btn._textoOriginal = original;
-  let quedaListo = false;
-  btn.disabled = true; txt.textContent = 'Generando...';
-  try {
-    const r = await fetch(btn.dataset.url, { credentials: 'same-origin' });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const blob = await r.blob();
-    const nombre = (btn.dataset.archivo || 'documento') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
-    if (await entregarPdf(blob, nombre, false, btn.dataset.url) === 'necesita-toque') {
-      btn._pdfListo = { blob, nombre };
-      txt.textContent = 'Listo: toca para descargar el PDF';
-      quedaListo = true;
+  window.descargarListaPdf = async function (btn) {
+    const txt = btn.querySelector('span');
+    // Segundo toque: el PDF ya está listo, se entrega de inmediato con un toque nuevo
+    if (btn._pdfListo) {
+      const listo = btn._pdfListo; btn._pdfListo = null;
+      txt.textContent = btn._textoOriginal || 'Exportar PDF';
+      try { await entregarPdf(listo.blob, listo.nombre, true, btn.dataset.url); }
+      catch (e) { alert('No se pudo abrir el PDF. Intentá de nuevo.'); }
+      return;
     }
-  } catch (e) {
-    alert('No se pudo generar el PDF. Intentá de nuevo.');
-  } finally {
-    btn.disabled = false;
-    if (!quedaListo) txt.textContent = original;
-  }
-}
+    const original = txt.textContent;
+    btn._textoOriginal = original;
+    let quedaListo = false;
+    btn.disabled = true; txt.textContent = 'Generando...';
+    try {
+      const r = await fetch(btn.dataset.url, { credentials: 'same-origin' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const blob = await r.blob();
+      const nombre = (btn.dataset.archivo || 'documento') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+      if (await entregarPdf(blob, nombre, false, btn.dataset.url) === 'necesita-toque') {
+        btn._pdfListo = { blob, nombre };
+        txt.textContent = 'Listo: toca para descargar el PDF';
+        quedaListo = true;
+      }
+    } catch (e) {
+      alert('No se pudo generar el PDF. Intentá de nuevo.');
+    } finally {
+      btn.disabled = false;
+      if (!quedaListo) txt.textContent = original;
+    }
+  };
 
-function filtrar(estado, btn) {
-  document.querySelectorAll('.filtro-btn').forEach(b => b.classList.remove('activo'));
-  btn.classList.add('activo');
-  let total = 0, n = 0;
-  document.querySelectorAll('.pedido-card').forEach(card => {
-    const visible = (estado === 'todos' || card.dataset.estado === estado);
-    card.style.display = visible ? '' : 'none';
-    if (visible) { total += parseFloat(card.dataset.total) || 0; n++; }
-  });
-  // Monto total de los pedidos que se están viendo según el filtro
-  document.getElementById('resumenEtiqueta').textContent = btn.textContent.trim();
-  document.getElementById('resumenCantidad').textContent = n;
-  document.getElementById('resumenPlural').textContent = n === 1 ? '' : 's';
-  document.getElementById('resumenTotal').textContent = '₡' + Math.round(total).toLocaleString('es-CR');
-}
-// Aplica el filtro inicial (Pendientes, o Todos si no hay pendientes)
-(function () {
-  var activo = document.querySelector('.filtro-btn.activo');
-  if (activo) activo.click();
+  const colones = n => '₡' + Math.round(n).toLocaleString('es-CR');
+
+  // ── Pestañas de columnas (celular) ──
+  const tabs = Array.from(document.querySelectorAll('#kbTabs .kb-tab'));
+  const cols = Array.from(document.querySelectorAll('#kbBoard .kb-col'));
+  function mostrarCol(clave) {
+    tabs.forEach(t => t.classList.toggle('activo', t.dataset.col === clave));
+    cols.forEach(c => c.classList.toggle('visible', c.dataset.col === clave));
+    try { sessionStorage.setItem('kbCol', clave); } catch (e) {}
+  }
+  tabs.forEach(t => t.addEventListener('click', () => mostrarCol(t.dataset.col)));
+  let inicial = 'preparando';
+  try { inicial = sessionStorage.getItem('kbCol') || inicial; } catch (e) {}
+  if (!tabs.some(t => t.dataset.col === inicial)) inicial = 'preparando';
+  mostrarCol(inicial);
+
+  // ── Modal: pasar a venta ──
+  const mVender = document.getElementById('modalVender');
+  const fVender = document.getElementById('formVender');
+  const pagoSi = document.getElementById('pagoSi'), pagoNo = document.getElementById('pagoNo');
+  function actualizarVender() {
+    document.getElementById('zonaMetodoV').style.display = pagoSi.checked ? '' : 'none';
+    document.getElementById('avisoNoPago').style.display = pagoNo.checked ? '' : 'none';
+    document.getElementById('btnVender').disabled = !(pagoSi.checked || pagoNo.checked);
+  }
+  pagoSi.addEventListener('change', actualizarVender);
+  pagoNo.addEventListener('change', actualizarVender);
+  document.querySelectorAll('.js-vender').forEach(btn => btn.addEventListener('click', () => {
+    fVender.action = '/admin/pedidos/' + btn.dataset.id + '/convertir';
+    document.getElementById('vNombre').textContent = btn.dataset.nombre;
+    document.getElementById('vTotal').textContent = colones(parseFloat(btn.dataset.total));
+    pagoSi.checked = false; pagoNo.checked = false; actualizarVender();
+    bootstrap.Modal.getOrCreateInstance(mVender).show();
+  }));
+
+  // ── Modal: marcar pagado ──
+  const mPagar = document.getElementById('modalPagar');
+  document.querySelectorAll('.js-pagar').forEach(btn => btn.addEventListener('click', () => {
+    document.getElementById('formPagar').action = '/admin/pedidos/' + btn.dataset.id + '/pagar';
+    document.getElementById('pNombre').textContent = btn.dataset.nombre;
+    document.getElementById('pTotal').textContent = colones(parseFloat(btn.dataset.total));
+    bootstrap.Modal.getOrCreateInstance(mPagar).show();
+  }));
 })();
 </script>
 {% endblock %}

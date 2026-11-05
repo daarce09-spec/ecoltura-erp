@@ -23,6 +23,37 @@ def _asegurar_columnas_descuento_linea():
 _asegurar_columnas_descuento_linea()
 
 
+# Seguimiento del pedido (Preparando / Listo), enlace privado del cliente y marca de pago.
+# El estado de siempre (Pendiente / Resuelto / Rechazado) no se toca.
+def _asegurar_columnas_seguimiento():
+    try:
+        with obtener_conexion() as conn:
+            cur = conn.cursor()
+            cur.execute("""ALTER TABLE pedidos
+                           ADD COLUMN IF NOT EXISTS seguimiento VARCHAR(20) DEFAULT 'Preparando',
+                           ADD COLUMN IF NOT EXISTS token VARCHAR(64),
+                           ADD COLUMN IF NOT EXISTS modificado BOOLEAN DEFAULT FALSE,
+                           ADD COLUMN IF NOT EXISTS modificado_en TIMESTAMP,
+                           ADD COLUMN IF NOT EXISTS pagado_en TIMESTAMP""")
+            try:
+                cur.execute("SAVEPOINT tk")
+                cur.execute("ALTER TABLE pedidos ALTER COLUMN token SET DEFAULT gen_random_uuid()::text")
+                cur.execute("RELEASE SAVEPOINT tk")
+            except Exception:
+                cur.execute("ROLLBACK TO SAVEPOINT tk")
+                cur.execute("""ALTER TABLE pedidos ALTER COLUMN token
+                               SET DEFAULT md5(random()::text || clock_timestamp()::text)""")
+            cur.execute("UPDATE pedidos SET token = DEFAULT WHERE token IS NULL")
+            cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_pedidos_token ON pedidos (token)")
+            conn.commit()
+    except Exception as ex:
+        print("No se pudieron asegurar las columnas de seguimiento:", ex)
+
+_asegurar_columnas_seguimiento()
+
+METODOS_PAGO = ("Efectivo", "SINPE Móvil")
+
+
 def _neto_linea(cantidad, precio, tipo, valor):
     """(base, descuento_de_la_linea, neto). Todo en colones enteros."""
     base = float(round(float(cantidad) * float(precio)))
@@ -31,29 +62,140 @@ def _neto_linea(cantidad, precio, tipo, valor):
 
 
 # ─────────────────────────────────────────────
-#  BANDEJA PRINCIPAL
+#  BANDEJA PRINCIPAL (tablero Kanban)
+#    Preparando -> Listo -> Por cobrar -> Pagado
 # ─────────────────────────────────────────────
+def _ultimos_8(celular):
+    digitos = "".join(ch for ch in str(celular or "") if ch.isdigit())
+    return digitos[-8:]
+
+
+def _inicio_periodo(periodo):
+    """Inicio del periodo en hora UTC (como se guarda en la base), o None para 'todo'."""
+    ahora_cr = datetime.utcnow() - timedelta(hours=6)
+    hoy = ahora_cr.replace(hour=0, minute=0, second=0, microsecond=0)
+    if periodo == "hoy":
+        inicio = hoy
+    elif periodo == "mes":
+        inicio = hoy.replace(day=1)
+    elif periodo == "todo":
+        return None
+    else:  # semana: hoy y los 6 días anteriores
+        inicio = hoy - timedelta(days=6)
+    return inicio + timedelta(hours=6)
+
+
 @pedidos_bp.route("/admin/pedidos")
 def bandeja_pedidos():
+    periodo = request.args.get("periodo", "semana")
+    if periodo not in ("hoy", "semana", "mes", "todo"):
+        periodo = "semana"
+    inicio = _inicio_periodo(periodo)
+
+    filtro_fecha = ""
+    params = []
+    if inicio is not None:
+        filtro_fecha = "p.gestionado >= %s"
+        params = [inicio, inicio]
+
     with obtener_conexion() as conn:
         cur = conn.cursor()
-        cur.execute("""
-            SELECT p.id, p.nombre_contacto, p.celular, p.cedula,
-                   p.total_estimado, p.estado, p.creado, p.notas,
-                   COALESCE(c.nombre, p.nombre_contacto) AS cliente_nombre
+        cur.execute(f"""
+            SELECT p.id, COALESCE(c.nombre, p.nombre_contacto), p.celular,
+                   p.total_estimado, p.estado, COALESCE(p.seguimiento, 'Preparando'),
+                   p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
+                   v.metodo_pago, v.total, v.id, p.notas,
+                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id)
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
-            ORDER BY
-                CASE p.estado WHEN 'Pendiente' THEN 0 WHEN 'Resuelto' THEN 1 ELSE 2 END,
-                p.creado DESC
-        """)
-        pedidos = cur.fetchall()
+            LEFT JOIN ventas v   ON v.id = p.venta_id
+            WHERE p.estado = 'Pendiente'
+               OR (p.estado = 'Resuelto' AND (v.metodo_pago = 'Por cobrar'
+                                              {"OR " + filtro_fecha if filtro_fecha else "OR TRUE"}))
+               OR (p.estado = 'Rechazado' {"AND " + filtro_fecha if filtro_fecha else ""})
+            ORDER BY p.creado DESC
+        """, params)
+        filas = cur.fetchall()
 
-        cur.execute("SELECT COUNT(*) FROM pedidos WHERE estado='Pendiente'")
-        pendientes = cur.fetchone()[0]
+    columnas = {"preparando": [], "listo": [], "cobrar": [], "pagado": []}
+    rechazados = []
+    por_entregar = facturado = cobrado = por_cobrar = 0.0
+    for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
+         metodo, total_venta, venta_id, notas, n_items) in filas:
+        total = float(total_venta if total_venta is not None else (total_est or 0))
+        tarjeta = {
+            "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
+            "total": total, "creado": creado, "gestionado": gestionado, "modificado": modificado,
+            "metodo": metodo, "venta_id": venta_id, "notas": (notas or "").strip(), "n_items": n_items,
+        }
+        if estado == "Pendiente":
+            por_entregar += float(total_est or 0)
+            columnas["listo" if seg == "Listo" else "preparando"].append(tarjeta)
+        elif estado == "Resuelto":
+            es_cobrar = (metodo == "Por cobrar")
+            if es_cobrar:
+                por_cobrar += total
+                columnas["cobrar"].append(tarjeta)
+            else:
+                columnas["pagado"].append(tarjeta)
+            if inicio is None or (gestionado and gestionado >= inicio):
+                facturado += total
+                if not es_cobrar:
+                    cobrado += total
+        else:
+            rechazados.append(tarjeta)
 
-    return render_template("pedidos_bandeja.html",
-                           pedidos=pedidos, pendientes=pendientes)
+    resumen = {"por_entregar": por_entregar, "facturado": facturado,
+               "cobrado": cobrado, "por_cobrar": por_cobrar}
+    return render_template("pedidos_bandeja.html", columnas=columnas, rechazados=rechazados,
+                           resumen=resumen, periodo=periodo,
+                           pendientes=len(columnas["preparando"]) + len(columnas["listo"]),
+                           metodos=METODOS_PAGO)
+
+
+# ─────────────────────────────────────────────
+#  SEGUIMIENTO: Preparando <-> Listo
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/seguimiento", methods=["POST"])
+def pedido_seguimiento(id):
+    valor = request.form.get("valor", "")
+    if valor not in ("Preparando", "Listo"):
+        flash("Estado inválido.", "danger")
+        return redirect(url_for("pedidos_bp.bandeja_pedidos"))
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE pedidos SET seguimiento = %s WHERE id = %s AND estado = 'Pendiente'",
+                    (valor, id))
+        conn.commit()
+    flash(f"Pedido #{id}: {valor.lower()}.", "success")
+    if request.form.get("volver") == "detalle":
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+    return redirect(url_for("pedidos_bp.bandeja_pedidos"))
+
+
+# ─────────────────────────────────────────────
+#  MARCAR PAGADO (venta que estaba por cobrar)
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/pagar", methods=["POST"])
+def pedido_pagar(id):
+    metodo = request.form.get("metodo", "Efectivo")
+    if metodo not in METODOS_PAGO:
+        metodo = "Efectivo"
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT venta_id FROM pedidos WHERE id = %s AND estado = 'Resuelto'", (id,))
+        fila = cur.fetchone()
+        if not fila or not fila[0]:
+            flash("Este pedido no tiene una venta por cobrar.", "warning")
+        else:
+            cur.execute("UPDATE ventas SET metodo_pago = %s WHERE id = %s AND metodo_pago = 'Por cobrar'",
+                        (metodo, fila[0]))
+            cur.execute("UPDATE pedidos SET pagado_en = NOW() WHERE id = %s", (id,))
+            conn.commit()
+            flash(f"Pedido #{id} marcado como pagado ({metodo}).", "success")
+    if request.form.get("volver") == "detalle":
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+    return redirect(url_for("pedidos_bp.bandeja_pedidos"))
 
 
 def _formato_cantidad(unidad, total):
@@ -467,8 +609,10 @@ def pedido_detalle(id):
             SELECT p.id, p.nombre_contacto, p.celular, p.cedula,
                    p.total_estimado, p.estado, p.creado, p.notas,
                    p.cliente_id, p.venta_id,
-                   COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0)
-            FROM pedidos p WHERE p.id = %s
+                   COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0),
+                   COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago
+            FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
+            WHERE p.id = %s
         """, (id,))
         pedido = cur.fetchone()
 
@@ -779,6 +923,14 @@ def pedido_convertir(id):
 
         estado, cliente_id, nombre, celular, total_est = row
 
+        # ¿Ya pagó? Si sí, la venta queda con su método de pago; si no, queda "Por cobrar"
+        ya_pago = request.form.get("pago") == "si"
+        metodo_venta = request.form.get("metodo", "Efectivo")
+        if metodo_venta not in METODOS_PAGO:
+            metodo_venta = "Efectivo"
+        if not ya_pago:
+            metodo_venta = "Por cobrar"
+
         # Obtener detalle del pedido
         cur.execute("""
             SELECT producto_id, cantidad, precio_unitario,
@@ -801,9 +953,9 @@ def pedido_convertir(id):
         # Insertar venta (con el descuento del pedido)
         cur.execute("""
             INSERT INTO ventas (cliente_id, fecha_venta, subtotal, descuento, iva, total, metodo_pago, estado)
-            VALUES (%s, %s, %s, %s, 0, %s, 'Por cobrar', 'Facturado')
+            VALUES (%s, %s, %s, %s, 0, %s, %s, 'Facturado')
             RETURNING id
-        """, (cliente_id, fecha_hora, bruto_total, desc_lineas_total + descuento_total, total_total))
+        """, (cliente_id, fecha_hora, bruto_total, desc_lineas_total + descuento_total, total_total, metodo_venta))
         venta_id = cur.fetchone()[0]
 
         desc_asignado = 0.0
@@ -847,13 +999,17 @@ def pedido_convertir(id):
 
         # Marcar pedido como Resuelto
         cur.execute("""
-            UPDATE pedidos SET estado='Resuelto', venta_id=%s, gestionado=NOW()
+            UPDATE pedidos SET estado='Resuelto', venta_id=%s, gestionado=NOW(),
+                   pagado_en = CASE WHEN %s THEN NOW() ELSE NULL END
             WHERE id=%s
-        """, (venta_id, id))
+        """, (venta_id, ya_pago, id))
 
         conn.commit()
 
-    flash(f"Pedido #{id} convertido en venta #{venta_id} correctamente.", "success")
+    estado_pago = f"pagada ({metodo_venta})" if ya_pago else "por cobrar"
+    flash(f"Pedido #{id} convertido en venta #{venta_id}, {estado_pago}.", "success")
+    if request.form.get("volver") == "bandeja":
+        return redirect(url_for("pedidos_bp.bandeja_pedidos"))
     return redirect(url_for("ventas_bp.ticket_venta", venta_id=venta_id))
 
 
