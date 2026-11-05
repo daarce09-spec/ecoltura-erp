@@ -596,8 +596,8 @@
           <div id="franjaTitulo" style="font-family:'Fraunces',serif; font-size:1.05rem; color:var(--verde-os); font-weight:600;"></div>
           <div id="franjaDetalle" style="font-size:.85rem; color:var(--gris); margin-top:2px;"></div>
         </div>
-        <a id="franjaLink" href="#" style="background:var(--verde); color:#fff; border-radius:10px; padding:10px 18px;
-           font-weight:600; font-size:.9rem; text-decoration:none; white-space:nowrap;">Ver mi pedido</a>
+        <button id="franjaLink" type="button" onclick="abrirMiPedido()" style="background:var(--verde); color:#fff; border:none; border-radius:10px; padding:10px 18px;
+           font-weight:600; font-size:.9rem; cursor:pointer; white-space:nowrap;">Ver mi pedido</button>
         <button id="franjaSalir" onclick="salirEdicion()" style="display:none; background:transparent; border:1.5px solid var(--borde);
                 border-radius:10px; padding:9px 14px; font-weight:600; font-size:.85rem; color:var(--gris); cursor:pointer;">Cancelar edición</button>
       </div>
@@ -685,6 +685,15 @@
   </div>
 </div>
 
+<!-- Modal: Mi pedido (estado, editar, cancelar) -->
+<div class="overlay" id="overlayMiPedido">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayMiPedido')">✕</button>
+    <div class="modal-titulo" id="miPedidoTitulo">Mi pedido</div>
+    <div id="miPedidoCuerpo" style="color:var(--gris);font-size:.9rem;">Cargando…</div>
+  </div>
+</div>
+
 <!-- Modal éxito pedido -->
 <div class="overlay" id="overlayExito">
   <div class="modal" style="text-align:center">
@@ -701,7 +710,7 @@
       <button id="btnCampanaExito" class="btn-confirmar" style="width:100%"
               onclick="cerrarModal('overlayExito'); activarNotificacionesCliente()">Activar avisos</button>
     </div>
-    <a id="btnVerPedido" href="#" class="btn-confirmar" style="display:none;margin-top:18px;width:100%;text-align:center;text-decoration:none;">Ver mi pedido</a>
+    <button id="btnVerPedido" type="button" class="btn-confirmar" style="display:none;margin-top:18px;width:100%;" onclick="cerrarModal('overlayExito'); abrirMiPedido()">Ver mi pedido</button>
     <button class="btn-cancelar" style="margin-top:10px;width:100%" onclick="cerrarModal('overlayExito')">Cerrar</button>
   </div>
 </div>
@@ -1511,8 +1520,119 @@ let extrasEdicion = [];      // líneas del pedido que ya no están en la tienda
 function mostrarBotonVerPedido(token) {
   const a = document.getElementById("btnVerPedido");
   if (!a) return;
-  a.href = "/pedido/" + encodeURIComponent(token);
   a.style.display = "block";
+}
+
+// Token del pedido activo: el que se está editando o el recordado en este celular
+function tokenActivo() {
+  if (modoEdicion) return modoEdicion;
+  const g = pedidoRecordado();
+  return g && g.token ? g.token : null;
+}
+
+const fmtCRC = n => "₡" + Math.round(n).toLocaleString("es-CR");
+function _el(tag, txt, estilo) {
+  const e = document.createElement(tag);
+  if (txt !== undefined) e.textContent = txt;
+  if (estilo) e.style.cssText = estilo;
+  return e;
+}
+function cantidadItemTexto(i) {
+  const c = i.cantidad;
+  if ((i.unidad || "").toLowerCase().startsWith("gramo")) return c >= 1000 ? (c / 1000).toLocaleString("es-CR") + " kg" : c + " g";
+  return (Number.isInteger(c) ? c : c.toLocaleString("es-CR")) + " " + (i.unidad || "");
+}
+
+async function abrirMiPedido() {
+  const token = tokenActivo();
+  if (!token) return;
+  const cuerpo = document.getElementById("miPedidoCuerpo");
+  cuerpo.textContent = "Cargando…";
+  abrirModal("overlayMiPedido");
+  try {
+    const r = await fetch("/api/pedido/" + encodeURIComponent(token));
+    const d = await r.json();
+    if (!d.ok) {
+      try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {}
+      cuerpo.textContent = d.error || "No encontramos este pedido.";
+      refrescarFranjaPedido();
+      return;
+    }
+    pintarMiPedido(d, token);
+  } catch(e) {
+    cuerpo.textContent = "No pudimos cargar tu pedido. Revisá tu conexión.";
+  }
+}
+
+function pintarMiPedido(d, token) {
+  const cuerpo = document.getElementById("miPedidoCuerpo");
+  cuerpo.innerHTML = "";
+  document.getElementById("miPedidoTitulo").textContent = "Pedido #" + d.numero;
+  const entregado = d.estado === "Entregado", cancelado = d.estado === "Cancelado";
+  if (entregado || cancelado) { try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {} refrescarFranjaPedido(); }
+
+  // Pasos
+  const caja = _el("div", undefined, "background:#F3F8EE;border:1px solid #D5E5C6;border-radius:12px;padding:12px 14px;margin-bottom:14px;text-align:center;");
+  if (cancelado) caja.appendChild(_el("div", "Este pedido fue cancelado.", "font-size:.92rem;"));
+  else {
+    const pasos = _el("div", undefined, "display:flex;justify-content:center;gap:6px;flex-wrap:wrap;font-size:.82rem;margin-bottom:6px;");
+    [["Recibido", true], ["Preparando", !entregado], ["Entregado", entregado]].forEach(([t, on], k) => {
+      const dot = _el("span", (on ? "✓ " : (k + 1) + " ") + t,
+        "padding:4px 10px;border-radius:99px;font-weight:600;" + (on ? "background:var(--verde);color:#fff;" : "background:#ECEAE3;color:var(--gris);"));
+      pasos.appendChild(dot);
+    });
+    caja.appendChild(pasos);
+    caja.appendChild(_el("div", entregado ? "¡Tu pedido fue entregado! Gracias por apoyar productos locales." : "Estamos preparando tu pedido. Te escribimos por WhatsApp para coordinar la entrega.", "font-size:.88rem;"));
+  }
+  cuerpo.appendChild(caja);
+
+  // Detalle
+  const lista = _el("div", undefined, "margin-bottom:10px;");
+  d.items.forEach(i => {
+    const f = _el("div", undefined, "display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #F0EEE8;font-size:.9rem;" + (i.envio ? "color:var(--gris);" : ""));
+    f.appendChild(_el("span", i.envio ? i.nombre : i.nombre + " · " + cantidadItemTexto(i)));
+    f.appendChild(_el("b", fmtCRC(i.subtotal), "white-space:nowrap;"));
+    lista.appendChild(f);
+  });
+  if (d.descuento > 0) {
+    const f = _el("div", undefined, "display:flex;justify-content:space-between;padding:8px 0;font-size:.9rem;color:var(--verde);");
+    f.appendChild(_el("span", "Descuento")); f.appendChild(_el("b", "− " + fmtCRC(d.descuento)));
+    lista.appendChild(f);
+  }
+  cuerpo.appendChild(lista);
+  const tot = _el("div", undefined, "display:flex;justify-content:space-between;font-family:'Fraunces',serif;font-size:1.2rem;color:var(--verde-os);font-weight:600;border-top:2px solid var(--borde);padding-top:10px;");
+  tot.appendChild(_el("span", "Total")); tot.appendChild(_el("span", fmtCRC(d.total)));
+  cuerpo.appendChild(tot);
+  cuerpo.appendChild(_el("div", d.pagado ? "✓ Pago recibido" : (!entregado && !cancelado ? "El pago lo coordinamos con vos al entregar." : ""),
+    "text-align:center;font-size:.85rem;margin-top:10px;" + (d.pagado ? "color:var(--verde);font-weight:600;" : "color:var(--gris);")));
+
+  // Acciones
+  if (d.editable) {
+    const bEd = _el("button", "✏️ Editar o agregar productos"); bEd.className = "btn-confirmar";
+    bEd.style.cssText = "width:100%;margin-top:16px;";
+    bEd.onclick = () => { cerrarModal("overlayMiPedido"); iniciarEdicion(token); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    cuerpo.appendChild(bEd);
+
+    const bCan = _el("button", "Cancelar pedido", "width:100%;margin-top:6px;background:transparent;border:none;color:var(--gris);font-size:.88rem;padding:10px;cursor:pointer;");
+    const conf = _el("div", undefined, "display:none;margin-top:8px;padding:12px;border-radius:12px;background:#FBF3EC;border:1px solid #F0D9C4;text-align:center;font-size:.9rem;");
+    conf.appendChild(_el("div", "¿Seguro que querés cancelar el pedido?"));
+    const fila = _el("div", undefined, "display:flex;gap:10px;margin-top:10px;");
+    const no = _el("button", "No, mantenerlo"); no.className = "btn-cancelar";
+    const si = _el("button", "Sí, cancelar"); si.className = "btn-confirmar";
+    fila.appendChild(no); fila.appendChild(si); conf.appendChild(fila);
+    bCan.onclick = () => { conf.style.display = "block"; bCan.style.display = "none"; };
+    no.onclick = () => { conf.style.display = "none"; bCan.style.display = "block"; };
+    si.onclick = async () => {
+      si.disabled = true; si.textContent = "Cancelando…";
+      try {
+        const r = await fetch("/api/pedido/" + encodeURIComponent(token) + "/cancelar", { method: "POST" });
+        const j = await r.json();
+        if (!j.ok) alert(j.error || "No se pudo cancelar.");
+      } catch(e) { alert("Error de conexión. Intentá de nuevo."); }
+      abrirMiPedido();
+    };
+    cuerpo.appendChild(bCan); cuerpo.appendChild(conf);
+  }
 }
 
 function pedidoRecordado() {
@@ -1537,9 +1657,6 @@ async function refrescarFranjaPedido() {
     document.getElementById("franjaTitulo").textContent = `Tu pedido #${d.numero} está en preparación 🌱`;
     document.getElementById("franjaDetalle").textContent =
       "Si agregás productos acá, se suman a ese mismo pedido. También podés editarlo o cancelarlo.";
-    const link = document.getElementById("franjaLink");
-    link.textContent = "Ver mi pedido";
-    link.href = "/pedido/" + encodeURIComponent(g.token);
     document.getElementById("franjaSalir").style.display = "none";
     franja.style.display = "flex";
   } catch(e) { franja.style.display = "none"; }
@@ -1571,9 +1688,6 @@ async function iniciarEdicion(token) {
     document.getElementById("franjaDetalle").textContent = extrasEdicion.length
       ? "Cambiá lo que necesites y guardá. Algunos productos ya no están a la venta; se mantienen como estaban."
       : "Cambiá lo que necesites (también podés agregar productos) y guardá los cambios.";
-    const link = document.getElementById("franjaLink");
-    link.textContent = "Ver mi pedido";
-    link.href = "/pedido/" + encodeURIComponent(token);
     document.getElementById("franjaSalir").style.display = "inline-block";
     document.getElementById("franjaPedido").style.display = "flex";
     document.getElementById("btnEnviarPedido").textContent = "Guardar cambios";
