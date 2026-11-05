@@ -1610,7 +1610,13 @@ function pintarMiPedido(d, token) {
   if (d.editable) {
     const bEd = _el("button", "✏️ Editar o agregar productos"); bEd.className = "btn-confirmar";
     bEd.style.cssText = "width:100%;margin-top:16px;";
-    bEd.onclick = () => { cerrarModal("overlayMiPedido"); iniciarEdicion(token); window.scrollTo({ top: 0, behavior: "smooth" }); };
+    bEd.onclick = async () => {
+      cerrarModal("overlayMiPedido");
+      await iniciarEdicion(token);
+      // Baja hasta los productos (justo debajo de las categorías) para empezar a agregar
+      const grid = document.getElementById("gridProductos");
+      if (grid) window.scrollTo({ top: grid.getBoundingClientRect().top + window.scrollY - 90, behavior: "smooth" });
+    };
     cuerpo.appendChild(bEd);
 
     const bCan = _el("button", "Cancelar pedido", "width:100%;margin-top:6px;background:transparent;border:none;color:var(--gris);font-size:.88rem;padding:10px;cursor:pointer;");
