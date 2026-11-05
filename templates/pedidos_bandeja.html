@@ -144,7 +144,7 @@
   {% if tipo == 'entregados' %}
     <div class="mt-2">
       {% if p.por_cobrar %}<span class="tag tag-cobrar">Por cobrar</span>
-      {% else %}<span class="tag tag-cobrado"><i class="bi bi-check-lg"></i> Cobrado{% if p.metodo %} · {{ p.metodo }}{% endif %}</span>{% endif %}
+      {% else %}<span class="tag tag-cobrado"><i class="bi bi-check-lg"></i> Cobrado</span>{% endif %}
     </div>
   {% endif %}
   {% if p.notas %}<div class="nota"><i class="bi bi-chat-left-text me-1"></i>{{ p.notas[:60] }}{% if p.notas|length > 60 %}…{% endif %}</div>{% endif %}
@@ -229,12 +229,6 @@
             <input type="radio" class="btn-check" name="pago" id="pagoNo" value="no" autocomplete="off">
             <label class="btn btn-outline-warning flex-fill fw-bold" for="pagoNo">Todavía no</label>
           </div>
-          <div id="zonaMetodoV" style="display:none">
-            <label class="form-label small fw-bold text-muted mb-1">¿Cómo pagó?</label>
-            <select name="metodo" class="form-select">
-              {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
-            </select>
-          </div>
           <div id="avisoNoPago" class="small text-muted" style="display:none">Va a quedar como <b>Por cobrar</b> hasta que la marques como cobrada.</div>
         </div>
         <div class="modal-footer border-0 p-4 pt-0">
@@ -259,11 +253,7 @@
       <form method="POST" id="formPagar" hx-boost="false">
         <input type="hidden" name="volver" value="bandeja">
         <div class="modal-body p-4">
-          <p class="mb-3"><strong id="pNombre"></strong> pagó <strong id="pTotal"></strong>.</p>
-          <label class="form-label small fw-bold text-muted mb-1">¿Cómo pagó?</label>
-          <select name="metodo" class="form-select">
-            {% for m in metodos %}<option value="{{ m }}">{{ m }}</option>{% endfor %}
-          </select>
+          <p class="mb-0">¿<strong id="pNombre"></strong> ya pagó <strong id="pTotal"></strong>?</p>
         </div>
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
@@ -372,7 +362,6 @@
   const fVender = document.getElementById('formVender');
   const pagoSi = document.getElementById('pagoSi'), pagoNo = document.getElementById('pagoNo');
   function actualizarVender() {
-    document.getElementById('zonaMetodoV').style.display = pagoSi.checked ? '' : 'none';
     document.getElementById('avisoNoPago').style.display = pagoNo.checked ? '' : 'none';
     document.getElementById('btnVender').disabled = !(pagoSi.checked || pagoNo.checked);
   }

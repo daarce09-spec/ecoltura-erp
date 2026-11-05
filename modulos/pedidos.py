@@ -51,7 +51,8 @@ def _asegurar_columnas_seguimiento():
 
 _asegurar_columnas_seguimiento()
 
-METODOS_PAGO = ("Efectivo", "SINPE Móvil")
+# Sin "método de pago": cuando ya pagó, la venta queda como "Efectivo" (como todas las de siempre)
+PAGO_RECIBIDO = "Efectivo"
 
 
 def _neto_linea(cantidad, precio, tipo, valor):
@@ -155,8 +156,7 @@ def bandeja_pedidos():
     return render_template("pedidos_bandeja.html", columnas=columnas, rechazados=rechazados,
                            resumen=resumen, periodo=periodo,
                            n_cobrar=n_cobrar, n_cobrados=n_cobrados,
-                           pendientes=len(columnas["pendientes"]),
-                           metodos=METODOS_PAGO)
+                           pendientes=len(columnas["pendientes"]))
 
 
 # ─────────────────────────────────────────────
@@ -184,9 +184,6 @@ def pedido_seguimiento(id):
 # ─────────────────────────────────────────────
 @pedidos_bp.route("/admin/pedidos/<int:id>/pagar", methods=["POST"])
 def pedido_pagar(id):
-    metodo = request.form.get("metodo", "Efectivo")
-    if metodo not in METODOS_PAGO:
-        metodo = "Efectivo"
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute("SELECT venta_id FROM pedidos WHERE id = %s AND estado = 'Resuelto'", (id,))
@@ -195,10 +192,10 @@ def pedido_pagar(id):
             flash("Este pedido no tiene una venta por cobrar.", "warning")
         else:
             cur.execute("UPDATE ventas SET metodo_pago = %s WHERE id = %s AND metodo_pago = 'Por cobrar'",
-                        (metodo, fila[0]))
+                        (PAGO_RECIBIDO, fila[0]))
             cur.execute("UPDATE pedidos SET pagado_en = NOW() WHERE id = %s", (id,))
             conn.commit()
-            flash(f"Pedido #{id} marcado como cobrado ({metodo}).", "success")
+            flash(f"Pedido #{id} marcado como cobrado.", "success")
     if request.form.get("volver") == "detalle":
         return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
     return redirect(url_for("pedidos_bp.bandeja_pedidos"))
@@ -929,13 +926,9 @@ def pedido_convertir(id):
 
         estado, cliente_id, nombre, celular, total_est = row
 
-        # ¿Ya pagó? Si sí, la venta queda con su método de pago; si no, queda "Por cobrar"
+        # ¿Ya pagó? Si sí, la venta queda cobrada; si no, queda "Por cobrar"
         ya_pago = request.form.get("pago") == "si"
-        metodo_venta = request.form.get("metodo", "Efectivo")
-        if metodo_venta not in METODOS_PAGO:
-            metodo_venta = "Efectivo"
-        if not ya_pago:
-            metodo_venta = "Por cobrar"
+        metodo_venta = PAGO_RECIBIDO if ya_pago else "Por cobrar"
 
         # Obtener detalle del pedido
         cur.execute("""
@@ -1012,7 +1005,7 @@ def pedido_convertir(id):
 
         conn.commit()
 
-    estado_pago = f"pagada ({metodo_venta})" if ya_pago else "por cobrar"
+    estado_pago = "cobrada" if ya_pago else "por cobrar"
     flash(f"Pedido #{id} convertido en venta #{venta_id}, {estado_pago}.", "success")
     if request.form.get("volver") == "bandeja":
         return redirect(url_for("pedidos_bp.bandeja_pedidos"))
