@@ -20,6 +20,8 @@
   .er-cuenta { font-weight:600; color:#333; padding-left:12px; font-size:.95rem; }
   .er-sub { color:#555; padding-left:26px; font-size:.9rem; }
   .er-sub .auto { font-size:.7rem; color:#2d6a4f; background:#e8f3ec; border-radius:6px; padding:1px 6px; margin-left:4px; }
+  .er-detalle { color:#6b746b; padding-left:42px; font-size:.84rem; padding-top:2px; padding-bottom:2px; }
+  .er-detalle.rojo { color:#c0392b; font-weight:600; }
   .er-utilidad { font-weight:800; background:#f4f7f0; border-radius:10px; padding:10px 12px; margin:8px 0; }
   .er-utilidad.neta { background:#1b4332; color:#fff; }
   .er-utilidad.neta .er-pct { color:#cfe3d4; }
@@ -93,6 +95,18 @@
         <div class="er-monto">{{ colones(l.monto) }}</div>
         <div class="er-pct">{{ porcentaje(l.monto) }}</div>
       </div>
+      {% if l.por_cobrar is defined %}
+      <div class="er-fila er-detalle">
+        <div class="er-nombre">Cobradas</div>
+        <div class="er-monto">{{ colones(l.cobradas) }}</div>
+        <div class="er-pct"></div>
+      </div>
+      <div class="er-fila er-detalle rojo">
+        <div class="er-nombre">Por cobrar</div>
+        <div class="er-monto">{{ colones(l.por_cobrar) }}</div>
+        <div class="er-pct"></div>
+      </div>
+      {% endif %}
       {% endfor %}
     {% endfor %}
   {% endmacro %}

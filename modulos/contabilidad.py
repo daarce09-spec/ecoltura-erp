@@ -181,15 +181,19 @@ def estado_resultados():
         # Ventas automáticas: web (vienen de un pedido) o directas (registradas a mano)
         cur.execute("""
             SELECT EXISTS (SELECT 1 FROM pedidos p WHERE p.venta_id = v.id) AS es_web,
-                   COALESCE(SUM(v.total), 0)
+                   COALESCE(SUM(v.total), 0),
+                   COALESCE(SUM(v.total) FILTER (WHERE v.metodo_pago = 'Por cobrar'), 0)
             FROM ventas v
             WHERE v.fecha_venta::date BETWEEN %s AND %s
               AND COALESCE(v.estado, '') NOT ILIKE 'anul%%'
             GROUP BY 1
         """, (desde, hasta))
         ventas_auto = {AUTO_WEB: 0.0, AUTO_DIRECTA: 0.0}
-        for es_web, total in cur.fetchall():
+        web_por_cobrar = 0.0   # parte de las ventas web del periodo que aún no se cobra
+        for es_web, total, sin_cobrar in cur.fetchall():
             ventas_auto[AUTO_WEB if es_web else AUTO_DIRECTA] += float(total)
+            if es_web:
+                web_por_cobrar += float(sin_cobrar)
 
         # Informativo: todo lo que está por cobrar (sin importar el periodo)
         cur.execute("""SELECT COALESCE(SUM(total), 0) FROM ventas
@@ -204,7 +208,12 @@ def estado_resultados():
         for s in c["subcuentas"]:
             monto = ventas_auto.get(s["clave"], 0.0) if s["auto"] else montos.get(s["id"], 0.0)
             if monto:
-                lineas.append({"id": s["id"], "nombre": s["nombre"], "monto": monto, "auto": s["auto"]})
+                linea = {"id": s["id"], "nombre": s["nombre"], "monto": monto, "auto": s["auto"]}
+                # Tienda web: desglose informativo de cobradas y por cobrar (no cambia los totales)
+                if s["clave"] == AUTO_WEB:
+                    linea["cobradas"] = monto - web_por_cobrar
+                    linea["por_cobrar"] = web_por_cobrar
+                lineas.append(linea)
         total_cuenta = sum(l["monto"] for l in lineas)
         if total_cuenta:
             por_seccion[c["seccion"]].append({"nombre": c["nombre"], "total": total_cuenta, "lineas": lineas})
