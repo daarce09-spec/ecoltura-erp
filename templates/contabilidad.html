@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Contabilidad{% endblock %}
+{% block content %}
+{% macro colones(x) %}₡{{ "{:,.0f}".format(x) }}{% endmacro %}
+{% macro porcentaje(x) %}{% set p = pct(x) %}{% if p is not none %}{{ "%.0f"|format(p) }} %{% endif %}{% endmacro %}
+
+<style>
+  .cont-card { background:#fff; border-radius:16px; padding:18px 20px;
+               box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { border:1px solid #d6dfd2; border-radius:999px; padding:6px 14px; font-size:.85rem;
+          color:#1b4332; text-decoration:none; background:#fff; font-weight:600; }
+  .chip.on { background:#1b4332; color:#fff; border-color:#1b4332; }
+  .er-fila { display:flex; align-items:baseline; gap:10px; padding:6px 0; }
+  .er-nombre { flex:1; min-width:0; }
+  .er-monto { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; min-width:110px; }
+  .er-pct { text-align:right; white-space:nowrap; color:#8a948a; font-size:.82rem; width:46px; }
+  .er-seccion { font-weight:700; color:#1b4332; border-top:1px solid #eef1ec; padding-top:12px; margin-top:6px; }
+  .er-seccion:first-child { border-top:none; margin-top:0; padding-top:0; }
+  .er-cuenta { font-weight:600; color:#333; padding-left:12px; font-size:.95rem; }
+  .er-sub { color:#555; padding-left:26px; font-size:.9rem; }
+  .er-sub .auto { font-size:.7rem; color:#2d6a4f; background:#e8f3ec; border-radius:6px; padding:1px 6px; margin-left:4px; }
+  .er-utilidad { font-weight:800; background:#f4f7f0; border-radius:10px; padding:10px 12px; margin:8px 0; }
+  .er-utilidad.neta { background:#1b4332; color:#fff; }
+  .er-utilidad.neta .er-pct { color:#cfe3d4; }
+  .negativo { color:#c0392b; }
+  .er-utilidad.neta .negativo { color:#ffb4a8; }
+  .vacio { text-align:center; color:#9aa39a; padding:28px 10px; }
+  @media (max-width: 540px) {
+    .cont-card { padding:14px 14px; }
+    .er-monto { min-width:92px; font-size:.92rem; }
+    .er-pct { width:40px; }
+  }
+</style>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-journal-text me-2"></i>Contabilidad</h2>
+    <small class="text-muted">Estado de resultados · {{ etiqueta }}</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('contabilidad_bp.movimientos') }}#nuevo" class="btn btn-sm fw-bold text-white" style="background:#1b4332;border-radius:10px">+ Movimiento</a>
+    <a href="{{ url_for('contabilidad_bp.movimientos', periodo=periodo, desde=desde, hasta=hasta) }}" class="btn btn-sm btn-outline-success">Movimientos</a>
+    <a href="{{ url_for('contabilidad_bp.catalogo') }}" class="btn btn-sm btn-outline-success">Catálogo</a>
+    <a href="{{ url_for('menu') }}" class="btn btn-sm btn-outline-secondary">← Menú</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'info' }} alert-dismissible">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endwith %}
+
+<div class="cont-card mb-3">
+  <div class="chips mb-2">
+    <a class="chip {{ 'on' if periodo=='mes' }}" href="{{ url_for('contabilidad_bp.estado_resultados', periodo='mes') }}">Este mes</a>
+    <a class="chip {{ 'on' if periodo=='anterior' }}" href="{{ url_for('contabilidad_bp.estado_resultados', periodo='anterior') }}">Mes anterior</a>
+    <a class="chip {{ 'on' if periodo=='anio' }}" href="{{ url_for('contabilidad_bp.estado_resultados', periodo='anio') }}">Este año</a>
+  </div>
+  <form method="get" action="{{ url_for('contabilidad_bp.estado_resultados') }}" class="d-flex flex-wrap align-items-end gap-2">
+    <input type="hidden" name="periodo" value="rango">
+    <div><label class="form-label small mb-0">Desde</label>
+      <input type="date" name="desde" value="{{ desde }}" class="form-control form-control-sm"></div>
+    <div><label class="form-label small mb-0">Hasta</label>
+      <input type="date" name="hasta" value="{{ hasta }}" class="form-control form-control-sm"></div>
+    <button class="btn btn-sm btn-outline-success {{ 'active' if periodo=='rango' }}">Ver rango</button>
+  </form>
+</div>
+
+<div class="cont-card">
+  {% set hay_algo = ventas or totales.costo or totales.gasto_venta or totales.gasto_admin or totales.otro_ingreso or totales.otro_gasto %}
+  {% if not hay_algo %}
+    <div class="vacio"><i class="bi bi-journal" style="font-size:2rem;display:block"></i>
+      No hay ventas ni movimientos en este periodo.</div>
+  {% else %}
+
+  {# Bloque de una sección: título con total, cuentas y subcuentas #}
+  {% macro seccion(clave, titulo, resta) %}
+    <div class="er-fila er-seccion">
+      <div class="er-nombre">{{ titulo }}</div>
+      <div class="er-monto">{% if resta and totales[clave] %}({{ colones(totales[clave]) }}){% else %}{{ colones(totales[clave]) }}{% endif %}</div>
+      <div class="er-pct">{{ porcentaje(totales[clave]) }}</div>
+    </div>
+    {% for c in por_seccion[clave] %}
+      {% if c.nombre != titulo %}
+      <div class="er-fila er-cuenta">
+        <div class="er-nombre">{{ c.nombre }}</div>
+        <div class="er-monto">{{ colones(c.total) }}</div>
+        <div class="er-pct">{{ porcentaje(c.total) }}</div>
+      </div>
+      {% endif %}
+      {% for l in c.lineas %}
+      <div class="er-fila er-sub">
+        <div class="er-nombre">{{ l.nombre }}{% if l.auto %}<span class="auto">automático</span>{% endif %}</div>
+        <div class="er-monto">{{ colones(l.monto) }}</div>
+        <div class="er-pct">{{ porcentaje(l.monto) }}</div>
+      </div>
+      {% endfor %}
+    {% endfor %}
+  {% endmacro %}
+
+  {% macro utilidad(titulo, valor, clase='') %}
+    <div class="er-fila er-utilidad {{ clase }}">
+      <div class="er-nombre">{{ titulo }}</div>
+      <div class="er-monto {{ 'negativo' if valor < 0 }}">{{ colones(valor) }}</div>
+      <div class="er-pct">{{ porcentaje(valor) }}</div>
+    </div>
+  {% endmacro %}
+
+  {{ seccion('venta', 'Ventas', false) }}
+  {{ seccion('costo', 'Costo de ventas', true) }}
+  {{ utilidad('UTILIDAD BRUTA', utilidad_bruta) }}
+  {{ seccion('gasto_venta', 'Gastos de venta', true) }}
+  {{ seccion('gasto_admin', 'Gastos de administración', true) }}
+  {{ utilidad('UTILIDAD DE OPERACIÓN', utilidad_operacion) }}
+  {% if totales.otro_ingreso %}{{ seccion('otro_ingreso', 'Otros ingresos', false) }}{% endif %}
+  {% if totales.otro_gasto %}{{ seccion('otro_gasto', 'Otros gastos', true) }}{% endif %}
+  {{ utilidad('UTILIDAD NETA', utilidad_neta, 'neta') }}
+  {% endif %}
+
+  <div class="text-muted small mt-3">
+    Por cobrar (informativo, todas las ventas pendientes de cobro): <strong>{{ colones(por_cobrar) }}</strong><br>
+    Las ventas se toman por fecha de venta, sin anuladas, e incluyen las que están por cobrar.
+  </div>
+</div>
+
+{% endblock %}

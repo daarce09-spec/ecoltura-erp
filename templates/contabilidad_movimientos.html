@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+{% block title %}Movimientos · Contabilidad{% endblock %}
+{% block content %}
+{% macro colones(x) %}₡{{ "{:,.0f}".format(x) }}{% endmacro %}
+
+<style>
+  .cont-card { background:#fff; border-radius:16px; padding:18px 20px;
+               box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
+  .chips { display:flex; flex-wrap:wrap; gap:8px; }
+  .chip { border:1px solid #d6dfd2; border-radius:999px; padding:6px 14px; font-size:.85rem;
+          color:#1b4332; text-decoration:none; background:#fff; font-weight:600; }
+  .chip.on { background:#1b4332; color:#fff; border-color:#1b4332; }
+  .mov { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #f2f2f2; }
+  .mov:last-child { border-bottom:none; }
+  .mov-info { flex:1; min-width:0; }
+  .mov-cuenta { font-weight:600; color:#222; }
+  .mov-cuenta small { color:#8a948a; font-weight:500; }
+  .mov-nota { color:#666; font-size:.88rem; word-break:break-word; }
+  .mov-fecha { color:#8a948a; font-size:.8rem; }
+  .mov-monto { font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
+  .ingreso { color:#2d6a4f; } .egreso { color:#c0392b; }
+  .mov-acciones { display:flex; gap:6px; margin-top:6px; justify-content:flex-end; }
+  .vacio { text-align:center; color:#9aa39a; padding:24px 10px; }
+</style>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-list-check me-2"></i>Movimientos</h2>
+    <small class="text-muted">Compras, gastos y otros montos que se anotan a mano. Las ventas se registran solas.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('contabilidad_bp.estado_resultados') }}" class="btn btn-sm btn-outline-success">Estado de resultados</a>
+    <a href="{{ url_for('contabilidad_bp.catalogo') }}" class="btn btn-sm btn-outline-success">Catálogo</a>
+    <a href="{{ url_for('menu') }}" class="btn btn-sm btn-outline-secondary">← Menú</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'info' }} alert-dismissible">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endwith %}
+
+{# ── Formulario: nuevo o editar ── #}
+<div class="cont-card mb-3" id="nuevo">
+  <div class="fw-bold mb-3" style="color:#1b4332">
+    {% if editar %}<i class="bi bi-pencil me-1"></i>Editar movimiento{% else %}<i class="bi bi-plus-circle me-1"></i>Nuevo movimiento{% endif %}
+  </div>
+  <form method="post"
+        action="{{ url_for('contabilidad_bp.movimiento_editar', mid=editar.id) if editar else url_for('contabilidad_bp.movimiento_nuevo') }}">
+    <input type="hidden" name="volver" value="{{ url_for('contabilidad_bp.movimientos') if editar else request.full_path }}">
+    <div class="row g-2">
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-bold mb-1">Fecha</label>
+        <input type="date" name="fecha" required class="form-control"
+               value="{{ editar.fecha if editar else hoy }}">
+      </div>
+      <div class="col-6 col-md-3">
+        <label class="form-label small fw-bold mb-1">Monto (₡)</label>
+        <input type="number" name="monto" required min="0.01" step="0.01" inputmode="decimal"
+               class="form-control" placeholder="0" value="{{ '%g'|format(editar.monto) if editar else '' }}">
+      </div>
+      <div class="col-12 col-md-6">
+        <label class="form-label small fw-bold mb-1">Subcuenta</label>
+        <select name="cuenta_id" required class="form-select">
+          <option value="">Elegí una subcuenta…</option>
+          {% for c in catalogo %}
+            {% set subs = c.subcuentas | selectattr('activa') | rejectattr('auto') | list %}
+            {% if c.activa and subs %}
+            <optgroup label="{{ nombre_seccion[c.seccion] }} · {{ c.nombre }}">
+              {% for s in subs %}
+              <option value="{{ s.id }}" {{ 'selected' if editar and editar.cuenta_id == s.id }}>{{ s.nombre }}</option>
+              {% endfor %}
+            </optgroup>
+            {% endif %}
+          {% endfor %}
+        </select>
+        <div class="form-text">¿No está? Agregala en el <a href="{{ url_for('contabilidad_bp.catalogo') }}">Catálogo</a>.</div>
+      </div>
+      <div class="col-12">
+        <label class="form-label small fw-bold mb-1">Nota (opcional)</label>
+        <input type="text" name="nota" maxlength="300" class="form-control"
+               placeholder="Ej: abono orgánico, 10 sacos" value="{{ editar.nota if editar else '' }}">
+      </div>
+    </div>
+    <div class="d-flex gap-2 mt-3">
+      <button class="btn fw-bold text-white" style="background:#1b4332;border-radius:10px">Guardar</button>
+      {% if editar %}<a href="{{ url_for('contabilidad_bp.movimientos') }}" class="btn btn-outline-secondary">Cancelar</a>{% endif %}
+    </div>
+  </form>
+</div>
+
+{% if not editar %}
+{# ── Filtros ── #}
+<div class="cont-card mb-3">
+  <div class="chips mb-2">
+    <a class="chip {{ 'on' if periodo=='mes' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='mes', cuenta=cuenta_filtro) }}">Este mes</a>
+    <a class="chip {{ 'on' if periodo=='anterior' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anterior', cuenta=cuenta_filtro) }}">Mes anterior</a>
+    <a class="chip {{ 'on' if periodo=='anio' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anio', cuenta=cuenta_filtro) }}">Este año</a>
+  </div>
+  <form method="get" action="{{ url_for('contabilidad_bp.movimientos') }}" class="d-flex flex-wrap align-items-end gap-2">
+    <input type="hidden" name="periodo" value="rango">
+    <div><label class="form-label small mb-0">Desde</label>
+      <input type="date" name="desde" value="{{ desde }}" class="form-control form-control-sm"></div>
+    <div><label class="form-label small mb-0">Hasta</label>
+      <input type="date" name="hasta" value="{{ hasta }}" class="form-control form-control-sm"></div>
+    <div><label class="form-label small mb-0">Cuenta</label>
+      <select name="cuenta" class="form-select form-select-sm">
+        <option value="">Todas</option>
+        {% for c in catalogo %}
+          <option value="{{ c.id }}" {{ 'selected' if cuenta_filtro == c.id }}>{{ c.nombre }}</option>
+          {% for s in c.subcuentas %}{% if not s.auto %}
+          <option value="{{ s.id }}" {{ 'selected' if cuenta_filtro == s.id }}>&nbsp;&nbsp;· {{ s.nombre }}</option>
+          {% endif %}{% endfor %}
+        {% endfor %}
+      </select></div>
+    <button class="btn btn-sm btn-outline-success">Filtrar</button>
+  </form>
+</div>
+
+{# ── Lista ── #}
+<div class="cont-card">
+  <div class="d-flex justify-content-between flex-wrap gap-2 mb-2">
+    <small class="text-muted">{{ etiqueta }} · {{ filas|length }} movimiento{{ 's' if filas|length != 1 }}</small>
+    <small><span class="ingreso">Ingresos {{ colones(total_ingresos) }}</span> · <span class="egreso">Egresos {{ colones(total_egresos) }}</span></small>
+  </div>
+  {% if not filas %}
+    <div class="vacio">No hay movimientos en este periodo.</div>
+  {% endif %}
+  {% for f in filas %}
+  <div class="mov">
+    <div class="mov-info">
+      <div class="mov-cuenta">{{ f.subcuenta }} <small>· {{ f.cuenta }}</small></div>
+      {% if f.nota %}<div class="mov-nota">{{ f.nota }}</div>{% endif %}
+      <div class="mov-fecha">{{ f.fecha.strftime('%d/%m/%Y') }}</div>
+    </div>
+    <div class="text-end">
+      <div class="mov-monto {{ 'ingreso' if f.signo > 0 else 'egreso' }}">{{ '+' if f.signo > 0 else '−' }}{{ colones(f.monto) }}</div>
+      <div class="mov-acciones">
+        <a href="{{ url_for('contabilidad_bp.movimiento_editar', mid=f.id) }}" class="btn btn-sm btn-outline-secondary" title="Editar"><i class="bi bi-pencil"></i></a>
+        <form method="post" action="{{ url_for('contabilidad_bp.movimiento_eliminar', mid=f.id) }}"
+              hx-confirm="¿Eliminar este movimiento de {{ colones(f.monto) }}?">
+          <input type="hidden" name="volver" value="{{ request.full_path }}">
+          <button class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

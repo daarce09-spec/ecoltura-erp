@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+{% block title %}Catálogo de cuentas · Contabilidad{% endblock %}
+{% block content %}
+
+<style>
+  .cont-card { background:#fff; border-radius:16px; padding:16px 18px;
+               box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
+  .sec-titulo { font-size:.78rem; letter-spacing:1.5px; text-transform:uppercase; color:#8a948a;
+                font-weight:700; margin:18px 0 8px; }
+  .cuenta-nombre { font-weight:700; color:#1b4332; }
+  .sub { display:flex; align-items:center; gap:8px; padding:8px 0 8px 14px; border-top:1px solid #f3f3f3; }
+  .sub-nombre { flex:1; min-width:0; }
+  .tag-auto { font-size:.7rem; color:#2d6a4f; background:#e8f3ec; border-radius:6px; padding:1px 6px; margin-left:4px; }
+  details.renombrar summary { list-style:none; cursor:pointer; color:#6c757d; }
+  details.renombrar summary::-webkit-details-marker { display:none; }
+  details.renombrar[open] summary { color:#1b4332; }
+  .form-inline-mini { display:flex; gap:6px; margin-top:6px; }
+</style>
+
+<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-diagram-3 me-2"></i>Catálogo de cuentas</h2>
+    <small class="text-muted">Cada cuenta pertenece a una sección fija del estado de resultados. Podés agregar subcuentas y renombrar.</small>
+  </div>
+  <div class="d-flex flex-wrap gap-2">
+    <a href="{{ url_for('contabilidad_bp.estado_resultados') }}" class="btn btn-sm btn-outline-success">Estado de resultados</a>
+    <a href="{{ url_for('contabilidad_bp.movimientos') }}" class="btn btn-sm btn-outline-success">Movimientos</a>
+    <a href="{{ url_for('menu') }}" class="btn btn-sm btn-outline-secondary">← Menú</a>
+  </div>
+</div>
+
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% for cat, msg in messages %}
+    <div class="alert alert-{{ 'success' if cat=='success' else 'danger' if cat=='danger' else 'info' }} alert-dismissible">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+  {% endfor %}
+{% endwith %}
+
+{% for clave, titulo, signo in secciones %}
+  {% set de_seccion = cuentas | selectattr('seccion', 'equalto', clave) | list %}
+  {% if de_seccion %}
+  <div class="sec-titulo">{{ titulo }}</div>
+  {% for c in de_seccion %}
+  <div class="cont-card mb-2">
+    <div class="d-flex align-items-center gap-2">
+      <div class="cuenta-nombre flex-grow-1">{{ c.nombre }}</div>
+      <details class="renombrar">
+        <summary title="Renombrar cuenta"><i class="bi bi-pencil"></i></summary>
+        <form method="post" action="{{ url_for('contabilidad_bp.cuenta_renombrar', cid=c.id) }}" class="form-inline-mini">
+          <input name="nombre" value="{{ c.nombre }}" maxlength="80" required class="form-control form-control-sm">
+          <button class="btn btn-sm btn-success">Guardar</button>
+        </form>
+      </details>
+    </div>
+
+    {% for s in c.subcuentas %}
+    <div class="sub">
+      <div class="sub-nombre">{{ s.nombre }}{% if s.auto %}<span class="tag-auto">automática</span>{% endif %}</div>
+      <details class="renombrar">
+        <summary title="Renombrar subcuenta"><i class="bi bi-pencil"></i></summary>
+        <form method="post" action="{{ url_for('contabilidad_bp.cuenta_renombrar', cid=s.id) }}" class="form-inline-mini">
+          <input name="nombre" value="{{ s.nombre }}" maxlength="80" required class="form-control form-control-sm">
+          <button class="btn btn-sm btn-success">Guardar</button>
+        </form>
+      </details>
+    </div>
+    {% endfor %}
+
+    <form method="post" action="{{ url_for('contabilidad_bp.subcuenta_nueva', padre_id=c.id) }}" class="form-inline-mini mt-2">
+      <input name="nombre" maxlength="80" required class="form-control form-control-sm" placeholder="Nueva subcuenta en {{ c.nombre }}">
+      <button class="btn btn-sm btn-outline-success text-nowrap">+ Subcuenta</button>
+    </form>
+  </div>
+  {% endfor %}
+  {% endif %}
+{% endfor %}
+
+{% endblock %}
