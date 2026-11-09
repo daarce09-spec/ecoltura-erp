@@ -2,6 +2,7 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta
+import os
 from modulos.proveedores import asegurar_tablas as _asegurar_tablas_proveedores
 
 pedidos_bp = Blueprint("pedidos_bp", __name__)
@@ -55,6 +56,23 @@ _asegurar_columnas_seguimiento()
 PAGO_RECIBIDO = "Efectivo"
 
 
+def _tienda_url():
+    """Dirección pública de la tienda (en el Admin viene de TIENDA_URL)."""
+    return (os.environ.get("TIENDA_URL") or request.host_url).rstrip("/")
+
+
+def _texto_whatsapp(nombre, pedido_id, estado, token):
+    """Mensaje de WhatsApp con el enlace privado del pedido: el cliente lo abre
+    desde cualquier celular y ve el estado (y lo edita si sigue en preparación)."""
+    primer = nombre.split()[0] if nombre else ""
+    if not token:
+        return f"Hola {primer}, te escribimos de ECOLTURA."
+    enlace = f"{_tienda_url()}/pedido/{token}"
+    if estado == "Pendiente":
+        return f"Hola {primer}, te escribimos de ECOLTURA sobre tu pedido #{pedido_id}. Podés verlo o cambiarlo aquí: {enlace}"
+    return f"Hola {primer}, te escribimos de ECOLTURA sobre tu pedido #{pedido_id}. Podés verlo aquí: {enlace}"
+
+
 def _neto_linea(cantidad, precio, tipo, valor):
     """(base, descuento_de_la_linea, neto). Todo en colones enteros."""
     base = float(round(float(cantidad) * float(precio)))
@@ -106,7 +124,8 @@ def bandeja_pedidos():
                    p.total_estimado, p.estado, COALESCE(p.seguimiento, 'Preparando'),
                    p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
                    v.metodo_pago, v.total, v.id, p.notas,
-                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id)
+                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id),
+                   p.token
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
@@ -122,12 +141,13 @@ def bandeja_pedidos():
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
-         metodo, total_venta, venta_id, notas, n_items) in filas:
+         metodo, total_venta, venta_id, notas, n_items, token) in filas:
         total = float(total_venta if total_venta is not None else (total_est or 0))
         tarjeta = {
             "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
             "total": total, "creado": creado, "gestionado": gestionado, "modificado": modificado,
             "metodo": metodo, "venta_id": venta_id, "notas": (notas or "").strip(), "n_items": n_items,
+            "wa_texto": _texto_whatsapp(nombre or "", pid, estado, token),
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)
@@ -616,7 +636,8 @@ def pedido_detalle(id):
                    p.total_estimado, p.estado, p.creado, p.notas,
                    p.cliente_id, p.venta_id,
                    COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0),
-                   COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago
+                   COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago,
+                   p.token
             FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
             WHERE p.id = %s
         """, (id,))
@@ -651,7 +672,8 @@ def pedido_detalle(id):
         for producto_id, gramos in cur.fetchall():
             pesos_por_producto.setdefault(producto_id, []).append(gramos)
 
-    return render_template("pedido_detalle.html",
+    wa_texto = _texto_whatsapp(pedido[1] or "", pedido[0], pedido[5], pedido[15]) if pedido else ""
+    return render_template("pedido_detalle.html", wa_texto=wa_texto,
                            pedido=pedido, detalle=detalle, catalogo=catalogo,
                            pesos_por_producto=pesos_por_producto)
 
