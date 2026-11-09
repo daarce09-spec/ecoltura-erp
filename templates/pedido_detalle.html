@@ -105,7 +105,7 @@
     </div>
 
     {% if pedido[2] %}
-    <a href="https://wa.me/506{{ pedido[2]|replace('-','') }}?text={{ wa_texto|urlencode }}"
+    <a href="https://wa.me/506{{ pedido[2]|replace('-','') }}?text={{ ('Hola ' ~ (pedido[1].split()[0] if pedido[1] else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
        target="_blank" class="btn btn-success w-100 fw-bold mt-3" style="border-radius:12px;padding:13px">
       <i class="bi bi-whatsapp me-2"></i>Escribir por WhatsApp
     </a>

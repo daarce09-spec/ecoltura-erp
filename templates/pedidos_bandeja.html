@@ -162,7 +162,7 @@
     {% endif %}
     <a href="{{ url_for('pedidos_bp.pedido_detalle', id=p.id) }}" class="btn btn-outline-dark"><i class="bi bi-eye me-1"></i>Detalle</a>
     {% if (tipo == 'pendientes' or p.por_cobrar) and p.cel8 %}
-      <a href="https://wa.me/506{{ p.cel8 }}?text={{ p.wa_texto|urlencode }}"
+      <a href="https://wa.me/506{{ p.cel8 }}?text={{ ('Hola ' ~ (p.nombre.split()[0] if p.nombre else '') ~ ', lo contactamos de ECOLTURA')|urlencode }}"
          target="_blank" class="btn btn-outline-success" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
     {% endif %}
     {% if tipo == 'entregados' and p.venta_id %}
