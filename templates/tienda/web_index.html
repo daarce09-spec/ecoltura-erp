@@ -2304,10 +2304,49 @@ function repetirUltimaCompra() {
   document.getElementById("resumen").scrollIntoView({ behavior: "smooth" });
 }
 
+// Si este celular no tiene guardado su pedido en preparación (lo hizo en otro navegador,
+// en Safari en vez de la app instalada, o lo registró el Admin), se recupera con la
+// suscripción de notificaciones de este mismo celular. Devuelve true si lo encontró.
+async function recuperarPedidoActivo() {
+  if (pedidoRecordado()) return false;
+  try {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return false;
+    const reg = await navigator.serviceWorker.getRegistration('/');
+    if (!reg) return false;
+    const sub = await reg.pushManager.getSubscription();
+    if (!sub) return false;
+    const r = await fetch('/api/pedido/activo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ endpoint: sub.endpoint })
+    });
+    const d = await r.json();
+    if (!d.ok || !d.token) return false;
+    localStorage.setItem("ecoltura_pedido", JSON.stringify({ token: d.token, numero: d.numero }));
+    return true;
+  } catch (e) { return false; }
+}
+
+async function iniciarFranjaPedido() {
+  await recuperarPedidoActivo();
+  await refrescarFranjaPedido();
+  // Si lo guardado era un pedido viejo (ya entregado), se borró: buscar si hay uno nuevo
+  if (!pedidoRecordado() && await recuperarPedidoActivo()) refrescarFranjaPedido();
+}
+
+// La bolita roja del ícono se quita cada vez que el cliente abre la app
+function limpiarBolita() {
+  if ('clearAppBadge' in navigator) navigator.clearAppBadge().catch(() => {});
+}
+limpiarBolita();
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') limpiarBolita();
+});
+
 cargarProductos().then(() => {
   const tokenEditar = new URLSearchParams(location.search).get("editar");
   if (tokenEditar) iniciarEdicion(tokenEditar);
-  else refrescarFranjaPedido();
+  else iniciarFranjaPedido();
 });
 
 // Si el navegador recordaba el celular, consultar para sugerir repetir compra

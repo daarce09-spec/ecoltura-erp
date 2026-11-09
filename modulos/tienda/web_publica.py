@@ -527,6 +527,35 @@ def api_pedido_estado(token):
     })
 
 
+@web_bp.route("/api/pedido/activo", methods=["POST"])
+def api_pedido_activo():
+    """Recupera el pedido en preparación cuando el celular no lo tiene guardado
+    (lo hizo en otro navegador, en Safari y no en la app instalada, o lo registró el Admin).
+    La prueba de identidad es la suscripción de notificaciones de ESTE celular: su
+    dirección (endpoint) es larga y secreta, solo la conocen el navegador y el servidor.
+    Por eso no se busca solo por número de celular: cualquiera podría escribir uno ajeno."""
+    data = request.get_json(silent=True) or {}
+    endpoint = (data.get("endpoint") or "").strip()
+    if not endpoint:
+        return jsonify({"ok": False})
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("""SELECT cliente_id, celular FROM push_subscriptions
+                       WHERE endpoint = %s AND tipo = 'cliente' AND COALESCE(activo, TRUE)""", (endpoint,))
+        fila = cur.fetchone()
+        if not fila:
+            return jsonify({"ok": False})
+        cliente_id, cel = fila[0], normalizar_celular(fila[1])
+        cur.execute(f"""SELECT id, token FROM pedidos
+                        WHERE estado = 'Pendiente'
+                          AND (cliente_id = %s OR (%s <> '' AND {SQL_CEL_LIMPIO} = %s))
+                        ORDER BY id DESC LIMIT 1""", (cliente_id, cel, cel))
+        pedido = cur.fetchone()
+    if not pedido:
+        return jsonify({"ok": False})
+    return jsonify({"ok": True, "numero": pedido[0], "token": pedido[1]})
+
+
 @web_bp.route("/api/pedido/<token>/editar", methods=["POST"])
 def api_pedido_editar(token):
     """Reemplaza las líneas del pedido por las que manda el cliente (mientras siga Preparando)."""
