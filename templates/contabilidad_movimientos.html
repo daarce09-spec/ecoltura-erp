@@ -23,16 +23,12 @@
   .vacio { text-align:center; color:#9aa39a; padding:24px 10px; }
 </style>
 
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+<div class="d-flex justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-list-check me-2"></i>Movimientos</h2>
-    <small class="text-muted">Compras, gastos y otros montos que se anotan a mano. Las ventas se registran solas.</small>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-plus-circle me-2"></i>Ingresar movimiento</h2>
+    <small class="text-muted">Compras, gastos y otros montos. Las ventas se registran solas.</small>
   </div>
-  <div class="d-flex flex-wrap gap-2">
-    <a href="{{ url_for('contabilidad_bp.estado_resultados') }}" class="btn btn-sm btn-outline-success">Estado de resultados</a>
-    <a href="{{ url_for('contabilidad_bp.catalogo') }}" class="btn btn-sm btn-outline-success">Catálogo</a>
-    <a href="{{ url_for('menu') }}" class="btn btn-sm btn-outline-secondary">← Menú</a>
-  </div>
+  <a href="{{ url_for('contabilidad_bp.inicio') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">← Contabilidad</a>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -45,9 +41,7 @@
 
 {# ── Formulario: nuevo o editar ── #}
 <div class="cont-card mb-3" id="nuevo">
-  <div class="fw-bold mb-3" style="color:#1b4332">
-    {% if editar %}<i class="bi bi-pencil me-1"></i>Editar movimiento{% else %}<i class="bi bi-plus-circle me-1"></i>Nuevo movimiento{% endif %}
-  </div>
+  {% if editar %}<div class="fw-bold mb-3" style="color:#1b4332"><i class="bi bi-pencil me-1"></i>Editar movimiento</div>{% endif %}
   <form method="post"
         action="{{ url_for('contabilidad_bp.movimiento_editar', mid=editar.id) if editar else url_for('contabilidad_bp.movimiento_nuevo') }}">
     <input type="hidden" name="volver" value="{{ url_for('contabilidad_bp.movimientos') if editar else request.full_path }}">
@@ -93,32 +87,13 @@
 </div>
 
 {% if not editar %}
-{# ── Filtros ── #}
-<div class="cont-card mb-3">
+{# ── Movimientos registrados ── #}
+<div class="fw-bold mb-2" style="color:#1b4332">Movimientos registrados</div>
   <div class="chips mb-2">
-    <a class="chip {{ 'on' if periodo=='mes' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='mes', cuenta=cuenta_filtro) }}">Este mes</a>
-    <a class="chip {{ 'on' if periodo=='anterior' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anterior', cuenta=cuenta_filtro) }}">Mes anterior</a>
-    <a class="chip {{ 'on' if periodo=='anio' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anio', cuenta=cuenta_filtro) }}">Este año</a>
+    <a class="chip {{ 'on' if periodo=='mes' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='mes') }}">Este mes</a>
+    <a class="chip {{ 'on' if periodo=='anterior' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anterior') }}">Mes anterior</a>
+    <a class="chip {{ 'on' if periodo=='anio' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anio') }}">Este año</a>
   </div>
-  <form method="get" action="{{ url_for('contabilidad_bp.movimientos') }}" class="d-flex flex-wrap align-items-end gap-2">
-    <input type="hidden" name="periodo" value="rango">
-    <div><label class="form-label small mb-0">Desde</label>
-      <input type="date" name="desde" value="{{ desde }}" class="form-control form-control-sm"></div>
-    <div><label class="form-label small mb-0">Hasta</label>
-      <input type="date" name="hasta" value="{{ hasta }}" class="form-control form-control-sm"></div>
-    <div><label class="form-label small mb-0">Cuenta</label>
-      <select name="cuenta" class="form-select form-select-sm">
-        <option value="">Todas</option>
-        {% for c in catalogo %}
-          <option value="{{ c.id }}" {{ 'selected' if cuenta_filtro == c.id }}>{{ c.nombre }}</option>
-          {% for s in c.subcuentas %}{% if not s.auto %}
-          <option value="{{ s.id }}" {{ 'selected' if cuenta_filtro == s.id }}>&nbsp;&nbsp;· {{ s.nombre }}</option>
-          {% endif %}{% endfor %}
-        {% endfor %}
-      </select></div>
-    <button class="btn btn-sm btn-outline-success">Filtrar</button>
-  </form>
-</div>
 
 {# ── Lista ── #}
 <div class="cont-card">

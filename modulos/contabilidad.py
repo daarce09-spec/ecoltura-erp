@@ -156,9 +156,17 @@ def _catalogo(cur, solo_activas=False):
 
 
 # ─────────────────────────────────────────────
-#  ESTADO DE RESULTADOS
+#  MENÚ DE CONTABILIDAD (3 opciones)
 # ─────────────────────────────────────────────
 @contabilidad_bp.route("/contabilidad")
+def inicio():
+    return render_template("contabilidad_menu.html")
+
+
+# ─────────────────────────────────────────────
+#  ESTADO DE RESULTADOS
+# ─────────────────────────────────────────────
+@contabilidad_bp.route("/contabilidad/estado")
 def estado_resultados():
     clave, desde, hasta, etiqueta = _periodo(request.args)
     with obtener_conexion() as conn:

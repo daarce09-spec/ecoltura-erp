@@ -33,17 +33,12 @@
   }
 </style>
 
-<div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
+<div class="d-flex justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-journal-text me-2"></i>Contabilidad</h2>
-    <small class="text-muted">Estado de resultados · {{ etiqueta }}</small>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-bar-chart-line me-2"></i>Estado de resultados</h2>
+    <small class="text-muted">{{ etiqueta }}</small>
   </div>
-  <div class="d-flex flex-wrap gap-2">
-    <a href="{{ url_for('contabilidad_bp.movimientos') }}#nuevo" class="btn btn-sm fw-bold text-white" style="background:#1b4332;border-radius:10px">+ Movimiento</a>
-    <a href="{{ url_for('contabilidad_bp.movimientos', periodo=periodo, desde=desde, hasta=hasta) }}" class="btn btn-sm btn-outline-success">Movimientos</a>
-    <a href="{{ url_for('contabilidad_bp.catalogo') }}" class="btn btn-sm btn-outline-success">Catálogo</a>
-    <a href="{{ url_for('menu') }}" class="btn btn-sm btn-outline-secondary">← Menú</a>
-  </div>
+  <a href="{{ url_for('contabilidad_bp.inicio') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">← Contabilidad</a>
 </div>
 
 {% with messages = get_flashed_messages(with_categories=true) %}
