@@ -268,6 +268,14 @@
     .fr-btn { background: var(--verde); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font: 600 .8rem 'Inter', sans-serif;
               cursor: pointer; white-space: nowrap; flex-shrink: 0; }
     .fr-btn.sec { background: transparent; color: var(--gris); border: 1px solid var(--borde); }
+    /* Pedido en curso: bloque verde que resalta (arriba de "Nuestros productos") */
+    .aviso.activo { flex-basis: 100%; background: var(--verde); border: none; color: #fff; border-radius: 16px;
+                    padding: 14px 14px 14px 16px; gap: 12px; margin-bottom: 0; box-shadow: 0 8px 20px rgba(62,107,34,.25); }
+    .aviso.activo .aviso-ic { font-size: 1.7rem; line-height: 1; flex-shrink: 0; }
+    .aviso.activo .aviso-titulo { color: #fff; font-weight: 700; font-size: 1rem; white-space: normal; }
+    .aviso.activo .aviso-detalle { color: rgba(255,255,255,.88); font-size: .82rem; white-space: normal; margin-top: 2px; }
+    .aviso.activo .fr-btn { background: #fff; color: var(--verde-os); padding: 10px 16px; font-size: .85rem; border-radius: 10px; }
+    .aviso.activo .fr-btn.sec { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
     .fr-x { background: transparent; border: none; color: var(--gris); font-size: 1.25rem; line-height: 1; padding: 2px 4px; cursor: pointer; flex-shrink: 0; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
@@ -639,6 +647,16 @@
 
   <div class="franja" id="tienda">
     <div class="franja-inner">
+      <!-- Pedido en curso (solo mientras está en preparación o se está editando) -->
+      <div id="franjaPedido" class="aviso activo" style="display:none">
+        <span class="aviso-ic" aria-hidden="true">🧺</span>
+        <div class="aviso-txt">
+          <div id="franjaTitulo" class="aviso-titulo"></div>
+          <div id="franjaDetalle" class="aviso-detalle"></div>
+        </div>
+        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Mi pedido</button>
+        <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
+      </div>
       <div>
         <span class="eyebrow" id="fechaHoy"></span>
         <h2>Nuestros productos</h2>
@@ -651,16 +669,6 @@
 
   <div class="tienda">
     <div>
-      <!-- Franja: pedido en curso (solo mientras está Preparando) -->
-      <div id="franjaPedido" class="aviso" style="display:none">
-        <div class="aviso-txt">
-          <div id="franjaTitulo" class="aviso-titulo"></div>
-          <div id="franjaDetalle" class="aviso-detalle"></div>
-        </div>
-        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Mi pedido</button>
-        <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
-      </div>
-
       <!-- Banner: activar notificaciones -->
       <div id="bannerNotif" style="display:none; background:var(--blanco);
            border:1.5px solid var(--borde); border-radius:16px; padding:16px 20px; margin-bottom:18px;
@@ -733,9 +741,10 @@
     </aside>
   </div>
 
-  <div class="barra-movil" onclick="document.getElementById('resumen').scrollIntoView({behavior:'smooth'})">
-    <span><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
-    <span class="ir">Ver carrito</span>
+  <div class="barra-movil" onclick="tocarBarraMovil()">
+    <span id="barraCarrito"><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
+    <span id="barraPedido" style="display:none">🧺 Pedido en preparación</span>
+    <span class="ir" id="barraBoton">Ver carrito</span>
   </div>
 </div>
 
@@ -1554,7 +1563,27 @@ function renderResumen() {
   document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
   document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
   document.getElementById("cantMovil").textContent   = unds;
-  const barraMovil = document.querySelector(".barra-movil"); if (barraMovil) barraMovil.classList.toggle("lleno", unds > 0);
+  unidadesCarrito = unds;
+  actualizarBarraMovil();
+}
+
+// Barra de abajo (celular): muestra el carrito; si está vacío y hay un pedido en
+// preparación, muestra el pedido para tenerlo siempre a mano.
+var unidadesCarrito = 0;
+var hayPedidoActivo = false;
+function modoBarraPedido() { return unidadesCarrito === 0 && hayPedidoActivo && !modoEdicion; }
+function actualizarBarraMovil() {
+  const barra = document.querySelector(".barra-movil");
+  if (!barra) return;
+  const enPedido = modoBarraPedido();
+  document.getElementById("barraCarrito").style.display = enPedido ? "none" : "";
+  document.getElementById("barraPedido").style.display  = enPedido ? "" : "none";
+  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : "Ver carrito";
+  barra.classList.toggle("lleno", unidadesCarrito > 0 || enPedido);
+}
+function tocarBarraMovil() {
+  if (modoBarraPedido()) abrirMiPedido();
+  else document.getElementById('resumen').scrollIntoView({behavior:'smooth'});
 }
 
 // ── MODAL CONFIRMACIÓN ─────────────────────────────
@@ -1810,22 +1839,25 @@ async function refrescarFranjaPedido() {
   const franja = document.getElementById("franjaPedido");
   if (modoEdicion) return;
   const g = pedidoRecordado();
-  if (!g || !g.token) { franja.style.display = "none"; return; }
+  if (!g || !g.token) { franja.style.display = "none"; hayPedidoActivo = false; actualizarBarraMovil(); return; }
   try {
     const r = await fetch("/api/pedido/" + encodeURIComponent(g.token));
     const d = await r.json();
     if (!d.ok || (!d.editable && !d.viernes)) {
       try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {}
       franja.style.display = "none";
+      hayPedidoActivo = false; actualizarBarraMovil();
       return;
     }
+    const nProd = (d.items || []).filter(i => !i.envio).length;
     document.getElementById("franjaTitulo").textContent = "Tu pedido está en preparación";
     document.getElementById("franjaDetalle").textContent = d.viernes
       ? "Lo estamos preparando con cariño 🌱 ¿Un cambio? Escribinos por WhatsApp"
-      : "Editalo o agregá más productos";
+      : `${nProd} producto${nProd === 1 ? "" : "s"} · ₡${Math.round(d.total).toLocaleString('es-CR')}`;
     document.getElementById("franjaSalir").style.display = "none";
     franja.style.display = "flex";
-  } catch(e) { franja.style.display = "none"; }
+    hayPedidoActivo = true; actualizarBarraMovil();
+  } catch(e) { franja.style.display = "none"; hayPedidoActivo = false; actualizarBarraMovil(); }
 }
 
 // Entra en modo edición: carga las líneas del pedido en el carrito
