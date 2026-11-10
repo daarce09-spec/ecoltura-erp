@@ -108,10 +108,10 @@ def _html(p, enlace, logo, unido):
             filas += (f'<tr><td style="padding:10px 0 4px;{F}font-size:14px;color:#8A8A84;">Envío a domicilio</td>'
                       f'<td align="right" style="padding:10px 0 4px;{F}font-size:14px;color:#8A8A84;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
         else:
-            filas += (f'<tr><td style="padding:10px 0;border-bottom:1px solid #ECE7DC;{F}">'
+            filas += (f'<tr><td style="padding:10px 0;border-bottom:1px solid #E2EBDC;{F}">'
                       f'<div style="font-size:15px;color:#2B2B2B;">{escape(it["nombre"])}</div>'
                       f'<div style="font-size:13px;color:#8A8A84;padding-top:2px;">{escape(it["cantidad"])}</div></td>'
-                      f'<td align="right" valign="top" style="padding:10px 0;border-bottom:1px solid #ECE7DC;{F}font-size:15px;color:#2B2B2B;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
+                      f'<td align="right" valign="top" style="padding:10px 0;border-bottom:1px solid #E2EBDC;{F}font-size:15px;color:#2B2B2B;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
 
     entrega = ""
     if p["direccion"].strip():
@@ -131,9 +131,9 @@ def _html(p, enlace, logo, unido):
     inicio = escape(enlace.split("/pedido/")[0])
     return f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{subtitulo}</title></head>
-<body style="margin:0;padding:0;background:#F4EFE6;">
+<body style="margin:0;padding:0;background:#EEF4EA;">
 <div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · Total estimado {_colones(p["total"])}</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4EFE6;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF4EA;">
 <tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:18px;overflow:hidden;">
     <tr><td style="height:6px;background:#3E6B22;line-height:6px;font-size:0;">&nbsp;</td></tr>
@@ -144,7 +144,7 @@ def _html(p, enlace, logo, unido):
     <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:#D9742E;letter-spacing:.5px;">{subtitulo}</td></tr>
     <tr><td align="center" style="padding:14px 40px 24px;{F}font-size:15px;line-height:1.65;color:#5A5A55;">{parrafo}</td></tr>
     <tr><td style="padding:0 28px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8F4EC;border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F8F1;border-radius:14px;">
         <tr><td style="padding:18px 20px 4px;{F}font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">TU CANASTA 🧺</td></tr>
         <tr><td style="padding:0 20px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{filas}</table>
