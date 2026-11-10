@@ -411,6 +411,14 @@
                display: flex; align-items: center; justify-content: center; padding: 16px;
                opacity: 0; pointer-events: none; transition: opacity .25s; }
     .overlay.visible { opacity: 1; pointer-events: auto; }
+    /* Tocar la foto agrega (igual que el +) y se confirma sobre la misma foto */
+    .prod-img { cursor: pointer; }
+    .agregado-ok { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                   background: rgba(62,107,34,.6); color: #fff; font: 700 1.05rem 'Inter', sans-serif;
+                   pointer-events: none; animation: okfade 1.3s ease forwards; z-index: 2; }
+    @keyframes okfade { 0% { opacity: 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+    .barra-movil.pulso { animation: pulso .45s ease; }
+    @keyframes pulso { 0% { scale: 1; } 40% { scale: 1.05; } 100% { scale: 1; } }
     /* El modal nunca es más alto que la pantalla: título y botones quedan fijos
        y solo la lista de productos hace scroll (antes se cortaba con pedidos largos) */
     .modal { background: var(--blanco); max-width: 480px; width: 100%;
@@ -1365,7 +1373,7 @@ function renderTarjetaGrupo(g) {
   const imgId = g.variantes.reduce((a, b) => (b.precio > a.precio ? b : a)).id;
 
   return `<div class="prod">
-    <div class="prod-img">
+    <div class="prod-img" onclick="tocarFoto('${g.id}')">
       <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
            loading="lazy" decoding="async"
            onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1434,7 +1442,7 @@ function tarjetaProducto(p) {
     const pv = precioVisual(p);
 
     return `<div class="prod">
-      <div class="prod-img">
+      <div class="prod-img" data-pid="${p.id}" onclick="tocarFoto(${p.id})">
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
              loading="lazy" decoding="async"
              onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1637,7 +1645,7 @@ function actualizarBarraMovil() {
 // (Safari lo usa para otra cosa y hay que tocar dos veces). Si un toque corto y sin
 // arrastre termina sobre uno de estos botones y el click no llega, lo disparamos.
 (function () {
-  const SELECTOR = ".agregar, .stepper button, .controles-mini button";
+  const SELECTOR = ".agregar, .stepper button, .controles-mini button, .prod-img";
   let inicio = null;
   document.addEventListener("touchstart", e => {
     const t = e.touches[0];
@@ -1659,6 +1667,29 @@ function actualizarBarraMovil() {
     }, 350);
   }, { passive: true });
 })();
+
+// ── TOCAR LA FOTO ──────────────────────────────────
+// Hace lo mismo que el "+": los productos simples se agregan (con un "✓ Agregado"
+// sobre la foto para que se note) y los que tienen pesos u opciones abren su ventanita.
+function tocarFoto(clave) {
+  const e = PRODUCTOS.find(x => String(x.id) === String(clave));
+  if (!e) return;
+  if (e.esGrupo) return abrirModalVariante(e.id);
+  if (e.pesos && e.pesos.length > 0) return abrirModalPeso(e.id);
+  conPedidoEnCurso(() => { _actualizarPedido(e.id, 1); mostrarAgregado(e.id); });
+}
+function mostrarAgregado(id) {
+  document.querySelectorAll(`.prod-img[data-pid="${id}"]`).forEach(foto => {
+    const ok = document.createElement("div");
+    ok.className = "agregado-ok";
+    ok.textContent = "✓ Agregado";
+    foto.appendChild(ok);
+    setTimeout(() => ok.remove(), 1400);
+  });
+  const barra = document.querySelector(".barra-movil");
+  if (barra) { barra.classList.remove("pulso"); void barra.offsetWidth; barra.classList.add("pulso"); }
+  if (navigator.vibrate) { try { navigator.vibrate(25); } catch (err) {} }
+}
 
 // Esconder la barra mientras la portada ocupa buena parte de la pantalla
 (function () {
