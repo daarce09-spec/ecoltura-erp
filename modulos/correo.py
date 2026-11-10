@@ -135,10 +135,10 @@ def _html(p, enlace, logo, unido):
 <div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · Total estimado {_colones(p["total"])}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4EFE6;">
 <tr><td align="center" style="padding:28px 12px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFDF9;border-radius:18px;overflow:hidden;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:18px;overflow:hidden;">
     <tr><td style="height:6px;background:#3E6B22;line-height:6px;font-size:0;">&nbsp;</td></tr>
-    <tr><td align="center" style="padding:30px 24px 6px;">
-      <img src="{logo}" width="84" height="84" alt="ECOLTURA" style="display:block;border:0;">
+    <tr><td align="center" style="padding:22px 24px 0;">
+      <img src="{logo}" width="140" height="140" alt="ECOLTURA" style="display:block;border:0;width:140px;height:140px;">
     </td></tr>
     <tr><td align="center" style="padding:10px 28px 0;{SERIF}font-size:30px;color:#1F3A14;">{titulo}</td></tr>
     <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:#D9742E;letter-spacing:.5px;">{subtitulo}</td></tr>
