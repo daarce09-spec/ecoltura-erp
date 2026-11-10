@@ -4,6 +4,7 @@ Web Pública ECOLTURA
 Ubicación: modulos/tienda/web_publica.py
 Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_bp
 """
+import os
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
 from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
@@ -434,7 +435,8 @@ def api_pedidos():
     except Exception as ex:
         print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
 
-    return jsonify({"ok": True, "pedido_id": pedido_id, "token": token, "unido": unido})
+    return jsonify({"ok": True, "pedido_id": pedido_id, "token": token, "unido": unido,
+                    "correo": correo if os.environ.get("RESEND_API_KEY") else ""})
 
 
 # ─────────────────────────────────────────────
@@ -647,7 +649,8 @@ def api_pedido_editar(token):
         enviar_confirmacion_pedido(correo, token, _base_tienda(), "editado")
     except Exception as ex:
         print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
-    return jsonify({"ok": True, "pedido_id": pedido_id, "total": total})
+    return jsonify({"ok": True, "pedido_id": pedido_id, "total": total,
+                    "correo": correo if os.environ.get("RESEND_API_KEY") else ""})
 
 
 @web_bp.route("/api/pedido/<token>/cancelar", methods=["POST"])
