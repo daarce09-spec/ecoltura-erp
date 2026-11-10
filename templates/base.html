@@ -180,7 +180,10 @@
 </head>
 
 <body hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">
-{% if ENTORNO_PRUEBAS %}<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e67e00;color:#fff;font:700 12px/22px sans-serif;text-align:center;letter-spacing:.5px;pointer-events:none;">ENTORNO DE PRUEBAS — los datos no son reales</div><div style="height:22px"></div>{% endif %}
+{% if ENTORNO_PRUEBAS %}<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e67e00;color:#fff;font:700 12px/22px sans-serif;text-align:center;letter-spacing:.5px;pointer-events:none;padding-top:env(safe-area-inset-top, 0px);">ENTORNO DE PRUEBAS — los datos no son reales</div>
+<style>/* Con la barra de pruebas, el encabezado y el contenido bajan 22px para no quedar tapados */
+  .navbar { top: 22px !important; }
+  main#main-content { top: calc(108px + env(safe-area-inset-top)) !important; }</style>{% endif %}
 
   {% block before_content %}{% endblock %}
 

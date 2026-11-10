@@ -219,7 +219,6 @@
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
       <form method="POST" id="formVender" hx-boost="false">
-        <input type="hidden" name="volver" value="bandeja">
         <div class="modal-body p-4">
           <p class="mb-3">Se genera una venta por <strong id="vTotal"></strong> a nombre de <strong id="vNombre"></strong>. El inventario se descuenta.</p>
           <div class="fw-bold mb-2">¿Ya recibió el pago?</div>
@@ -233,6 +232,7 @@
         </div>
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
+          <!-- Al generar la venta se abre el comprobante, listo para enviarlo por WhatsApp -->
           <button type="submit" id="btnVender" class="btn fw-bold px-4 text-white" style="background:#1b4332;border-radius:10px" disabled>
             <i class="bi bi-check-lg me-1"></i>Generar venta
           </button>
