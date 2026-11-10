@@ -773,3 +773,4 @@ def api_visitas_reservar():
         conn.commit()
 
     return jsonify({"ok": True, "reserva_id": reserva_id})
+# actualizado
