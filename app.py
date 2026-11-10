@@ -75,6 +75,26 @@ RUTAS_PUBLICAS = (
     "/static/", "/sw.js", "/favicon.ico",
 )
 
+# ── Dominio principal de la tienda ────────────────────────────────
+# Si en Railway existe la variable DOMINIO_PRINCIPAL (ej. https://www.ecoltura.com),
+# toda página que se abra con otra dirección (miecoltura.up.railway.app o ecoltura.com
+# sin www) se manda a esa. Sin la variable no hace nada, así se activa cuando se quiera.
+# No se redirigen las APIs, los archivos ni el service worker: las apps ya instaladas
+# con la dirección vieja siguen funcionando y recibiendo notificaciones.
+_NO_REDIRIGIR = ("/api/", "/static/", "/sw.js", "/favicon.ico")
+
+@app.before_request
+def ir_al_dominio_principal():
+    principal = os.environ.get("DOMINIO_PRINCIPAL", "").rstrip("/")
+    if not principal or request.method != "GET" or request.path.startswith(_NO_REDIRIGIR):
+        return None
+    host_principal = principal.split("://", 1)[-1].split("/", 1)[0].lower()
+    if request.host.lower() == host_principal:
+        return None
+    destino = principal + request.full_path.rstrip("?")
+    return redirect(destino, code=302)
+
+
 @app.before_request
 def separar_tienda_y_admin():
     ruta = request.path
