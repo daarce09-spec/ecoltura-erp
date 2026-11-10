@@ -751,6 +751,7 @@
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
+      <input type="email" id="pedCorreo"   placeholder="Correo (opcional, te mandamos la confirmación)" autocomplete="email" inputmode="email" maxlength="120">
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
       <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
@@ -1752,6 +1753,8 @@ function abrirModalConfirmacion() {
     if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
     if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
     if (!direccion) { alert("Indique la dirección de entrega."); return; }
+    const correo = document.getElementById("pedCorreo").value.trim();
+    if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correo)) { alert("Revisá el correo, parece que está mal escrito (o dejalo vacío)."); return; }
   }
   const agregando = modoAgregar();
   document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a tu pedido" : "Confirmar pedido");
@@ -1800,6 +1803,7 @@ async function enviarPedido() {
         nombre:    document.getElementById("pedNombre").value.trim(),
         celular:   document.getElementById("pedCelular").value.trim(),
         direccion: document.getElementById("pedDireccion").value.trim(),
+        correo:    document.getElementById("pedCorreo").value.trim(),
         notas:     document.getElementById("pedNotas").value.trim(),
         agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
@@ -1827,7 +1831,8 @@ async function enviarPedido() {
         localStorage.setItem("ecoltura_cliente", JSON.stringify({
           nombre:    document.getElementById("pedNombre").value.trim(),
           celular:   document.getElementById("pedCelular").value.trim(),
-          direccion: document.getElementById("pedDireccion").value.trim()
+          direccion: document.getElementById("pedDireccion").value.trim(),
+          correo:    document.getElementById("pedCorreo").value.trim()
         }));
       } catch(e) {}
       // Guardar el enlace privado del pedido para mostrarlo mientras siga en preparación
@@ -2168,6 +2173,7 @@ try {
   if (guardado.nombre)    document.getElementById("pedNombre").value    = guardado.nombre;
   if (guardado.celular)   document.getElementById("pedCelular").value   = formatearCelular(guardado.celular);
   if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
+  if (guardado.correo)    document.getElementById("pedCorreo").value    = guardado.correo;
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
 } catch(e) {}
 
