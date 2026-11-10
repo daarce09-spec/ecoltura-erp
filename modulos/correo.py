@@ -34,12 +34,16 @@ def _colones(x):
 
 
 def _cantidad(cant, unidad):
+    """Cantidad como la ve el cliente en la tienda: 1500 gramos → 1,5 kg · 1 Unidad → 1 unidad."""
     cant = float(cant)
-    txt = f"{cant:g}"
     u = (unidad or "").strip().lower()
-    if u in ("g", "gr", "gramos", "kg", "kilo", "kilos", "ml", "l", "litro", "litros"):
-        return f"{txt} {unidad.strip()}"
-    return txt
+    if u in ("g", "gr", "gramo", "gramos"):
+        txt = f"{cant / 1000:g} kg" if cant >= 1000 else f"{cant:g} g"
+    elif u:
+        txt = f"{cant:g} {u}"
+    else:
+        txt = f"{cant:g}"
+    return txt.replace(".", ",")
 
 
 def _leer_pedido(token):
@@ -81,77 +85,109 @@ def _leer_pedido(token):
 
 
 def _html(p, enlace, logo, unido):
-    nombre = escape(p["nombre"].split()[0] if p["nombre"].strip() else "")
-    titulo = "¡Agregamos a tu pedido! 🌱" if unido else "¡Recibimos tu pedido! 🌱"
-    intro = ("Sumamos los productos nuevos a tu pedido en preparación. Así queda completo:"
-             if unido else
-             "gracias por apoyar productos locales.<br>Ya lo estamos preparando con cariño.")
-    saludo = f'Hola <b style="color:#1C1C1E;">{nombre}</b>, ' if nombre else ""
+    F = "font-family:Arial,Helvetica,sans-serif;"
+    SERIF = "font-family:Georgia,'Times New Roman',serif;"
+    primer = escape(p["nombre"].split()[0]) if p["nombre"].strip() else ""
     if unido:
-        saludo = (f'Hola <b style="color:#1C1C1E;">{nombre}</b>.<br>' if nombre else "")
+        titulo = f"¡Listo, {primer}!" if primer else "¡Listo!"
+        subtitulo = "Agregamos los productos a tu pedido 🌱"
+        parrafo = "Así queda tu pedido completo. Lo seguimos preparando con el mismo cariño de siempre."
+    else:
+        titulo = f"¡Gracias, {primer}!" if primer else "¡Gracias por tu pedido!"
+        subtitulo = "Recibimos tu pedido 🌱"
+        parrafo = ("Nos alegra mucho que nos elijas. Cada pedido nos ayuda a seguir cultivando "
+                   "de forma regenerativa. Ya estamos preparando el tuyo con mucho cariño.")
 
     filas = ""
     for it in p["items"]:
-        estilo = "color:#777;" if it["envio"] else "border-bottom:1px solid #E6E6E2;"
-        texto = "Envío Express" if it["envio"] else f'{escape(it["nombre"])} · {escape(it["cantidad"])}'
-        filas += (f'<tr><td style="padding:9px 0;{estilo}">{texto}</td>'
-                  f'<td align="right" style="padding:9px 0;{estilo}white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
+        if it["envio"]:
+            filas += (f'<tr><td style="padding:10px 0 4px;{F}font-size:14px;color:#8A8A84;">Envío a domicilio</td>'
+                      f'<td align="right" style="padding:10px 0 4px;{F}font-size:14px;color:#8A8A84;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
+        else:
+            filas += (f'<tr><td style="padding:10px 0;border-bottom:1px solid #ECE7DC;{F}">'
+                      f'<div style="font-size:15px;color:#2B2B2B;">{escape(it["nombre"])}</div>'
+                      f'<div style="font-size:13px;color:#8A8A84;padding-top:2px;">{escape(it["cantidad"])}</div></td>'
+                      f'<td align="right" valign="top" style="padding:10px 0;border-bottom:1px solid #ECE7DC;{F}font-size:15px;color:#2B2B2B;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
 
     entrega = ""
     if p["direccion"].strip():
-        entrega = (f'<tr><td style="padding:18px 28px 0;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#555;">'
-                   f'📍 <b style="color:#1C1C1E;">Entrega:</b> {escape(p["direccion"])}</td></tr>')
+        entrega = (f'<tr><td style="padding:16px 32px 0;{F}font-size:14px;line-height:1.6;color:#5A5A55;">'
+                   f'📍 <b style="color:#2B2B2B;">Lo llevamos a:</b> {escape(p["direccion"])}</td></tr>')
 
+    def paso(n, texto):
+        return (f'<tr><td width="34" valign="top" style="padding:6px 0;">'
+                f'<div style="width:26px;height:26px;line-height:26px;border-radius:13px;background:#E7F0DF;color:#3E6B22;'
+                f'{F}font-size:13px;font-weight:bold;text-align:center;">{n}</div></td>'
+                f'<td style="padding:6px 0 6px 6px;{F}font-size:14px;line-height:1.5;color:#4A4A45;">{texto}</td></tr>')
+
+    pasos = (paso(1, "Preparamos tu pedido con productos frescos.") +
+             paso(2, "Te escribimos por <b>WhatsApp</b> para coordinar la entrega.") +
+             paso(3, "Lo recibís en tu casa y pagás en efectivo o SINPE Móvil."))
+
+    inicio = escape(enlace.split("/pedido/")[0])
     return f"""<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{titulo}</title></head>
-<body style="margin:0;padding:0;background:#F3F1EC;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F3F1EC;">
-<tr><td align="center" style="padding:24px 12px;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;">
-    <tr><td align="center" style="padding:28px 24px 8px;">
-      <img src="{logo}" width="96" height="96" alt="ECOLTURA" style="display:block;border:0;">
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{subtitulo}</title></head>
+<body style="margin:0;padding:0;background:#F4EFE6;">
+<div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · Total estimado {_colones(p["total"])}</div>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4EFE6;">
+<tr><td align="center" style="padding:28px 12px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFDF9;border-radius:18px;overflow:hidden;">
+    <tr><td style="height:6px;background:#3E6B22;line-height:6px;font-size:0;">&nbsp;</td></tr>
+    <tr><td align="center" style="padding:30px 24px 6px;">
+      <img src="{logo}" width="84" height="84" alt="ECOLTURA" style="display:block;border:0;">
     </td></tr>
-    <tr><td align="center" style="padding:8px 28px 4px;font-family:Georgia,'Times New Roman',serif;font-size:28px;color:#1C1C1E;">{titulo}</td></tr>
-    <tr><td align="center" style="padding:6px 32px 22px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#555;">{saludo}{intro}</td></tr>
+    <tr><td align="center" style="padding:10px 28px 0;{SERIF}font-size:30px;color:#1F3A14;">{titulo}</td></tr>
+    <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:#D9742E;letter-spacing:.5px;">{subtitulo}</td></tr>
+    <tr><td align="center" style="padding:14px 40px 24px;{F}font-size:15px;line-height:1.65;color:#5A5A55;">{parrafo}</td></tr>
     <tr><td style="padding:0 28px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F6F6F4;border-radius:12px;">
-        <tr><td style="padding:16px 18px 6px;font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">TU PEDIDO</td></tr>
-        <tr><td style="padding:0 18px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial,Helvetica,sans-serif;font-size:15px;color:#333;">{filas}</table>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F8F4EC;border-radius:14px;">
+        <tr><td style="padding:18px 20px 4px;{F}font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">TU CANASTA 🧺</td></tr>
+        <tr><td style="padding:0 20px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{filas}</table>
         </td></tr>
-        <tr><td style="padding:6px 18px 16px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="font-family:Arial,Helvetica,sans-serif;">
-            <tr><td style="font-size:17px;font-weight:bold;color:#1C1C1E;padding-top:8px;border-top:2px solid #3E6B22;">Total estimado</td>
-                <td align="right" style="font-size:20px;font-weight:bold;color:#3E6B22;padding-top:8px;border-top:2px solid #3E6B22;">{_colones(p["total"])}</td></tr>
+        <tr><td style="padding:4px 20px 18px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            <tr><td style="{F}font-size:16px;font-weight:bold;color:#2B2B2B;padding-top:10px;border-top:2px solid #3E6B22;">Total estimado</td>
+                <td align="right" style="{F}font-size:21px;font-weight:bold;color:#3E6B22;padding-top:10px;border-top:2px solid #3E6B22;white-space:nowrap;">{_colones(p["total"])}</td></tr>
           </table>
         </td></tr>
       </table>
     </td></tr>
     {entrega}
-    <tr><td align="center" style="padding:24px 28px 8px;">
-      <a href="{enlace}" style="display:inline-block;background:#3E6B22;color:#ffffff;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-weight:bold;font-size:15px;padding:14px 30px;border-radius:10px;">Ver o editar mi pedido</a>
+    <tr><td align="center" style="padding:24px 28px 6px;">
+      <a href="{enlace}" style="display:inline-block;background:#3E6B22;color:#ffffff;text-decoration:none;{F}font-weight:bold;font-size:15px;padding:15px 34px;border-radius:30px;">Ver o editar mi pedido</a>
     </td></tr>
-    <tr><td align="center" style="padding:12px 32px 26px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.6;color:#555;">
-      Te escribimos por <b style="color:#1C1C1E;">WhatsApp</b> para coordinar la entrega.<br>
-      El pago es al recibir, en efectivo o SINPE Móvil.
+    <tr><td align="center" style="padding:4px 28px 0;{F}font-size:12px;color:#8A8A84;">¿Se te olvidó algo? Desde ahí podés agregarlo.</td></tr>
+    <tr><td style="padding:26px 32px 4px;{SERIF}font-size:18px;color:#1F3A14;">¿Qué sigue?</td></tr>
+    <tr><td style="padding:4px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{pasos}</table></td></tr>
+    <tr><td style="padding:24px 32px 30px;{F}font-size:15px;line-height:1.6;color:#4A4A45;">
+      Gracias por ser parte de esto.<br>
+      <span style="{SERIF}font-style:italic;font-size:17px;color:#1F3A14;">Con cariño, el equipo de Ecoltura 🌿</span>
     </td></tr>
-    <tr><td align="center" style="background:#1A4226;padding:20px 24px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.7;color:#CFE3D4;">
-      <b style="color:#ffffff;letter-spacing:2px;">ECOLTURA</b> · Agricultura regenerativa<br>
-      <a href="{escape(enlace.split('/pedido/')[0])}" style="color:#CFE3D4;">www.ecoltura.com</a> · <a href="{WHATSAPP}" style="color:#CFE3D4;">WhatsApp</a> · <a href="{INSTAGRAM}" style="color:#CFE3D4;">Instagram</a>
+    <tr><td align="center" style="background:#1A4226;padding:22px 24px;{F}font-size:13px;line-height:1.8;color:#CFE3D4;">
+      <b style="color:#ffffff;letter-spacing:2px;">ECOLTURA</b> · Agricultura regenerativa · San Ramón<br>
+      <a href="{inicio}" style="color:#CFE3D4;">www.ecoltura.com</a> &nbsp;·&nbsp; <a href="{WHATSAPP}" style="color:#CFE3D4;">WhatsApp</a> &nbsp;·&nbsp; <a href="{INSTAGRAM}" style="color:#CFE3D4;">Instagram</a>
     </td></tr>
   </table>
 </td></tr></table>
 </body></html>"""
 
 
+def _asunto(p, unido):
+    primer = p["nombre"].split()[0] if p["nombre"].strip() else ""
+    if unido:
+        return f"{primer}, agregamos los productos a tu pedido" if primer else "Agregamos los productos a tu pedido"
+    return f"¡Gracias por tu pedido, {primer}!" if primer else "¡Gracias por tu pedido!"
+
+
 def _texto(p, enlace, unido):
     lineas = [("Agregamos productos a tu pedido." if unido else "¡Recibimos tu pedido!"), ""]
     for it in p["items"]:
-        nom = "Envío Express" if it["envio"] else f'{it["nombre"]} · {it["cantidad"]}'
+        nom = "Envío a domicilio" if it["envio"] else f'{it["nombre"]} · {it["cantidad"]}'
         lineas.append(f'- {nom}: {_colones(it["subtotal"])}')
     lineas += ["", f'Total estimado: {_colones(p["total"])}', "", f"Ver o editar tu pedido: {enlace}", "",
                "Te escribimos por WhatsApp para coordinar la entrega. El pago es al recibir, en efectivo o SINPE Móvil.",
-               "", "ECOLTURA · Agricultura regenerativa"]
+               "", "Con cariño, el equipo de Ecoltura"]
     return "\n".join(lineas)
 
 
@@ -168,7 +204,7 @@ def _enviar(destino, token, base, unido):
         cuerpo = {
             "from": os.environ.get("CORREO_REMITENTE", "ECOLTURA <pedidos@ecoltura.com>"),
             "to": [destino],
-            "subject": "Actualizamos tu pedido · ECOLTURA" if unido else "Recibimos tu pedido 🌱 · ECOLTURA",
+            "subject": _asunto(p, unido),
             "html": _html(p, enlace, logo, unido),
             "text": _texto(p, enlace, unido),
         }

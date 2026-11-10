@@ -390,6 +390,12 @@
                          font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
                          cursor: pointer; transition: background .12s; }
     .btn-enviar-pedido:hover { background: var(--verde-os); }
+    .nota-correo { font-size: .74rem; color: var(--gris); margin-top: 6px; line-height: 1.45; }
+    .bloque-correo { margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; background: #F1F6EC;
+                     border: 1px solid #DCE8D2; font-size: .86rem; line-height: 1.5; color: var(--texto); }
+    .bloque-correo b { word-break: break-all; }
+    .bloque-correo input { width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--borde);
+                           border-radius: 8px; font-size: 16px; background: #fff; }
     .micro { font-size: .72rem; color: var(--gris); margin-top: 10px; text-align: center; line-height: 1.5; }
 
     /* Barra móvil */
@@ -751,7 +757,8 @@
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
-      <input type="email" id="pedCorreo"   placeholder="Correo (opcional, te mandamos la confirmación)" autocomplete="email" inputmode="email" maxlength="120">
+      <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
+      <div class="nota-correo">📧 Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</div>
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
       <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
@@ -783,6 +790,7 @@
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
     <div class="modal-titulo" id="tituloConfirm">Confirmar pedido</div>
     <div class="modal-detalle" id="modalDetalle"></div>
+    <div class="bloque-correo" id="bloqueCorreoConfirm" style="display:none"></div>
     <div class="modal-nota">Te escribiremos por WhatsApp para confirmar tu pedido y coordinar la entrega.</div>
     <div class="modal-botones">
       <button class="btn-cancelar" onclick="cerrarModal('overlayConfirm')">Editar</button>
@@ -1778,11 +1786,39 @@ function abrirModalConfirmacion() {
     : `<div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
   document.getElementById("modalDetalle").innerHTML = `
     <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>${pie}`;
+  prepararBloqueCorreo();
   abrirModal('overlayConfirm');
+}
+
+// Correo en la confirmación: si ya lo escribió se le muestra a dónde llega;
+// si no, se le ofrece escribirlo ahí mismo (sigue siendo opcional)
+function prepararBloqueCorreo() {
+  const caja = document.getElementById("bloqueCorreoConfirm");
+  if (modoEdicion) { caja.style.display = "none"; return; }
+  const correo = document.getElementById("pedCorreo").value.trim();
+  caja.innerHTML = "";
+  if (correo) {
+    caja.appendChild(document.createTextNode("📧 Te mandamos la confirmación a "));
+    const b = document.createElement("b"); b.textContent = correo; caja.appendChild(b);
+  } else {
+    const t = document.createElement("div");
+    t.innerHTML = "📧 <b>¿Querés recibir tu pedido por correo?</b><br>Te mandamos el resumen y el enlace para verlo o editarlo.";
+    const inp = document.createElement("input");
+    inp.type = "email"; inp.id = "correoConfirm"; inp.placeholder = "tu@correo.com (opcional)";
+    inp.autocomplete = "email"; inp.inputMode = "email"; inp.maxLength = 120;
+    caja.appendChild(t); caja.appendChild(inp);
+  }
+  caja.style.display = "block";
 }
 
 async function enviarPedido() {
   const btn = document.getElementById("btnConfirmar");
+  const correoModal = document.getElementById("correoConfirm");
+  if (!modoEdicion && correoModal && correoModal.value.trim()) {
+    const c = correoModal.value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(c)) { alert("Revisá el correo, parece que está mal escrito (o dejalo vacío)."); return; }
+    document.getElementById("pedCorreo").value = c;
+  }
   btn.disabled = true; btn.textContent = "Enviando...";
 
   const items = Object.keys(pedido).map(clave => {
@@ -1843,6 +1879,10 @@ async function enviarPedido() {
       document.getElementById("textoExito").textContent = data.unido
         ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
         : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
+      if (document.getElementById("pedCorreo").value.trim()) {
+        document.getElementById("textoExito").textContent +=
+          " 📧 También te mandamos la confirmación por correo (si no la ves, revisá en Spam o Correo no deseado).";
+      }
       prepararBloqueCampanaExito();
       abrirModal('overlayExito');
       // Limpiar
