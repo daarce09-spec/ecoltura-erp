@@ -231,7 +231,7 @@
     .prod-img { aspect-ratio: 4/5; position: relative; overflow: hidden;
                 background: linear-gradient(165deg, #F2F2EF, #E3E5DC 70%);
                 transition: opacity .15s; }
-    .prod:hover .prod-img { opacity: .92; }
+    @media (hover: hover) and (pointer: fine) { .prod:hover .prod-img { opacity: .92; } }
     .prod-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .prod-img .placeholder { position: absolute; inset: 0; display: flex; align-items: center;
                               justify-content: center; flex-direction: column; gap: 8px; }
@@ -250,11 +250,12 @@
     .agregar { background: none; color: var(--verde); border: 1.5px solid var(--verde); border-radius: 8px;
                padding: 8px 18px; font-family: 'Inter'; font-weight: 600; font-size: .74rem;
                letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all .12s; }
-    .agregar:hover { background: var(--verde); color: #fff; }
+    @media (hover: hover) and (pointer: fine) { .agregar:hover { background: var(--verde); color: #fff; } }
+    .agregar, .stepper button, .controles-mini button { touch-action: manipulation; }
     .agregar.mas { width: 36px; height: 36px; padding: 0; border-radius: 50%; border: 1px solid var(--borde); background: #fff; color: var(--negro);
                    font-size: 1.35rem; line-height: 1; letter-spacing: 0; text-transform: none; display: grid; place-items: center;
                    box-shadow: 0 1px 4px rgba(0,0,0,.16); flex-shrink: 0; }
-    .agregar.mas:hover { background: var(--verde); border-color: var(--verde); color: #fff; }
+    @media (hover: hover) and (pointer: fine) { .agregar.mas:hover { background: var(--verde); border-color: var(--verde); color: #fff; } }
 
     /* ── Avisos de arriba: pedido en curso y repetir compra (una sola línea, compactos) ── */
     .aviso { align-items: center; gap: 10px; border-radius: 12px; padding: 10px 12px 10px 14px; margin-bottom: 10px;
@@ -268,6 +269,17 @@
     .fr-btn { background: var(--verde); color: #fff; border: none; border-radius: 8px; padding: 8px 14px; font: 600 .8rem 'Inter', sans-serif;
               cursor: pointer; white-space: nowrap; flex-shrink: 0; }
     .fr-btn.sec { background: transparent; color: var(--gris); border: 1px solid var(--borde); }
+    /* Pedido en curso: bloque verde que resalta (arriba de "Nuestros productos") */
+    .aviso.activo { flex-basis: 100%; background: var(--verde); border: none; color: #fff; border-radius: 16px;
+                    padding: 14px 14px 14px 16px; gap: 12px; margin-bottom: 0; box-shadow: 0 8px 20px rgba(62,107,34,.25); }
+    .aviso.activo .aviso-ic { font-size: 1.7rem; line-height: 1; flex-shrink: 0; }
+    .aviso.activo .aviso-titulo { color: #fff; font-weight: 700; font-size: 1rem; white-space: normal; }
+    .aviso.activo .aviso-detalle { color: rgba(255,255,255,.88); font-size: .82rem; white-space: normal; margin-top: 2px; }
+    .aviso.activo .fr-btn { background: #fff; color: var(--verde-os); padding: 10px 16px; font-size: .85rem; border-radius: 10px; }
+    .aviso.activo .fr-btn.sec { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+    .nota-agregar { background: #EAF3E3; color: var(--verde-os); border-radius: 10px; padding: 9px 12px;
+                    font-size: .82rem; line-height: 1.4; margin: 0 0 12px; }
+    .nota-agregar.viernes { background: #FFF4E5; color: #8A5300; }
     .fr-x { background: transparent; border: none; color: var(--gris); font-size: 1.25rem; line-height: 1; padding: 2px 4px; cursor: pointer; flex-shrink: 0; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
@@ -327,7 +339,7 @@
     .stepper { display: flex; align-items: center; border: 1.5px solid var(--verde); border-radius: 999px; overflow: hidden; }
     .stepper button { background: none; border: none; width: 30px; height: 31px;
                       font-weight: 600; cursor: pointer; color: var(--verde); font-size: 1rem; }
-    .stepper button:hover { background: var(--verde); color: #fff; }
+    @media (hover: hover) and (pointer: fine) { .stepper button:hover { background: var(--verde); color: #fff; } }
     .stepper b { min-width: 28px; text-align: center; color: var(--negro); font-size: .9rem; }
     .agregar.activo-peso { background: var(--verde); color: #fff; padding: 8px 12px; font-size: .68rem; border-radius: 999px; }
     .fila-peso-modal { display: flex; align-items: center; justify-content: space-between;
@@ -366,7 +378,7 @@
     .controles-mini button { background: var(--crema); border: 1px solid var(--borde);
                              width: 22px; height: 22px; cursor: pointer; font-weight: 600;
                              color: var(--verde); font-size: .85rem; line-height: 1; }
-    .controles-mini button:hover { background: var(--verde); border-color: var(--verde); color: #fff; }
+    @media (hover: hover) and (pointer: fine) { .controles-mini button:hover { background: var(--verde); border-color: var(--verde); color: #fff; } }
     .res-vacio { color: var(--gris); font-size: .86rem; padding: 14px 0 18px; }
     .total-res { display: flex; justify-content: space-between; font-weight: 700; font-size: 1.02rem;
                  color: var(--negro); padding: 14px 0 4px; }
@@ -388,6 +400,9 @@
     .barra-movil .ir { font-weight: 600; font-size: .85rem; background: var(--verde); color: #fff; border: none;
                        border-radius: 999px; padding: 11px 20px; }
     .barra-movil.lleno { background: var(--verde); border-color: var(--verde); color: #fff; }
+    /* Mientras se ve la portada, la barra se esconde (aparece al bajar a los productos) */
+    .barra-movil.en-portada { transform: translateY(160%); opacity: 0; pointer-events: none; }
+    .barra-movil { transition: background .2s, color .2s, transform .3s ease, opacity .3s ease; }
     .barra-movil.lleno .ir { background: #fff; color: var(--verde-os); }
     @media (max-width: 960px) { .resumen { position: static; max-height: none; overflow: visible; } #zonaResumen, #zonaResumen:has(.item-res) { overflow: visible; min-height: 0; } .barra-movil { display: flex; } }
 
@@ -396,6 +411,14 @@
                display: flex; align-items: center; justify-content: center; padding: 16px;
                opacity: 0; pointer-events: none; transition: opacity .25s; }
     .overlay.visible { opacity: 1; pointer-events: auto; }
+    /* Tocar la foto agrega (igual que el +) y se confirma sobre la misma foto */
+    .prod-img { cursor: pointer; }
+    .agregado-ok { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+                   background: rgba(62,107,34,.6); color: #fff; font: 700 1.05rem 'Inter', sans-serif;
+                   pointer-events: none; animation: okfade 1.3s ease forwards; z-index: 2; }
+    @keyframes okfade { 0% { opacity: 0; } 12% { opacity: 1; } 70% { opacity: 1; } 100% { opacity: 0; } }
+    .barra-movil.pulso { animation: pulso .45s ease; }
+    @keyframes pulso { 0% { scale: 1; } 40% { scale: 1.05; } 100% { scale: 1; } }
     /* El modal nunca es más alto que la pantalla: título y botones quedan fijos
        y solo la lista de productos hace scroll (antes se cortaba con pedidos largos) */
     .modal { background: var(--blanco); max-width: 480px; width: 100%;
@@ -639,6 +662,16 @@
 
   <div class="franja" id="tienda">
     <div class="franja-inner">
+      <!-- Pedido en curso (solo mientras está en preparación o se está editando) -->
+      <div id="franjaPedido" class="aviso activo" style="display:none">
+        <span class="aviso-ic" aria-hidden="true">🧺</span>
+        <div class="aviso-txt">
+          <div id="franjaTitulo" class="aviso-titulo"></div>
+          <div id="franjaDetalle" class="aviso-detalle"></div>
+        </div>
+        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Mi pedido</button>
+        <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
+      </div>
       <div>
         <span class="eyebrow" id="fechaHoy"></span>
         <h2>Nuestros productos</h2>
@@ -651,16 +684,6 @@
 
   <div class="tienda">
     <div>
-      <!-- Franja: pedido en curso (solo mientras está Preparando) -->
-      <div id="franjaPedido" class="aviso" style="display:none">
-        <div class="aviso-txt">
-          <div id="franjaTitulo" class="aviso-titulo"></div>
-          <div id="franjaDetalle" class="aviso-detalle"></div>
-        </div>
-        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Ver pedido</button>
-        <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
-      </div>
-
       <!-- Banner: activar notificaciones -->
       <div id="bannerNotif" style="display:none; background:var(--blanco);
            border:1.5px solid var(--borde); border-radius:16px; padding:16px 20px; margin-bottom:18px;
@@ -720,6 +743,7 @@
 
     <aside class="resumen" id="resumen">
       <div class="resumen-titulo">Su pedido</div>
+      <div id="notaAgregar" class="nota-agregar" style="display:none"></div>
       <div id="zonaResumen"><div class="res-vacio">Aún no ha agregado productos.</div></div>
       <!-- Express (envío) fijo debajo de la lista: siempre visible, aunque la lista tenga scroll -->
       <div id="zonaExpress"></div>
@@ -733,13 +757,26 @@
     </aside>
   </div>
 
-  <div class="barra-movil" onclick="document.getElementById('resumen').scrollIntoView({behavior:'smooth'})">
-    <span><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
-    <span class="ir">Ver pedido</span>
+  <div class="barra-movil" onclick="tocarBarraMovil()">
+    <span id="barraCarrito"><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
+    <span id="barraPedido" style="display:none">🧺 Pedido en preparación</span>
+    <span class="ir" id="barraBoton">Ver carrito</span>
   </div>
 </div>
 
 <!-- Modal confirmación pedido -->
+<div class="overlay" id="overlayAvisoPedido">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayAvisoPedido')">✕</button>
+    <div class="modal-titulo" id="avisoPedidoTitulo"></div>
+    <div class="modal-nota" id="avisoPedidoTexto" style="font-size:.92rem;"></div>
+    <div class="modal-botones">
+      <button class="btn-cancelar" onclick="cerrarModal('overlayAvisoPedido')">Ahora no</button>
+      <button class="btn-confirmar" id="avisoPedidoBoton" onclick="continuarAvisoPedido()">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlayConfirm">
   <div class="modal">
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
@@ -1154,7 +1191,8 @@ function totalGramosProducto(id) {
     .reduce((sum, k) => sum + parsearClave(k).gramos * pedido[k], 0);
 }
 
-function abrirModalPeso(id) {
+function abrirModalPeso(id) { conPedidoEnCurso(() => _abrirModalPeso(id)); }
+function _abrirModalPeso(id) {
   modalPesoIdActual = id;
   renderModalPeso();
   abrirModal('overlayPeso');
@@ -1270,7 +1308,8 @@ function normalizarTexto(texto) {
 // y ahí adentro un stepper por cada opción.
 let modalVarianteGrupoId = null;
 
-function abrirModalVariante(grupoId) {
+function abrirModalVariante(grupoId) { conPedidoEnCurso(() => _abrirModalVariante(grupoId)); }
+function _abrirModalVariante(grupoId) {
   modalVarianteGrupoId = grupoId;
   renderModalVariante();
   abrirModal('overlayVariante');
@@ -1334,7 +1373,7 @@ function renderTarjetaGrupo(g) {
   const imgId = g.variantes.reduce((a, b) => (b.precio > a.precio ? b : a)).id;
 
   return `<div class="prod">
-    <div class="prod-img">
+    <div class="prod-img" onclick="tocarFoto('${g.id}')">
       <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
            loading="lazy" decoding="async"
            onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1403,7 +1442,7 @@ function tarjetaProducto(p) {
     const pv = precioVisual(p);
 
     return `<div class="prod">
-      <div class="prod-img">
+      <div class="prod-img" data-pid="${p.id}" onclick="tocarFoto(${p.id})">
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
              loading="lazy" decoding="async"
              onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1497,6 +1536,10 @@ function invitarDeslizar(idPista) {
 }
 
 function actualizarPedido(id, delta) {
+  if (delta > 0) conPedidoEnCurso(() => _actualizarPedido(id, delta));
+  else _actualizarPedido(id, delta);
+}
+function _actualizarPedido(id, delta) {
   pedido[id] = Math.max(0, (pedido[id] || 0) + delta);
   if (pedido[id] === 0) delete pedido[id];
   renderProductos();
@@ -1537,7 +1580,16 @@ function renderResumen() {
 
     // Express: línea fija, no se puede quitar ni cambiar
     const exp = productosPorId[ID_EXPRESS];
-    if (exp && pedido[ID_EXPRESS]) {
+    if (exp && pedido[ID_EXPRESS] && modoAgregar()) {
+      // Se agrega a un pedido que ya tiene el envío: no se cobra de nuevo
+      zonaExp.innerHTML = `<div class="item-res">
+        <span class="nombre-it">${exp.nombre}</span>
+        <span class="controles-mini">
+          <span style="color:var(--gris); font-size:.72rem;">ya está en tu pedido</span>
+          <b style="min-width:60px;text-align:right">₡0</b>
+        </span>
+      </div>`;
+    } else if (exp && pedido[ID_EXPRESS]) {
       const subExp = Math.round(exp.precio * pedido[ID_EXPRESS]);
       total += subExp;
       zonaExp.innerHTML = `<div class="item-res">
@@ -1554,7 +1606,138 @@ function renderResumen() {
   document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
   document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
   document.getElementById("cantMovil").textContent   = unds;
-  const barraMovil = document.querySelector(".barra-movil"); if (barraMovil) barraMovil.classList.toggle("lleno", unds > 0);
+  unidadesCarrito = unds;
+  actualizarBarraMovil();
+}
+
+// Barra de abajo (celular): muestra el carrito; si está vacío y hay un pedido en
+// preparación, muestra el pedido para tenerlo siempre a mano.
+var unidadesCarrito = 0;
+var hayPedidoActivo = false;
+var pedidoActivo = null;   // { token, total, viernes } del pedido en preparación
+function modoBarraPedido() { return unidadesCarrito === 0 && hayPedidoActivo && !modoEdicion; }
+// Lo que se agrega va al pedido en curso (no los viernes: ese día se crea aparte)
+function modoAgregar() { return hayPedidoActivo && pedidoActivo && !pedidoActivo.viernes && !modoEdicion; }
+function actualizarBarraMovil() {
+  const barra = document.querySelector(".barra-movil");
+  if (!barra) return;
+  const enPedido = modoBarraPedido();
+  document.getElementById("barraCarrito").style.display = enPedido ? "none" : "";
+  document.getElementById("barraPedido").style.display  = enPedido ? "" : "none";
+  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : (modoEdicion ? "Revisar pedido" : (modoAgregar() ? "Agregar a mi pedido" : "Ver carrito"));
+  barra.classList.toggle("lleno", unidadesCarrito > 0 || enPedido);
+
+  // Nota fija en el carrito y texto del botón de enviar
+  const nota = document.getElementById("notaAgregar");
+  if (nota) {
+    if (unidadesCarrito > 0 && modoAgregar()) {
+      nota.textContent = "Estos productos se agregarán a tu pedido en preparación.";
+      nota.className = "nota-agregar"; nota.style.display = "";
+    } else if (unidadesCarrito > 0 && hayPedidoActivo && pedidoActivo && pedidoActivo.viernes && !modoEdicion) {
+      nota.textContent = "Hoy es viernes: esto se enviará como un pedido nuevo.";
+      nota.className = "nota-agregar viernes"; nota.style.display = "";
+    } else { nota.style.display = "none"; }
+  }
+  const btnEnv = document.getElementById("btnEnviarPedido");
+  if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Revisar y enviar pedido";
+}
+// iPhone: a veces el primer toque en un botón de producto no genera el "click"
+// (Safari lo usa para otra cosa y hay que tocar dos veces). Si un toque corto y sin
+// arrastre termina sobre uno de estos botones y el click no llega, lo disparamos.
+(function () {
+  const SELECTOR = ".agregar, .stepper button, .controles-mini button, .prod-img";
+  let inicio = null;
+  document.addEventListener("touchstart", e => {
+    const t = e.touches[0];
+    const btn = e.target.closest && e.target.closest(SELECTOR);
+    inicio = btn ? { btn, x: t.clientX, y: t.clientY, ms: Date.now() } : null;
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (!inicio) return;
+    const t = e.changedTouches[0];
+    const { btn, x, y, ms } = inicio; inicio = null;
+    const movio = Math.abs(t.clientX - x) > 10 || Math.abs(t.clientY - y) > 10;
+    if (movio || Date.now() - ms > 600) return;            // fue un deslizamiento, no un toque
+    let llego = false;
+    const marcar = () => { llego = true; };
+    btn.addEventListener("click", marcar, { once: true });
+    setTimeout(() => {
+      btn.removeEventListener("click", marcar);
+      if (!llego && document.body.contains(btn)) btn.click();
+    }, 350);
+  }, { passive: true });
+})();
+
+// ── TOCAR LA FOTO ──────────────────────────────────
+// Hace lo mismo que el "+": los productos simples se agregan (con un "✓ Agregado"
+// sobre la foto para que se note) y los que tienen pesos u opciones abren su ventanita.
+function tocarFoto(clave) {
+  const e = PRODUCTOS.find(x => String(x.id) === String(clave));
+  if (!e) return;
+  if (e.esGrupo) return abrirModalVariante(e.id);
+  if (e.pesos && e.pesos.length > 0) return abrirModalPeso(e.id);
+  conPedidoEnCurso(() => { _actualizarPedido(e.id, 1); mostrarAgregado(e.id); });
+}
+function mostrarAgregado(id) {
+  document.querySelectorAll(`.prod-img[data-pid="${id}"]`).forEach(foto => {
+    const ok = document.createElement("div");
+    ok.className = "agregado-ok";
+    ok.textContent = "✓ Agregado";
+    foto.appendChild(ok);
+    setTimeout(() => ok.remove(), 1400);
+  });
+  const barra = document.querySelector(".barra-movil");
+  if (barra) { barra.classList.remove("pulso"); void barra.offsetWidth; barra.classList.add("pulso"); }
+  if (navigator.vibrate) { try { navigator.vibrate(25); } catch (err) {} }
+}
+
+// Esconder la barra mientras la portada ocupa buena parte de la pantalla
+(function () {
+  const hero = document.querySelector(".hero");
+  const barra = document.querySelector(".barra-movil");
+  if (!hero || !barra || !("IntersectionObserver" in window)) return;
+  new IntersectionObserver(entradas => {
+    entradas.forEach(e => barra.classList.toggle("en-portada", e.isIntersecting && e.intersectionRatio > 0.35));
+  }, { threshold: [0, 0.35, 0.6, 1] }).observe(hero);
+})();
+
+// Con un pedido en preparación, lo primero que se agrega abre el pedido para editarlo
+// (el carrito pasa a ser el pedido completo). El aviso sale una sola vez.
+var avisoViernesVisto = false;
+var accionTrasAviso = null;
+function conPedidoEnCurso(accion) {
+  if (modoEdicion || !hayPedidoActivo || !pedidoActivo) return accion();
+  if (pedidoActivo.viernes) {
+    if (avisoViernesVisto) return accion();
+    mostrarAvisoPedido(
+      "Tu pedido ya está en preparación",
+      "Hoy es viernes y lo estamos alistando para la entrega. Lo que agregues ahora se enviará como un pedido nuevo.",
+      "Entendido",
+      () => { avisoViernesVisto = true; accion(); });
+    return;
+  }
+  mostrarAvisoPedido(
+    "Vas a editar tu pedido",
+    "Tenés un pedido en preparación. Lo que agregues se va a sumar a ese pedido y vas a ver todo junto en el carrito.",
+    "Continuar",
+    async () => { await iniciarEdicion(pedidoActivo.token); accion(); });
+}
+function mostrarAvisoPedido(titulo, texto, boton, alContinuar) {
+  document.getElementById("avisoPedidoTitulo").textContent = titulo;
+  document.getElementById("avisoPedidoTexto").textContent = texto;
+  document.getElementById("avisoPedidoBoton").textContent = boton;
+  accionTrasAviso = alContinuar;
+  abrirModal("overlayAvisoPedido");
+}
+function continuarAvisoPedido() {
+  cerrarModal("overlayAvisoPedido");
+  const accion = accionTrasAviso; accionTrasAviso = null;
+  if (accion) accion();
+}
+
+function tocarBarraMovil() {
+  if (modoBarraPedido()) abrirMiPedido();
+  else document.getElementById('resumen').scrollIntoView({behavior:'smooth'});
 }
 
 // ── MODAL CONFIRMACIÓN ─────────────────────────────
@@ -1569,10 +1752,12 @@ function abrirModalConfirmacion() {
     if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
     if (!direccion) { alert("Indique la dirección de entrega."); return; }
   }
-  document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : "Confirmar pedido";
+  const agregando = modoAgregar();
+  document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a tu pedido" : "Confirmar pedido");
+  document.getElementById("btnConfirmar").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a mi pedido" : "Confirmar y enviar");
 
   let total = 0;
-  const filas = Object.keys(pedido).map(clave => {
+  const filas = Object.keys(pedido).filter(clave => !(agregando && parsearClave(clave).id === ID_EXPRESS)).map(clave => {
     const { id, gramos } = parsearClave(clave);
     const p    = productosPorId[id];
     const cant = pedido[clave];
@@ -1582,9 +1767,13 @@ function abrirModalConfirmacion() {
     return `<tr><td>${etiqueta}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
   }).join("");
 
+  const pie = agregando
+    ? `<div class="modal-total" style="font-weight:500"><span>Ya tenías</span><span>₡${Math.round(pedidoActivo.total).toLocaleString('es-CR')}</span></div>
+       <div class="modal-total" style="font-weight:500"><span>Agregás</span><span>₡${total.toLocaleString('es-CR')}</span></div>
+       <div class="modal-total"><span>Nuevo total estimado</span><span>₡${Math.round(pedidoActivo.total + total).toLocaleString('es-CR')}</span></div>`
+    : `<div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
   document.getElementById("modalDetalle").innerHTML = `
-    <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>
-    <div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
+    <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>${pie}`;
   abrirModal('overlayConfirm');
 }
 
@@ -1611,6 +1800,7 @@ async function enviarPedido() {
         celular:   document.getElementById("pedCelular").value.trim(),
         direccion: document.getElementById("pedDireccion").value.trim(),
         notas:     document.getElementById("pedNotas").value.trim(),
+        agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
       })
     });
@@ -1623,7 +1813,7 @@ async function enviarPedido() {
       const tokenEd = modoEdicion;
       document.getElementById("tituloExito").textContent = "¡Cambios guardados!";
       document.getElementById("textoExito").textContent =
-        `Actualizamos tu pedido #${data.pedido_id}. Ya lo vio nuestro equipo.`;
+        `Actualizamos tu pedido. Ya lo vio nuestro equipo.`;
       document.getElementById("bloqueCampanaExito").style.display = "none";
       mostrarBotonVerPedido(tokenEd);
       abrirModal('overlayExito');
@@ -1645,7 +1835,7 @@ async function enviarPedido() {
       // textContent: el nombre lo escribe el cliente, no se inserta como HTML
       document.getElementById("tituloExito").textContent = data.unido ? "¡Pedido actualizado!" : "¡Pedido recibido!";
       document.getElementById("textoExito").textContent = data.unido
-        ? `Hola ${nombre}, como ya tenías el pedido #${data.pedido_id} en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
+        ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
         : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
       prepararBloqueCampanaExito();
       abrirModal('overlayExito');
@@ -1717,7 +1907,7 @@ async function abrirMiPedido() {
 function pintarMiPedido(d, token) {
   const cuerpo = document.getElementById("miPedidoCuerpo");
   cuerpo.innerHTML = "";
-  document.getElementById("miPedidoTitulo").textContent = "Pedido #" + d.numero;
+  document.getElementById("miPedidoTitulo").textContent = "Mi pedido";
   const entregado = d.estado === "Entregado", cancelado = d.estado === "Cancelado";
   if (entregado || cancelado) { try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {} refrescarFranjaPedido(); }
 
@@ -1727,7 +1917,7 @@ function pintarMiPedido(d, token) {
   else {
     const pasos = _el("div", undefined, "display:flex;justify-content:center;gap:6px;flex-wrap:wrap;font-size:.82rem;margin-bottom:6px;");
     [["Recibido", true], ["Preparando", !entregado], ["Entregado", entregado]].forEach(([t, on], k) => {
-      const dot = _el("span", (on ? "✓ " : (k + 1) + " ") + t,
+      const dot = _el("span", (on ? "✓ " : "○ ") + t,
         "padding:4px 10px;border-radius:99px;font-weight:600;" + (on ? "background:var(--verde);color:#fff;" : "background:#ECEAE3;color:var(--gris);"));
       pasos.appendChild(dot);
     });
@@ -1810,22 +2000,26 @@ async function refrescarFranjaPedido() {
   const franja = document.getElementById("franjaPedido");
   if (modoEdicion) return;
   const g = pedidoRecordado();
-  if (!g || !g.token) { franja.style.display = "none"; return; }
+  if (!g || !g.token) { franja.style.display = "none"; hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil(); return; }
   try {
     const r = await fetch("/api/pedido/" + encodeURIComponent(g.token));
     const d = await r.json();
     if (!d.ok || (!d.editable && !d.viernes)) {
       try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {}
       franja.style.display = "none";
+      hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil();
       return;
     }
-    document.getElementById("franjaTitulo").textContent = `Pedido #${d.numero} en preparación`;
+    const nProd = (d.items || []).filter(i => !i.envio).length;
+    document.getElementById("franjaTitulo").textContent = "Tu pedido está en preparación";
     document.getElementById("franjaDetalle").textContent = d.viernes
       ? "Lo estamos preparando con cariño 🌱 ¿Un cambio? Escribinos por WhatsApp"
-      : "Editalo o agregá más productos";
+      : `${nProd} producto${nProd === 1 ? "" : "s"} · ₡${Math.round(d.total).toLocaleString('es-CR')}`;
     document.getElementById("franjaSalir").style.display = "none";
     franja.style.display = "flex";
-  } catch(e) { franja.style.display = "none"; }
+    pedidoActivo = { token: g.token, total: Number(d.total) || 0, viernes: !!d.viernes };
+    hayPedidoActivo = true; renderResumen();
+  } catch(e) { franja.style.display = "none"; hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil(); }
 }
 
 // Entra en modo edición: carga las líneas del pedido en el carrito
@@ -1850,7 +2044,7 @@ async function iniciarEdicion(token) {
       if (porPeso) pedido[i.producto_id + "_" + Math.round(i.cantidad)] = 1;
       else pedido[i.producto_id] = i.cantidad;
     });
-    document.getElementById("franjaTitulo").textContent = `Editando pedido #${d.numero}`;
+    document.getElementById("franjaTitulo").textContent = "Editando tu pedido";
     document.getElementById("franjaDetalle").textContent = extrasEdicion.length ? "Algunos productos ya no están a la venta" : "Cambiá lo que necesites y guardá";
     document.getElementById("franjaSalir").style.display = "block";
     document.getElementById("franjaPedido").style.display = "flex";
@@ -2291,7 +2485,8 @@ function mostrarToast(texto, tipo) {
   setTimeout(() => div.remove(), 5000);
 }
 
-function repetirUltimaCompra() {
+function repetirUltimaCompra() { conPedidoEnCurso(_repetirUltimaCompra); }
+function _repetirUltimaCompra() {
   ultimaCompraGuardada.forEach(item => {
     // Cargar la cantidad de la última vez (respetando stock disponible)
     if (item.id === ID_EXPRESS) return;

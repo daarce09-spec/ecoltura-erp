@@ -94,7 +94,7 @@ function pintar(d) {
   const entregado = d.estado === 'Entregado';
   if (cancelado || entregado) limpiarRecordado();
 
-  cont.appendChild(el('h1', '', 'Pedido #' + d.numero));
+  cont.appendChild(el('h1', '', 'Mi pedido'));
   cont.appendChild(el('div', 'sub', 'Hola ' + (d.nombre || '').split(' ')[0] + ' 🌱'));
 
   // Estado

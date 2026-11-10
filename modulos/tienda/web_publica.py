@@ -300,6 +300,7 @@ def api_pedidos():
     direccion = (data.get("direccion") or "").strip()
     notas     = (data.get("notas")     or "").strip()
     items     = data.get("items", [])
+    agregar_a = (data.get("agregar_a") or "").strip()   # token del pedido en curso que ve el cliente
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
@@ -352,14 +353,22 @@ def api_pedidos():
         if precios is None:
             return jsonify({"ok": False, "error": "Uno o más productos no están disponibles."}), 400
 
-        # 3. ¿Ya tiene un pedido abierto con este celular? Entonces se une a ese:
-        #    así el cliente nunca tiene dos pedidos pendientes a la vez.
-        cur.execute(f"""
-            SELECT id, token FROM pedidos
-            WHERE estado = 'Pendiente' AND {SQL_CEL_LIMPIO} = %s
-            ORDER BY id DESC LIMIT 1
-        """, (celular,))
-        abierto = None if _es_viernes() else cur.fetchone()  # viernes: no se une, se crea uno aparte
+        # 3. ¿Ya tiene un pedido abierto? Entonces se une a ese: así el cliente nunca
+        #    tiene dos pedidos pendientes a la vez. Primero el pedido en curso que la
+        #    tienda le muestra (por su enlace privado); si no, el de este celular.
+        #    Los viernes no se une: se crea uno aparte.
+        abierto = None
+        if not _es_viernes():
+            if agregar_a:
+                cur.execute("SELECT id, token FROM pedidos WHERE token = %s AND estado = 'Pendiente'", (agregar_a,))
+                abierto = cur.fetchone()
+            if not abierto:
+                cur.execute(f"""
+                    SELECT id, token FROM pedidos
+                    WHERE estado = 'Pendiente' AND {SQL_CEL_LIMPIO} = %s
+                    ORDER BY id DESC LIMIT 1
+                """, (celular,))
+                abierto = cur.fetchone()
 
         if abierto:
             pedido_id, token = abierto
