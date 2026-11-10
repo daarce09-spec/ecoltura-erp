@@ -399,6 +399,9 @@
     .barra-movil .ir { font-weight: 600; font-size: .85rem; background: var(--verde); color: #fff; border: none;
                        border-radius: 999px; padding: 11px 20px; }
     .barra-movil.lleno { background: var(--verde); border-color: var(--verde); color: #fff; }
+    /* Mientras se ve la portada, la barra se esconde (aparece al bajar a los productos) */
+    .barra-movil.en-portada { transform: translateY(160%); opacity: 0; pointer-events: none; }
+    .barra-movil { transition: background .2s, color .2s, transform .3s ease, opacity .3s ease; }
     .barra-movil.lleno .ir { background: #fff; color: var(--verde-os); }
     @media (max-width: 960px) { .resumen { position: static; max-height: none; overflow: visible; } #zonaResumen, #zonaResumen:has(.item-res) { overflow: visible; min-height: 0; } .barra-movil { display: flex; } }
 
@@ -1611,6 +1614,16 @@ function actualizarBarraMovil() {
   const btnEnv = document.getElementById("btnEnviarPedido");
   if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Revisar y enviar pedido";
 }
+// Esconder la barra mientras la portada ocupa buena parte de la pantalla
+(function () {
+  const hero = document.querySelector(".hero");
+  const barra = document.querySelector(".barra-movil");
+  if (!hero || !barra || !("IntersectionObserver" in window)) return;
+  new IntersectionObserver(entradas => {
+    entradas.forEach(e => barra.classList.toggle("en-portada", e.isIntersecting && e.intersectionRatio > 0.35));
+  }, { threshold: [0, 0.35, 0.6, 1] }).observe(hero);
+})();
+
 function tocarBarraMovil() {
   if (modoBarraPedido()) abrirMiPedido();
   else document.getElementById('resumen').scrollIntoView({behavior:'smooth'});
