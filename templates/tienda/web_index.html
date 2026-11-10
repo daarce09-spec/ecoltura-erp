@@ -276,6 +276,9 @@
     .aviso.activo .aviso-detalle { color: rgba(255,255,255,.88); font-size: .82rem; white-space: normal; margin-top: 2px; }
     .aviso.activo .fr-btn { background: #fff; color: var(--verde-os); padding: 10px 16px; font-size: .85rem; border-radius: 10px; }
     .aviso.activo .fr-btn.sec { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+    .nota-agregar { background: #EAF3E3; color: var(--verde-os); border-radius: 10px; padding: 9px 12px;
+                    font-size: .82rem; line-height: 1.4; margin: 0 0 12px; }
+    .nota-agregar.viernes { background: #FFF4E5; color: #8A5300; }
     .fr-x { background: transparent; border: none; color: var(--gris); font-size: 1.25rem; line-height: 1; padding: 2px 4px; cursor: pointer; flex-shrink: 0; }
 
     /* ── Carrusel "Lo que más piden" (destacados + más vendidos) ── */
@@ -728,6 +731,7 @@
 
     <aside class="resumen" id="resumen">
       <div class="resumen-titulo">Su pedido</div>
+      <div id="notaAgregar" class="nota-agregar" style="display:none"></div>
       <div id="zonaResumen"><div class="res-vacio">Aún no ha agregado productos.</div></div>
       <!-- Express (envío) fijo debajo de la lista: siempre visible, aunque la lista tenga scroll -->
       <div id="zonaExpress"></div>
@@ -1546,7 +1550,16 @@ function renderResumen() {
 
     // Express: línea fija, no se puede quitar ni cambiar
     const exp = productosPorId[ID_EXPRESS];
-    if (exp && pedido[ID_EXPRESS]) {
+    if (exp && pedido[ID_EXPRESS] && modoAgregar()) {
+      // Se agrega a un pedido que ya tiene el envío: no se cobra de nuevo
+      zonaExp.innerHTML = `<div class="item-res">
+        <span class="nombre-it">${exp.nombre}</span>
+        <span class="controles-mini">
+          <span style="color:var(--gris); font-size:.72rem;">ya está en tu pedido</span>
+          <b style="min-width:60px;text-align:right">₡0</b>
+        </span>
+      </div>`;
+    } else if (exp && pedido[ID_EXPRESS]) {
       const subExp = Math.round(exp.precio * pedido[ID_EXPRESS]);
       total += subExp;
       zonaExp.innerHTML = `<div class="item-res">
@@ -1571,15 +1584,32 @@ function renderResumen() {
 // preparación, muestra el pedido para tenerlo siempre a mano.
 var unidadesCarrito = 0;
 var hayPedidoActivo = false;
+var pedidoActivo = null;   // { token, total, viernes } del pedido en preparación
 function modoBarraPedido() { return unidadesCarrito === 0 && hayPedidoActivo && !modoEdicion; }
+// Lo que se agrega va al pedido en curso (no los viernes: ese día se crea aparte)
+function modoAgregar() { return hayPedidoActivo && pedidoActivo && !pedidoActivo.viernes && !modoEdicion; }
 function actualizarBarraMovil() {
   const barra = document.querySelector(".barra-movil");
   if (!barra) return;
   const enPedido = modoBarraPedido();
   document.getElementById("barraCarrito").style.display = enPedido ? "none" : "";
   document.getElementById("barraPedido").style.display  = enPedido ? "" : "none";
-  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : "Ver carrito";
+  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : (modoAgregar() ? "Agregar a mi pedido" : "Ver carrito");
   barra.classList.toggle("lleno", unidadesCarrito > 0 || enPedido);
+
+  // Nota fija en el carrito y texto del botón de enviar
+  const nota = document.getElementById("notaAgregar");
+  if (nota) {
+    if (unidadesCarrito > 0 && modoAgregar()) {
+      nota.textContent = "Estos productos se agregarán a tu pedido en preparación.";
+      nota.className = "nota-agregar"; nota.style.display = "";
+    } else if (unidadesCarrito > 0 && hayPedidoActivo && pedidoActivo && pedidoActivo.viernes && !modoEdicion) {
+      nota.textContent = "Hoy es viernes: esto se enviará como un pedido nuevo.";
+      nota.className = "nota-agregar viernes"; nota.style.display = "";
+    } else { nota.style.display = "none"; }
+  }
+  const btnEnv = document.getElementById("btnEnviarPedido");
+  if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Revisar y enviar pedido";
 }
 function tocarBarraMovil() {
   if (modoBarraPedido()) abrirMiPedido();
@@ -1598,10 +1628,12 @@ function abrirModalConfirmacion() {
     if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
     if (!direccion) { alert("Indique la dirección de entrega."); return; }
   }
-  document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : "Confirmar pedido";
+  const agregando = modoAgregar();
+  document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a tu pedido" : "Confirmar pedido");
+  document.getElementById("btnConfirmar").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a mi pedido" : "Confirmar y enviar");
 
   let total = 0;
-  const filas = Object.keys(pedido).map(clave => {
+  const filas = Object.keys(pedido).filter(clave => !(agregando && parsearClave(clave).id === ID_EXPRESS)).map(clave => {
     const { id, gramos } = parsearClave(clave);
     const p    = productosPorId[id];
     const cant = pedido[clave];
@@ -1611,9 +1643,13 @@ function abrirModalConfirmacion() {
     return `<tr><td>${etiqueta}</td><td>₡${sub.toLocaleString('es-CR')}</td></tr>`;
   }).join("");
 
+  const pie = agregando
+    ? `<div class="modal-total" style="font-weight:500"><span>Ya tenías</span><span>₡${Math.round(pedidoActivo.total).toLocaleString('es-CR')}</span></div>
+       <div class="modal-total" style="font-weight:500"><span>Agregás</span><span>₡${total.toLocaleString('es-CR')}</span></div>
+       <div class="modal-total"><span>Nuevo total estimado</span><span>₡${Math.round(pedidoActivo.total + total).toLocaleString('es-CR')}</span></div>`
+    : `<div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
   document.getElementById("modalDetalle").innerHTML = `
-    <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>
-    <div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
+    <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>${pie}`;
   abrirModal('overlayConfirm');
 }
 
@@ -1640,6 +1676,7 @@ async function enviarPedido() {
         celular:   document.getElementById("pedCelular").value.trim(),
         direccion: document.getElementById("pedDireccion").value.trim(),
         notas:     document.getElementById("pedNotas").value.trim(),
+        agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
       })
     });
@@ -1756,7 +1793,7 @@ function pintarMiPedido(d, token) {
   else {
     const pasos = _el("div", undefined, "display:flex;justify-content:center;gap:6px;flex-wrap:wrap;font-size:.82rem;margin-bottom:6px;");
     [["Recibido", true], ["Preparando", !entregado], ["Entregado", entregado]].forEach(([t, on], k) => {
-      const dot = _el("span", (on ? "✓ " : (k + 1) + " ") + t,
+      const dot = _el("span", (on ? "✓ " : "○ ") + t,
         "padding:4px 10px;border-radius:99px;font-weight:600;" + (on ? "background:var(--verde);color:#fff;" : "background:#ECEAE3;color:var(--gris);"));
       pasos.appendChild(dot);
     });
@@ -1839,14 +1876,14 @@ async function refrescarFranjaPedido() {
   const franja = document.getElementById("franjaPedido");
   if (modoEdicion) return;
   const g = pedidoRecordado();
-  if (!g || !g.token) { franja.style.display = "none"; hayPedidoActivo = false; actualizarBarraMovil(); return; }
+  if (!g || !g.token) { franja.style.display = "none"; hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil(); return; }
   try {
     const r = await fetch("/api/pedido/" + encodeURIComponent(g.token));
     const d = await r.json();
     if (!d.ok || (!d.editable && !d.viernes)) {
       try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {}
       franja.style.display = "none";
-      hayPedidoActivo = false; actualizarBarraMovil();
+      hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil();
       return;
     }
     const nProd = (d.items || []).filter(i => !i.envio).length;
@@ -1856,8 +1893,9 @@ async function refrescarFranjaPedido() {
       : `${nProd} producto${nProd === 1 ? "" : "s"} · ₡${Math.round(d.total).toLocaleString('es-CR')}`;
     document.getElementById("franjaSalir").style.display = "none";
     franja.style.display = "flex";
-    hayPedidoActivo = true; actualizarBarraMovil();
-  } catch(e) { franja.style.display = "none"; hayPedidoActivo = false; actualizarBarraMovil(); }
+    pedidoActivo = { token: g.token, total: Number(d.total) || 0, viernes: !!d.viernes };
+    hayPedidoActivo = true; renderResumen();
+  } catch(e) { franja.style.display = "none"; hayPedidoActivo = false; pedidoActivo = null; actualizarBarraMovil(); }
 }
 
 // Entra en modo edición: carga las líneas del pedido en el carrito
