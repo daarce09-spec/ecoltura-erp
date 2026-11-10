@@ -40,6 +40,9 @@ def _cantidad(cant, unidad):
     if u in ("g", "gr", "gramo", "gramos"):
         txt = f"{cant / 1000:g} kg" if cant >= 1000 else f"{cant:g} g"
     elif u:
+        # 2 unidad → 2 unidades · 3 manojo → 3 manojos (kg, ml, etc. no cambian)
+        if cant != 1 and u.isalpha() and len(u) > 2 and not u.endswith("s"):
+            u = u + ("es" if u[-1] in "dlnrz" else "s")
         txt = f"{cant:g} {u}"
     else:
         txt = f"{cant:g}"
@@ -166,7 +169,7 @@ def _html(p, enlace, logo, unido):
     <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:{"#8A8A84" if cancelado else "#D9742E"};letter-spacing:.5px;">{subtitulo}</td></tr>
     <tr><td align="center" style="padding:14px 40px 24px;{F}font-size:15px;line-height:1.65;color:#5A5A55;">{parrafo}</td></tr>
     <tr><td style="padding:0 28px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F8F1;border-radius:14px;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FFFFFF;border:1px solid #DCE8D2;border-radius:14px;">
         <tr><td style="padding:18px 20px 4px;{F}font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">{etiqueta_canasta}</td></tr>
         <tr><td style="padding:0 20px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{filas}</table>
