@@ -756,6 +756,18 @@
 </div>
 
 <!-- Modal confirmación pedido -->
+<div class="overlay" id="overlayAvisoPedido">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayAvisoPedido')">✕</button>
+    <div class="modal-titulo" id="avisoPedidoTitulo"></div>
+    <div class="modal-nota" id="avisoPedidoTexto" style="font-size:.92rem;"></div>
+    <div class="modal-botones">
+      <button class="btn-cancelar" onclick="cerrarModal('overlayAvisoPedido')">Ahora no</button>
+      <button class="btn-confirmar" id="avisoPedidoBoton" onclick="continuarAvisoPedido()">Continuar</button>
+    </div>
+  </div>
+</div>
+
 <div class="overlay" id="overlayConfirm">
   <div class="modal">
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
@@ -1170,7 +1182,8 @@ function totalGramosProducto(id) {
     .reduce((sum, k) => sum + parsearClave(k).gramos * pedido[k], 0);
 }
 
-function abrirModalPeso(id) {
+function abrirModalPeso(id) { conPedidoEnCurso(() => _abrirModalPeso(id)); }
+function _abrirModalPeso(id) {
   modalPesoIdActual = id;
   renderModalPeso();
   abrirModal('overlayPeso');
@@ -1286,7 +1299,8 @@ function normalizarTexto(texto) {
 // y ahí adentro un stepper por cada opción.
 let modalVarianteGrupoId = null;
 
-function abrirModalVariante(grupoId) {
+function abrirModalVariante(grupoId) { conPedidoEnCurso(() => _abrirModalVariante(grupoId)); }
+function _abrirModalVariante(grupoId) {
   modalVarianteGrupoId = grupoId;
   renderModalVariante();
   abrirModal('overlayVariante');
@@ -1513,6 +1527,10 @@ function invitarDeslizar(idPista) {
 }
 
 function actualizarPedido(id, delta) {
+  if (delta > 0) conPedidoEnCurso(() => _actualizarPedido(id, delta));
+  else _actualizarPedido(id, delta);
+}
+function _actualizarPedido(id, delta) {
   pedido[id] = Math.max(0, (pedido[id] || 0) + delta);
   if (pedido[id] === 0) delete pedido[id];
   renderProductos();
@@ -1597,7 +1615,7 @@ function actualizarBarraMovil() {
   const enPedido = modoBarraPedido();
   document.getElementById("barraCarrito").style.display = enPedido ? "none" : "";
   document.getElementById("barraPedido").style.display  = enPedido ? "" : "none";
-  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : (modoAgregar() ? "Agregar a mi pedido" : "Ver carrito");
+  document.getElementById("barraBoton").textContent     = enPedido ? "Mi pedido" : (modoEdicion ? "Revisar pedido" : (modoAgregar() ? "Agregar a mi pedido" : "Ver carrito"));
   barra.classList.toggle("lleno", unidadesCarrito > 0 || enPedido);
 
   // Nota fija en el carrito y texto del botón de enviar
@@ -1623,6 +1641,40 @@ function actualizarBarraMovil() {
     entradas.forEach(e => barra.classList.toggle("en-portada", e.isIntersecting && e.intersectionRatio > 0.35));
   }, { threshold: [0, 0.35, 0.6, 1] }).observe(hero);
 })();
+
+// Con un pedido en preparación, lo primero que se agrega abre el pedido para editarlo
+// (el carrito pasa a ser el pedido completo). El aviso sale una sola vez.
+var avisoViernesVisto = false;
+var accionTrasAviso = null;
+function conPedidoEnCurso(accion) {
+  if (modoEdicion || !hayPedidoActivo || !pedidoActivo) return accion();
+  if (pedidoActivo.viernes) {
+    if (avisoViernesVisto) return accion();
+    mostrarAvisoPedido(
+      "Tu pedido ya está en preparación",
+      "Hoy es viernes y lo estamos alistando para la entrega. Lo que agregues ahora se enviará como un pedido nuevo.",
+      "Entendido",
+      () => { avisoViernesVisto = true; accion(); });
+    return;
+  }
+  mostrarAvisoPedido(
+    "Vas a editar tu pedido",
+    "Tenés un pedido en preparación. Lo que agregues se va a sumar a ese pedido y vas a ver todo junto en el carrito.",
+    "Continuar",
+    async () => { await iniciarEdicion(pedidoActivo.token); accion(); });
+}
+function mostrarAvisoPedido(titulo, texto, boton, alContinuar) {
+  document.getElementById("avisoPedidoTitulo").textContent = titulo;
+  document.getElementById("avisoPedidoTexto").textContent = texto;
+  document.getElementById("avisoPedidoBoton").textContent = boton;
+  accionTrasAviso = alContinuar;
+  abrirModal("overlayAvisoPedido");
+}
+function continuarAvisoPedido() {
+  cerrarModal("overlayAvisoPedido");
+  const accion = accionTrasAviso; accionTrasAviso = null;
+  if (accion) accion();
+}
 
 function tocarBarraMovil() {
   if (modoBarraPedido()) abrirMiPedido();
@@ -2374,7 +2426,8 @@ function mostrarToast(texto, tipo) {
   setTimeout(() => div.remove(), 5000);
 }
 
-function repetirUltimaCompra() {
+function repetirUltimaCompra() { conPedidoEnCurso(_repetirUltimaCompra); }
+function _repetirUltimaCompra() {
   ultimaCompraGuardada.forEach(item => {
     // Cargar la cantidad de la última vez (respetando stock disponible)
     if (item.id === ID_EXPRESS) return;
