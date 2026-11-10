@@ -8,6 +8,7 @@ from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
 from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
 from modulos.categorias import asegurar_categorias
+from modulos.correo import correo_valido, enviar_confirmacion_pedido
 from datetime import datetime, timedelta
 
 
@@ -29,6 +30,8 @@ def _asegurar_destacado():
         with obtener_conexion() as conn:
             cur = conn.cursor()
             cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
+            # Correo opcional del cliente (para la confirmación del pedido)
+            cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS correo VARCHAR(120)")
             conn.commit()
     except Exception as ex:
         print("No se pudo asegurar la columna destacado:", ex)
@@ -301,6 +304,7 @@ def api_pedidos():
     notas     = (data.get("notas")     or "").strip()
     items     = data.get("items", [])
     agregar_a = (data.get("agregar_a") or "").strip()   # token del pedido en curso que ve el cliente
+    correo    = correo_valido(data.get("correo"))           # opcional: si viene mal escrito se ignora
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
@@ -337,6 +341,13 @@ def api_pedidos():
                 RETURNING id
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
+
+        # 1b. Correo: si lo escribió se guarda; si no, se usa el que ya teníamos
+        if correo:
+            cur.execute("UPDATE clientes SET correo = %s WHERE id = %s", (correo, cliente_id))
+        else:
+            cur.execute("SELECT correo FROM clientes WHERE id = %s", (cliente_id,))
+            correo = correo_valido((cur.fetchone() or [None])[0])
 
         # 1a. Si este celular activó antes la campana sin ser cliente, se vincula ahora
         vincular_suscripciones_huerfanas(cur)
@@ -416,6 +427,15 @@ def api_pedidos():
             notificar_admins("🛒 Nuevo pedido web", f"{nombre} · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
     except Exception as ex:
         print(f"No se pudo avisar del pedido #{pedido_id}: {ex}")
+
+    # Correo de confirmación al cliente (en segundo plano; nunca frena el pedido)
+    try:
+        base = request.url_root.rstrip("/")
+        if base.startswith("http://") and "localhost" not in base and "127.0.0.1" not in base:
+            base = "https://" + base[len("http://"):]
+        enviar_confirmacion_pedido(correo, token, base, unido)
+    except Exception as ex:
+        print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
 
     return jsonify({"ok": True, "pedido_id": pedido_id, "token": token, "unido": unido})
 
