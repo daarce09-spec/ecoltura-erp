@@ -88,7 +88,13 @@ def _html(p, enlace, logo, unido):
     F = "font-family:Arial,Helvetica,sans-serif;"
     SERIF = "font-family:Georgia,'Times New Roman',serif;"
     primer = escape(p["nombre"].split()[0]) if p["nombre"].strip() else ""
-    if unido == "editado":
+    cancelado = unido == "cancelado"
+    if cancelado:
+        titulo = f"Hola, {primer}" if primer else "Hola"
+        subtitulo = "Cancelamos tu pedido"
+        parrafo = ("Tal como lo pediste, tu pedido quedó cancelado y no tenés nada que pagar. "
+                   "Si fue un error o querés pedir otra cosa, la tienda te espera.")
+    elif unido == "editado":
         titulo = f"¡Listo, {primer}!" if primer else "¡Listo!"
         subtitulo = "Guardamos los cambios de tu pedido 🌱"
         parrafo = "Así queda tu pedido ahora. Lo seguimos preparando con el mismo cariño de siempre."
@@ -129,10 +135,26 @@ def _html(p, enlace, logo, unido):
              paso(3, "Lo recibís en tu casa y pagás en efectivo o SINPE Móvil."))
 
     inicio = escape(enlace.split("/pedido/")[0])
+
+    # Partes que cambian si el pedido se canceló
+    if cancelado:
+        etiqueta_canasta, etiqueta_total, color_total = "PEDIDO CANCELADO", "Total del pedido", "#8A8A84"
+        entrega, boton_url, boton_txt = "", inicio, "Volver a la tienda"
+        nota_boton = ""
+        bloque_pasos = ""
+        cierre = "Gracias por tenernos en cuenta. Esperamos verte pronto."
+    else:
+        etiqueta_canasta, etiqueta_total, color_total = "TU CANASTA 🧺", "Total estimado", "#3E6B22"
+        boton_url, boton_txt = enlace, "Ver o editar mi pedido"
+        nota_boton = (f'<tr><td align="center" style="padding:4px 28px 0;{F}font-size:12px;color:#8A8A84;">'
+                      '¿Se te olvidó algo? Desde ahí podés agregarlo.</td></tr>')
+        bloque_pasos = (f'<tr><td style="padding:26px 32px 4px;{SERIF}font-size:18px;color:#1F3A14;">¿Qué sigue?</td></tr>'
+                        f'<tr><td style="padding:4px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{pasos}</table></td></tr>')
+        cierre = "Gracias por ser parte de esto."
     return f"""<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{subtitulo}</title></head>
 <body style="margin:0;padding:0;background:#EEF4EA;">
-<div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · Total estimado {_colones(p["total"])}</div>
+<div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · {etiqueta_total} {_colones(p["total"])}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF4EA;">
 <tr><td align="center" style="padding:28px 12px;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:18px;overflow:hidden;">
@@ -141,31 +163,30 @@ def _html(p, enlace, logo, unido):
       <img src="{logo}" width="140" height="140" alt="ECOLTURA" style="display:block;border:0;width:140px;height:140px;">
     </td></tr>
     <tr><td align="center" style="padding:10px 28px 0;{SERIF}font-size:30px;color:#1F3A14;">{titulo}</td></tr>
-    <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:#D9742E;letter-spacing:.5px;">{subtitulo}</td></tr>
+    <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:{"#8A8A84" if cancelado else "#D9742E"};letter-spacing:.5px;">{subtitulo}</td></tr>
     <tr><td align="center" style="padding:14px 40px 24px;{F}font-size:15px;line-height:1.65;color:#5A5A55;">{parrafo}</td></tr>
     <tr><td style="padding:0 28px;">
       <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#F4F8F1;border-radius:14px;">
-        <tr><td style="padding:18px 20px 4px;{F}font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">TU CANASTA 🧺</td></tr>
+        <tr><td style="padding:18px 20px 4px;{F}font-size:12px;letter-spacing:2px;color:#3E6B22;font-weight:bold;">{etiqueta_canasta}</td></tr>
         <tr><td style="padding:0 20px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">{filas}</table>
         </td></tr>
         <tr><td style="padding:4px 20px 18px;">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-            <tr><td style="{F}font-size:16px;font-weight:bold;color:#2B2B2B;padding-top:10px;border-top:2px solid #3E6B22;">Total estimado</td>
-                <td align="right" style="{F}font-size:21px;font-weight:bold;color:#3E6B22;padding-top:10px;border-top:2px solid #3E6B22;white-space:nowrap;">{_colones(p["total"])}</td></tr>
+            <tr><td style="{F}font-size:16px;font-weight:bold;color:#2B2B2B;padding-top:10px;border-top:2px solid #3E6B22;">{etiqueta_total}</td>
+                <td align="right" style="{F}font-size:21px;font-weight:bold;color:{color_total};padding-top:10px;border-top:2px solid #3E6B22;white-space:nowrap;">{_colones(p["total"])}</td></tr>
           </table>
         </td></tr>
       </table>
     </td></tr>
     {entrega}
     <tr><td align="center" style="padding:24px 28px 6px;">
-      <a href="{enlace}" style="display:inline-block;background:#3E6B22;color:#ffffff;text-decoration:none;{F}font-weight:bold;font-size:15px;padding:15px 34px;border-radius:30px;">Ver o editar mi pedido</a>
+      <a href="{boton_url}" style="display:inline-block;background:#3E6B22;color:#ffffff;text-decoration:none;{F}font-weight:bold;font-size:15px;padding:15px 34px;border-radius:30px;">{boton_txt}</a>
     </td></tr>
-    <tr><td align="center" style="padding:4px 28px 0;{F}font-size:12px;color:#8A8A84;">¿Se te olvidó algo? Desde ahí podés agregarlo.</td></tr>
-    <tr><td style="padding:26px 32px 4px;{SERIF}font-size:18px;color:#1F3A14;">¿Qué sigue?</td></tr>
-    <tr><td style="padding:4px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{pasos}</table></td></tr>
+    {nota_boton}
+    {bloque_pasos}
     <tr><td style="padding:24px 32px 30px;{F}font-size:15px;line-height:1.6;color:#4A4A45;">
-      Gracias por ser parte de esto.<br>
+      {cierre}<br>
       <span style="{SERIF}font-style:italic;font-size:17px;color:#1F3A14;">Con cariño, el equipo de Ecoltura 🌿</span>
     </td></tr>
     <tr><td align="center" style="background:#1A4226;padding:22px 24px;{F}font-size:13px;line-height:1.8;color:#CFE3D4;">
@@ -179,6 +200,8 @@ def _html(p, enlace, logo, unido):
 
 def _asunto(p, unido):
     primer = p["nombre"].split()[0] if p["nombre"].strip() else ""
+    if unido == "cancelado":
+        return f"{primer}, cancelamos tu pedido" if primer else "Cancelamos tu pedido"
     if unido == "editado":
         return f"{primer}, actualizamos tu pedido" if primer else "Actualizamos tu pedido"
     if unido:
@@ -187,6 +210,10 @@ def _asunto(p, unido):
 
 
 def _texto(p, enlace, unido):
+    if unido == "cancelado":
+        return "\n".join(["Cancelamos tu pedido, tal como lo pediste. No tenés nada que pagar.", "",
+                          "Si fue un error o querés pedir otra cosa, la tienda te espera: " + enlace.split("/pedido/")[0],
+                          "", "Con cariño, el equipo de Ecoltura"])
     lineas = [("Actualizamos tu pedido." if unido == "editado" else
                "Agregamos productos a tu pedido." if unido else "¡Recibimos tu pedido!"), ""]
     for it in p["items"]:

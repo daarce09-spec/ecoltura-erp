@@ -667,11 +667,17 @@ def api_pedido_cancelar(token):
         if _es_viernes():
             return jsonify({"ok": False, "error": MSJ_VIERNES}), 409
         cur.execute("UPDATE pedidos SET estado = 'Rechazado', gestionado = NOW() WHERE id = %s", (pedido_id,))
+        cur.execute("SELECT c.correo FROM pedidos p JOIN clientes c ON c.id = p.cliente_id WHERE p.id = %s", (pedido_id,))
+        correo = correo_valido((cur.fetchone() or [None])[0])
         conn.commit()
     try:
         notificar_admins(f"❌ Pedido #{pedido_id} cancelado", f"{nombre} canceló su pedido", f"/admin/pedidos/{pedido_id}")
     except Exception as ex:
         print(f"No se pudo avisar de la cancelación del pedido #{pedido_id}: {ex}")
+    try:
+        enviar_confirmacion_pedido(correo, token, _base_tienda(), "cancelado")
+    except Exception as ex:
+        print(f"No se pudo preparar el correo de cancelación del pedido #{pedido_id}: {ex}")
     return jsonify({"ok": True})
 
 
