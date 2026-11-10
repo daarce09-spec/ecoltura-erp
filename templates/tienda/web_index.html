@@ -1633,6 +1633,33 @@ function actualizarBarraMovil() {
   const btnEnv = document.getElementById("btnEnviarPedido");
   if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Revisar y enviar pedido";
 }
+// iPhone: a veces el primer toque en un botón de producto no genera el "click"
+// (Safari lo usa para otra cosa y hay que tocar dos veces). Si un toque corto y sin
+// arrastre termina sobre uno de estos botones y el click no llega, lo disparamos.
+(function () {
+  const SELECTOR = ".agregar, .stepper button, .controles-mini button";
+  let inicio = null;
+  document.addEventListener("touchstart", e => {
+    const t = e.touches[0];
+    const btn = e.target.closest && e.target.closest(SELECTOR);
+    inicio = btn ? { btn, x: t.clientX, y: t.clientY, ms: Date.now() } : null;
+  }, { passive: true });
+  document.addEventListener("touchend", e => {
+    if (!inicio) return;
+    const t = e.changedTouches[0];
+    const { btn, x, y, ms } = inicio; inicio = null;
+    const movio = Math.abs(t.clientX - x) > 10 || Math.abs(t.clientY - y) > 10;
+    if (movio || Date.now() - ms > 600) return;            // fue un deslizamiento, no un toque
+    let llego = false;
+    const marcar = () => { llego = true; };
+    btn.addEventListener("click", marcar, { once: true });
+    setTimeout(() => {
+      btn.removeEventListener("click", marcar);
+      if (!llego && document.body.contains(btn)) btn.click();
+    }, 350);
+  }, { passive: true });
+})();
+
 // Esconder la barra mientras la portada ocupa buena parte de la pantalla
 (function () {
   const hero = document.querySelector(".hero");
