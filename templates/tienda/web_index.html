@@ -390,12 +390,26 @@
                          font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
                          cursor: pointer; transition: background .12s; }
     .btn-enviar-pedido:hover { background: var(--verde-os); }
-    .nota-correo { font-size: .74rem; color: var(--gris); margin-top: 6px; line-height: 1.45; }
-    .bloque-correo { margin: 4px 0 14px; padding: 12px 14px; border-radius: 10px; background: #F1F6EC;
-                     border: 1px solid #DCE8D2; font-size: .86rem; line-height: 1.5; color: var(--texto); }
-    .bloque-correo b { word-break: break-all; }
-    .bloque-correo input { width: 100%; margin-top: 8px; padding: 10px 12px; border: 1px solid var(--borde);
-                           border-radius: 8px; font-size: 16px; background: #fff; }
+    .nota-correo { display: flex; gap: 6px; align-items: flex-start; font-size: .74rem; color: var(--gris);
+                   margin-top: 6px; line-height: 1.45; }
+    .nota-correo svg { flex: 0 0 13px; margin-top: 2px; }
+    /* Aviso de correo (confirmación y pantalla final): blanco y verde, como la tienda */
+    .bloque-correo { margin: 4px 0 16px; padding: 14px 16px; background: #fff; border: 1px solid #D5E3CB;
+                     border-left: 3px solid var(--verde); text-align: left; }
+    .bloque-correo .fila { display: flex; align-items: center; gap: 12px; }
+    .bloque-correo .ico { flex: 0 0 38px; height: 38px; border-radius: 50%; background: var(--verde);
+                          display: flex; align-items: center; justify-content: center; }
+    .bloque-correo .txt { flex: 1; min-width: 0; }
+    .bloque-correo .lbl { font-size: .74rem; letter-spacing: .04em; color: var(--gris); }
+    .bloque-correo .mail { font-size: .95rem; font-weight: 600; color: var(--verde); margin-top: 1px;
+                           white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .bloque-correo .tit { font-size: .9rem; font-weight: 600; color: var(--negro); }
+    .bloque-correo .sub { font-size: .78rem; color: var(--gris); line-height: 1.45; margin-top: 2px; }
+    .bloque-correo .pie { font-size: .74rem; color: var(--gris); margin-top: 10px; padding-top: 8px;
+                          border-top: 1px solid #EEF3EA; }
+    .bloque-correo input { width: 100%; margin-top: 12px; padding: 11px 13px; border: 1px solid var(--borde);
+                           font-size: 16px; background: #fff; outline: none; }
+    .bloque-correo input:focus { border-color: var(--verde); }
     .micro { font-size: .72rem; color: var(--gris); margin-top: 10px; text-align: center; line-height: 1.5; }
 
     /* Barra móvil */
@@ -758,7 +772,7 @@
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
       <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
-      <div class="nota-correo">📧 Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</div>
+      <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
       <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
@@ -814,7 +828,7 @@
     <div style="margin-bottom:14px"><img src="/static/img/ecoltura-logo.png" alt="ECOLTURA" style="height:60px;width:auto"></div>
     <div class="modal-exito-titulo" id="tituloExito">¡Pedido recibido!</div>
     <div class="modal-exito-texto" id="textoExito"></div>
-    <div class="bloque-correo" id="correoExito" style="display:none; margin-top:16px; text-align:left;"></div>
+    <div class="bloque-correo" id="correoExito" style="display:none; margin:18px 0 0;"></div>
     <!-- Invitación a activar avisos justo después de pedir (solo si el aparato los permite y aún no están activos) -->
     <div id="bloqueCampanaExito" style="display:none; margin-top:18px; padding:14px; border-radius:10px;
          background:#F6F6F4; border:1px solid #E6E6E2; text-align:left;">
@@ -1791,18 +1805,24 @@ function abrirModalConfirmacion() {
   abrirModal('overlayConfirm');
 }
 
+// Ícono de sobre (SVG blanco sobre círculo verde; los emojis se ven distinto en cada aparato)
+const ICONO_SOBRE = '<div class="ico"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></div>';
+
+// Arma la caja: ícono + etiqueta + correo en una sola línea (textContent: el correo lo escribe el cliente)
+function cajaCorreo(caja, etiqueta, correo, pie) {
+  caja.innerHTML = '<div class="fila">' + ICONO_SOBRE + '<div class="txt"><div class="lbl"></div><div class="mail"></div></div></div>';
+  caja.querySelector(".lbl").textContent = etiqueta;
+  const m = caja.querySelector(".mail"); m.textContent = correo; m.title = correo;
+  if (pie) { const d = document.createElement("div"); d.className = "pie"; d.textContent = pie; caja.appendChild(d); }
+  caja.style.display = "block";
+}
+
 // Pantalla final: a qué correo le mandamos el comprobante
 function mostrarCorreoExito(correo) {
   const caja = document.getElementById("correoExito");
-  caja.innerHTML = "";
-  if (!correo) { caja.style.display = "none"; return; }
-  caja.appendChild(document.createTextNode("📧 Te enviamos el comprobante de tu pedido a "));
-  const b = document.createElement("b"); b.textContent = correo; caja.appendChild(b);
-  const s = document.createElement("div");
-  s.style.cssText = "font-size:.78rem;color:var(--gris);margin-top:4px;";
-  s.textContent = "Si no lo ves en unos minutos, revisá Spam o Correo no deseado.";
-  caja.appendChild(s);
-  caja.style.display = "block";
+  if (!correo) { caja.innerHTML = ""; caja.style.display = "none"; return; }
+  cajaCorreo(caja, "Te enviamos el comprobante a", correo,
+             "¿No lo ves? Revisá en Spam o Correo no deseado.");
 }
 
 // Correo en la confirmación: si ya lo escribió se le muestra a dónde llega;
@@ -1811,18 +1831,11 @@ function prepararBloqueCorreo() {
   const caja = document.getElementById("bloqueCorreoConfirm");
   if (modoEdicion) { caja.style.display = "none"; return; }
   const correo = document.getElementById("pedCorreo").value.trim();
-  caja.innerHTML = "";
-  if (correo) {
-    caja.appendChild(document.createTextNode("📧 Te mandamos la confirmación a "));
-    const b = document.createElement("b"); b.textContent = correo; caja.appendChild(b);
-  } else {
-    const t = document.createElement("div");
-    t.innerHTML = "📧 <b>¿Querés recibir tu pedido por correo?</b><br>Te mandamos el resumen y el enlace para verlo o editarlo.";
-    const inp = document.createElement("input");
-    inp.type = "email"; inp.id = "correoConfirm"; inp.placeholder = "tu@correo.com (opcional)";
-    inp.autocomplete = "email"; inp.inputMode = "email"; inp.maxLength = 120;
-    caja.appendChild(t); caja.appendChild(inp);
-  }
+  if (correo) { cajaCorreo(caja, "Te enviaremos el comprobante a", correo); return; }
+  caja.innerHTML = '<div class="fila">' + ICONO_SOBRE +
+    '<div class="txt"><div class="tit">¿Querés el comprobante por correo?</div>' +
+    '<div class="sub">Te mandamos el resumen y el enlace para ver o editar tu pedido.</div></div></div>' +
+    '<input type="email" id="correoConfirm" placeholder="tu@correo.com (opcional)" autocomplete="email" inputmode="email" maxlength="120">';
   caja.style.display = "block";
 }
 
