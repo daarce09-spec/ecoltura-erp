@@ -758,7 +758,7 @@
   </div>
 
   <div class="barra-movil" onclick="tocarBarraMovil()">
-    <span id="barraCarrito"><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
+    <span id="barraCarrito"><b id="cantMovil">0</b> <span id="palabraMovil">productos</span> · <b id="totalMovil">₡0</b></span>
     <span id="barraPedido" style="display:none">🧺 Pedido en preparación</span>
     <span class="ir" id="barraBoton">Ver carrito</span>
   </div>
@@ -1606,6 +1606,7 @@ function renderResumen() {
   document.getElementById("totalRes").textContent    = "₡" + total.toLocaleString('es-CR');
   document.getElementById("totalMovil").textContent  = "₡" + total.toLocaleString('es-CR');
   document.getElementById("cantMovil").textContent   = unds;
+  document.getElementById("palabraMovil").textContent = unds === 1 ? "producto" : "productos";
   unidadesCarrito = unds;
   actualizarBarraMovil();
 }
