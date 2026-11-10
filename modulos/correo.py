@@ -88,7 +88,11 @@ def _html(p, enlace, logo, unido):
     F = "font-family:Arial,Helvetica,sans-serif;"
     SERIF = "font-family:Georgia,'Times New Roman',serif;"
     primer = escape(p["nombre"].split()[0]) if p["nombre"].strip() else ""
-    if unido:
+    if unido == "editado":
+        titulo = f"¡Listo, {primer}!" if primer else "¡Listo!"
+        subtitulo = "Guardamos los cambios de tu pedido 🌱"
+        parrafo = "Así queda tu pedido ahora. Lo seguimos preparando con el mismo cariño de siempre."
+    elif unido:
         titulo = f"¡Listo, {primer}!" if primer else "¡Listo!"
         subtitulo = "Agregamos los productos a tu pedido 🌱"
         parrafo = "Así queda tu pedido completo. Lo seguimos preparando con el mismo cariño de siempre."
@@ -175,13 +179,16 @@ def _html(p, enlace, logo, unido):
 
 def _asunto(p, unido):
     primer = p["nombre"].split()[0] if p["nombre"].strip() else ""
+    if unido == "editado":
+        return f"{primer}, actualizamos tu pedido" if primer else "Actualizamos tu pedido"
     if unido:
         return f"{primer}, agregamos los productos a tu pedido" if primer else "Agregamos los productos a tu pedido"
     return f"¡Gracias por tu pedido, {primer}!" if primer else "¡Gracias por tu pedido!"
 
 
 def _texto(p, enlace, unido):
-    lineas = [("Agregamos productos a tu pedido." if unido else "¡Recibimos tu pedido!"), ""]
+    lineas = [("Actualizamos tu pedido." if unido == "editado" else
+               "Agregamos productos a tu pedido." if unido else "¡Recibimos tu pedido!"), ""]
     for it in p["items"]:
         nom = "Envío a domicilio" if it["envio"] else f'{it["nombre"]} · {it["cantidad"]}'
         lineas.append(f'- {nom}: {_colones(it["subtotal"])}')

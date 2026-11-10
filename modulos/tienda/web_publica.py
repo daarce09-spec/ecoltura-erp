@@ -430,10 +430,7 @@ def api_pedidos():
 
     # Correo de confirmación al cliente (en segundo plano; nunca frena el pedido)
     try:
-        base = request.url_root.rstrip("/")
-        if base.startswith("http://") and "localhost" not in base and "127.0.0.1" not in base:
-            base = "https://" + base[len("http://"):]
-        enviar_confirmacion_pedido(correo, token, base, unido)
+        enviar_confirmacion_pedido(correo, token, _base_tienda(), unido)
     except Exception as ex:
         print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
 
@@ -447,6 +444,14 @@ def api_pedidos():
 # ─────────────────────────────────────────────
 ID_EXPRESS = 118
 ESTADO_CLIENTE = {"Pendiente": "Preparando", "Resuelto": "Entregado", "Rechazado": "Cancelado"}
+
+
+def _base_tienda():
+    """Dirección de la tienda desde donde llegó el pedido (para los enlaces del correo)."""
+    base = request.url_root.rstrip("/")
+    if base.startswith("http://") and "localhost" not in base and "127.0.0.1" not in base:
+        base = "https://" + base[len("http://"):]
+    return base
 
 
 def _agrupar_items(items):
@@ -629,12 +634,19 @@ def api_pedido_editar(token):
         _asegurar_express(cur, pedido_id)
         total = _recalcular_total_pedido(cur, pedido_id)
         cur.execute("UPDATE pedidos SET modificado = TRUE, modificado_en = NOW() WHERE id = %s", (pedido_id,))
+        # Correo guardado del cliente de este pedido (para mandarle el pedido actualizado)
+        cur.execute("SELECT c.correo FROM pedidos p JOIN clientes c ON c.id = p.cliente_id WHERE p.id = %s", (pedido_id,))
+        correo = correo_valido((cur.fetchone() or [None])[0])
         conn.commit()
 
     try:
         notificar_admins(f"✏️ Pedido #{pedido_id} modificado", f"{nombre} cambió su pedido · ₡{total:,.0f}", f"/admin/pedidos/{pedido_id}")
     except Exception as ex:
         print(f"No se pudo avisar de la edición del pedido #{pedido_id}: {ex}")
+    try:
+        enviar_confirmacion_pedido(correo, token, _base_tienda(), "editado")
+    except Exception as ex:
+        print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
     return jsonify({"ok": True, "pedido_id": pedido_id, "total": total})
 
 
