@@ -657,7 +657,7 @@
           <div id="franjaTitulo" class="aviso-titulo"></div>
           <div id="franjaDetalle" class="aviso-detalle"></div>
         </div>
-        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Ver pedido</button>
+        <button id="franjaLink" type="button" class="fr-btn" onclick="abrirMiPedido()">Mi pedido</button>
         <button id="franjaSalir" type="button" class="fr-btn sec" style="display:none" onclick="salirEdicion()">Salir</button>
       </div>
 
@@ -735,7 +735,7 @@
 
   <div class="barra-movil" onclick="document.getElementById('resumen').scrollIntoView({behavior:'smooth'})">
     <span><b id="cantMovil">0</b> productos · <b id="totalMovil">₡0</b></span>
-    <span class="ir">Ver pedido</span>
+    <span class="ir">Ver carrito</span>
   </div>
 </div>
 
@@ -1623,7 +1623,7 @@ async function enviarPedido() {
       const tokenEd = modoEdicion;
       document.getElementById("tituloExito").textContent = "¡Cambios guardados!";
       document.getElementById("textoExito").textContent =
-        `Actualizamos tu pedido #${data.pedido_id}. Ya lo vio nuestro equipo.`;
+        `Actualizamos tu pedido. Ya lo vio nuestro equipo.`;
       document.getElementById("bloqueCampanaExito").style.display = "none";
       mostrarBotonVerPedido(tokenEd);
       abrirModal('overlayExito');
@@ -1645,7 +1645,7 @@ async function enviarPedido() {
       // textContent: el nombre lo escribe el cliente, no se inserta como HTML
       document.getElementById("tituloExito").textContent = data.unido ? "¡Pedido actualizado!" : "¡Pedido recibido!";
       document.getElementById("textoExito").textContent = data.unido
-        ? `Hola ${nombre}, como ya tenías el pedido #${data.pedido_id} en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
+        ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
         : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
       prepararBloqueCampanaExito();
       abrirModal('overlayExito');
@@ -1717,7 +1717,7 @@ async function abrirMiPedido() {
 function pintarMiPedido(d, token) {
   const cuerpo = document.getElementById("miPedidoCuerpo");
   cuerpo.innerHTML = "";
-  document.getElementById("miPedidoTitulo").textContent = "Pedido #" + d.numero;
+  document.getElementById("miPedidoTitulo").textContent = "Mi pedido";
   const entregado = d.estado === "Entregado", cancelado = d.estado === "Cancelado";
   if (entregado || cancelado) { try { localStorage.removeItem("ecoltura_pedido"); } catch(e) {} refrescarFranjaPedido(); }
 
@@ -1819,7 +1819,7 @@ async function refrescarFranjaPedido() {
       franja.style.display = "none";
       return;
     }
-    document.getElementById("franjaTitulo").textContent = `Pedido #${d.numero} en preparación`;
+    document.getElementById("franjaTitulo").textContent = "Tu pedido está en preparación";
     document.getElementById("franjaDetalle").textContent = d.viernes
       ? "Lo estamos preparando con cariño 🌱 ¿Un cambio? Escribinos por WhatsApp"
       : "Editalo o agregá más productos";
@@ -1850,7 +1850,7 @@ async function iniciarEdicion(token) {
       if (porPeso) pedido[i.producto_id + "_" + Math.round(i.cantidad)] = 1;
       else pedido[i.producto_id] = i.cantidad;
     });
-    document.getElementById("franjaTitulo").textContent = `Editando pedido #${d.numero}`;
+    document.getElementById("franjaTitulo").textContent = "Editando tu pedido";
     document.getElementById("franjaDetalle").textContent = extrasEdicion.length ? "Algunos productos ya no están a la venta" : "Cambiá lo que necesites y guardá";
     document.getElementById("franjaSalir").style.display = "block";
     document.getElementById("franjaPedido").style.display = "flex";
