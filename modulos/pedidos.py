@@ -54,6 +54,11 @@ def _asegurar_columnas_seguimiento():
                                SET DEFAULT md5(random()::text || clock_timestamp()::text)""")
             cur.execute("UPDATE pedidos SET token = DEFAULT WHERE token IS NULL")
             cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_pedidos_token ON pedidos (token)")
+            # Índices para que Pedidos, Inicio y Reparto carguen rápido
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_pedidos_detalle_pedido ON pedidos_detalle (pedido_id)")
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_pedidos_estado ON pedidos (estado)")
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_pedidos_creado ON pedidos (creado)")
+            cur.execute("CREATE INDEX IF NOT EXISTS ix_ventas_fecha ON ventas (fecha_venta)")
             conn.commit()
     except Exception as ex:
         print("No se pudieron asegurar las columnas de seguimiento:", ex)
@@ -117,11 +122,13 @@ def bandeja_pedidos():
                    p.total_estimado, p.estado, COALESCE(p.seguimiento, 'Preparando'),
                    p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
                    v.metodo_pago, v.total, v.id, p.notas,
-                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id),
+                   COALESCE(nd.n, 0),
                    p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE)
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
+            LEFT JOIN (SELECT pedido_id, COUNT(*) AS n FROM pedidos_detalle GROUP BY pedido_id) nd
+                   ON nd.pedido_id = p.id
             WHERE p.estado = 'Pendiente'
                OR (p.estado = 'Resuelto' AND (v.metodo_pago = 'Por cobrar' OR v.sinpe_pendiente
                                               {"OR " + filtro_fecha if filtro_fecha else "OR TRUE"}))
@@ -164,12 +171,20 @@ def bandeja_pedidos():
                                                -(t["gestionado"].timestamp() if t["gestionado"] else 0)))
     n_cobrar = sum(1 for t in columnas["entregados"] if t["por_cobrar"])
     n_cobrados = len(columnas["entregados"]) - n_cobrar
+    # Con "Todo" se juntan cientos de tarjetas ya cobradas y la pantalla se pone lenta:
+    # se muestran todas las por cobrar y solo las 40 cobradas más recientes.
+    n_entregados = len(columnas["entregados"])
+    MAX_COBRADOS = 40
+    if n_cobrados > MAX_COBRADOS:
+        columnas["entregados"] = columnas["entregados"][:n_cobrar + MAX_COBRADOS]
+    ocultos = n_entregados - len(columnas["entregados"])
 
     resumen = {"por_entregar": por_entregar, "facturado": facturado,
                "cobrado": cobrado, "por_cobrar": por_cobrar}
     return render_template("pedidos_bandeja.html", columnas=columnas, rechazados=rechazados,
                            resumen=resumen, periodo=periodo,
                            n_cobrar=n_cobrar, n_cobrados=n_cobrados,
+                           n_entregados=n_entregados, ocultos=ocultos,
                            pendientes=len(columnas["pendientes"]))
 
 

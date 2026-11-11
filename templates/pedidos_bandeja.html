@@ -211,7 +211,7 @@
   </div>
 
   <div class="kb-col c-entregados" data-col="entregados">
-    <div class="kb-col-head"><span>Entregados</span><span class="cnt">{{ columnas.entregados|length }}</span></div>
+    <div class="kb-col-head"><span>Entregados</span><span class="cnt">{{ n_entregados }}</span></div>
     <div class="filtro-ent" id="filtroEnt">
       <button type="button" class="fe-btn activo" data-f="todos">Todos</button>
       <button type="button" class="fe-btn rojo" data-f="cobrar">Por cobrar ({{ n_cobrar }})</button>
@@ -220,6 +220,7 @@
     {% for p in columnas.entregados %}{{ tarjeta(p, 'entregados') }}{% else %}
       <div class="kb-vacio">Sin entregados en este periodo</div>
     {% endfor %}
+    {% if ocultos %}<div class="kb-vacio">Se muestran los 40 cobrados más recientes. Para ver otros, elegí Hoy, 7 días o Este mes.</div>{% endif %}
   </div>
 </div>
 

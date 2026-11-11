@@ -590,5 +590,43 @@
 
   {% block extra_scripts %}{% endblock %}
 
+  <!-- Barra de carga y red de seguridad al cambiar de pantalla -->
+  <div id="barraCarga" aria-hidden="true"></div>
+  <style>
+    #barraCarga { position: fixed; top: 0; left: 0; height: 3px; width: 0; z-index: 100000; pointer-events: none;
+                  background: #A4C93C; box-shadow: 0 0 6px rgba(164,201,60,.7); opacity: 0;
+                  transition: width .25s ease, opacity .3s ease; }
+    #barraCarga.activa { opacity: 1; width: 75%; transition: width 6s cubic-bezier(.1,.6,.2,1), opacity .1s; }
+    #barraCarga.fin { opacity: 0; width: 100%; transition: width .15s ease, opacity .35s ease .15s; }
+  </style>
+  <script>
+    (function () {
+      if (!window.htmx) return;
+      // Si una pantalla tarda más de 12 s, se corta y se abre de forma normal
+      htmx.config.timeout = 12000;
+      var barra = document.getElementById('barraCarga');
+      function inicio() { barra.className = ''; void barra.offsetWidth; barra.className = 'activa'; }
+      function fin() { barra.className = 'fin'; }
+      function esNavegacion(evt) {
+        var d = evt.detail || {};
+        return d.boosted || (d.requestConfig && d.requestConfig.boosted);
+      }
+      document.body.addEventListener('htmx:beforeRequest', function (e) { if (esNavegacion(e)) inicio(); });
+      document.body.addEventListener('htmx:afterRequest',  function (e) { if (esNavegacion(e)) fin(); });
+      // Si algo falla (sin señal, error del servidor, se colgó), en vez de quedarse
+      // pegado se abre la pantalla de forma normal.
+      function rescate(e) {
+        if (!esNavegacion(e)) return;
+        fin();
+        var d = e.detail || {}, cfg = d.requestConfig || {};
+        if ((cfg.verb || 'get').toLowerCase() !== 'get') return;   // un formulario: no se reenvía solo
+        var url = cfg.path || (d.pathInfo && d.pathInfo.requestPath);
+        if (url) window.location.href = url;
+      }
+      ['htmx:responseError', 'htmx:sendError', 'htmx:timeout'].forEach(function (ev) {
+        document.body.addEventListener(ev, rescate);
+      });
+    })();
+  </script>
 </body>
 </html>
