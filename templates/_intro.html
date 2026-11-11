@@ -1,11 +1,11 @@
-{# INTRO de ECOLTURA: logo blanco sobre el verde del ícono del Admin.
+{# INTRO de ECOLTURA: logo blanco sobre el verde del Admin (#3E6B22).
    Sale al abrir el login y al abrir el Inicio (una vez por sesión de la app),
    esté o no logueado. Si acaba de salir hace menos de 90 s (por ejemplo en el
    login justo antes de entrar), no se repite. #}
-<div id="intro" style="position:fixed;inset:0;z-index:2000;background:#1A4226;display:flex;flex-direction:column;
+<div id="intro" style="position:fixed;inset:0;z-index:2000;background:#3E6B22;display:flex;flex-direction:column;
      align-items:center;justify-content:center;gap:22px;transition:opacity .7s ease, visibility .7s ease;">
   <img id="intro-logo" src="/static/img/intro-admin.png" alt="ECOLTURA"
-       style="width:min(62vw,300px);height:auto;opacity:0;transform:scale(.94);transition:opacity .6s ease, transform .9s ease;">
+       style="width:min(42vw,190px);height:auto;opacity:0;transform:scale(.94);transition:opacity .6s ease, transform .9s ease;">
   <div id="intro-sub" style="font-family:Inter,system-ui,sans-serif;font-size:clamp(.62rem,2.6vw,.75rem);letter-spacing:5px;
        text-transform:uppercase;color:rgba(255,255,255,.6);font-weight:600;opacity:0;transition:opacity .6s ease .35s;">Administración</div>
 </div>
