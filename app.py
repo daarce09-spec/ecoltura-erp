@@ -228,9 +228,9 @@ MENU_GRUPOS = {
     ]),
     "inventario": ("Inventario", [
         {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",          "tag": "Catálogo"},
+        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",        "tag": "Compras"},
         {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha",  "tag": "Semanal"},
         {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",       "tag": "Stock"},
-        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",        "tag": "Compras"},
     ]),
     "ventas": ("Ventas", [
         {"href": "/admin/pedidos", "icono": "bi-bag-check",      "nombre": "Pedidos Web", "tag": "Bandeja",     "badge": "badgePedidos"},
