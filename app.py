@@ -34,6 +34,7 @@ from modulos.recordatorios import recordatorios_bp
 
 # ── Contabilidad ──
 from modulos.contabilidad import contabilidad_bp
+from modulos.reparto import reparto_bp
 
 app = Flask(__name__, template_folder="templates")
 # La llave que firma las sesiones se toma de la variable SECRET_KEY de Railway.
@@ -61,6 +62,7 @@ app.register_blueprint(visitas_bp)
 app.register_blueprint(push_bp)
 app.register_blueprint(recordatorios_bp)
 app.register_blueprint(contabilidad_bp)
+app.register_blueprint(reparto_bp)
 
 # ── Un solo link público ───────────────────────────────────────────
 # Dos servicios de Railway corren este mismo código. Se separan por variables:

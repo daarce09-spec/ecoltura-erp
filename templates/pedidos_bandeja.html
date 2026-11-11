@@ -34,6 +34,10 @@
   .tag { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:800; }
   .tag-cobrar { background:#FBE4E1; color:#b3261e; }
   .tag-cobrado { background:#D1E7DD; color:#0A4A2A; }
+  .tag-prep { background:#EEF1F3; color:#555; }
+  .tag-alistado { background:#CFE8F7; color:#0B4F75; }
+  .tag-fallida { background:#FBE4E1; color:#b3261e; }
+  .tag-sinpe { background:#FFF1C9; color:#7A5300; }
   .kb-vacio { text-align:center; color:#9aa; font-size:.82rem; padding:20px 6px; }
 
   .kb-card { background:white; border:1px solid #eceff0; border-radius:12px; padding:12px 14px; margin-bottom:10px;
@@ -141,19 +145,46 @@
     </div>
     <div class="monto">₡{{ "{:,.0f}".format(p.total) }}</div>
   </div>
+  {% if tipo == 'pendientes' %}
+    <div class="mt-2 d-flex flex-wrap gap-1">
+      {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> Alistado · en reparto</span>
+      {% else %}<span class="tag tag-prep">Preparando</span>{% endif %}
+      {% if p.fallida %}<span class="tag tag-fallida"><i class="bi bi-exclamation-triangle"></i> No entregado: {{ p.fallida[:40] }}</span>{% endif %}
+    </div>
+  {% endif %}
   {% if tipo == 'entregados' %}
     <div class="mt-2">
-      {% if p.por_cobrar %}<span class="tag tag-cobrar">Por cobrar</span>
-      {% else %}<span class="tag tag-cobrado"><i class="bi bi-check-lg"></i> Cobrado</span>{% endif %}
+      {% if p.sinpe_pendiente %}<span class="tag tag-sinpe"><i class="bi bi-hourglass-split"></i> SINPE por confirmar</span>
+      {% elif p.por_cobrar %}<span class="tag tag-cobrar">Por cobrar</span>
+      {% else %}<span class="tag tag-cobrado"><i class="bi bi-check-lg"></i> Cobrado{% if p.metodo == 'SINPE Móvil' %} · SINPE{% endif %}</span>{% endif %}
     </div>
   {% endif %}
   {% if p.notas %}<div class="nota"><i class="bi bi-chat-left-text me-1"></i>{{ p.notas[:60] }}{% if p.notas|length > 60 %}…{% endif %}</div>{% endif %}
   <div class="acciones">
     {% if tipo == 'pendientes' %}
+      <form method="post" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" class="d-inline">
+        {% if p.seguimiento == 'Alistado' %}
+        <input type="hidden" name="valor" value="Preparando">
+        <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a preparando</button>
+        {% else %}
+        <input type="hidden" name="valor" value="Alistado">
+        <button class="btn btn-primary"><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
+        {% endif %}
+      </form>
       <button type="button" class="btn btn-success js-vender"
               data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
         <i class="bi bi-bag-check me-1"></i>Pasar a venta
       </button>
+    {% elif p.sinpe_pendiente %}
+      <form method="post" action="{{ url_for('pedidos_bp.pedido_sinpe', id=p.id) }}" class="d-inline">
+        <input type="hidden" name="accion" value="confirmar">
+        <button class="btn btn-success"><i class="bi bi-check2-circle me-1"></i>Llegó el SINPE</button>
+      </form>
+      <form method="post" action="{{ url_for('pedidos_bp.pedido_sinpe', id=p.id) }}" class="d-inline"
+            hx-confirm="¿El SINPE de {{ p.nombre }} no llegó? Va a quedar Por cobrar.">
+        <input type="hidden" name="accion" value="rechazar">
+        <button class="btn btn-outline-danger">No llegó</button>
+      </form>
     {% elif p.por_cobrar %}
       <button type="button" class="btn btn-danger js-pagar"
               data-id="{{ p.id }}" data-nombre="{{ p.nombre }}" data-total="{{ p.total|int }}">
@@ -221,10 +252,12 @@
       <form method="POST" id="formVender" hx-boost="false">
         <div class="modal-body p-4">
           <p class="mb-3">Se genera una venta por <strong id="vTotal"></strong> a nombre de <strong id="vNombre"></strong>. El inventario se descuenta.</p>
-          <div class="fw-bold mb-2">¿Ya recibió el pago?</div>
+          <div class="fw-bold mb-2">¿Cómo pagó?</div>
           <div class="d-flex gap-2 mb-3">
-            <input type="radio" class="btn-check" name="pago" id="pagoSi" value="si" autocomplete="off">
-            <label class="btn btn-outline-success flex-fill fw-bold" for="pagoSi">Sí, ya pagó</label>
+            <input type="radio" class="btn-check" name="pago" id="pagoSi" value="efectivo" autocomplete="off">
+            <label class="btn btn-outline-success flex-fill fw-bold" for="pagoSi">Efectivo</label>
+            <input type="radio" class="btn-check" name="pago" id="pagoSinpe" value="sinpe" autocomplete="off">
+            <label class="btn btn-outline-success flex-fill fw-bold" for="pagoSinpe">SINPE</label>
             <input type="radio" class="btn-check" name="pago" id="pagoNo" value="no" autocomplete="off">
             <label class="btn btn-outline-warning flex-fill fw-bold" for="pagoNo">Todavía no</label>
           </div>
@@ -253,7 +286,13 @@
       <form method="POST" id="formPagar" hx-boost="false">
         <input type="hidden" name="volver" value="bandeja">
         <div class="modal-body p-4">
-          <p class="mb-0">¿<strong id="pNombre"></strong> ya pagó <strong id="pTotal"></strong>?</p>
+          <p class="mb-3">¿<strong id="pNombre"></strong> ya pagó <strong id="pTotal"></strong>?</p>
+          <div class="d-flex gap-2">
+            <input type="radio" class="btn-check" name="metodo" id="pmEfectivo" value="efectivo" autocomplete="off" checked>
+            <label class="btn btn-outline-success flex-fill fw-bold" for="pmEfectivo">Efectivo</label>
+            <input type="radio" class="btn-check" name="metodo" id="pmSinpe" value="sinpe" autocomplete="off">
+            <label class="btn btn-outline-success flex-fill fw-bold" for="pmSinpe">SINPE</label>
+          </div>
         </div>
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
@@ -361,17 +400,17 @@
   const mVender = document.getElementById('modalVender');
   const fVender = document.getElementById('formVender');
   const pagoSi = document.getElementById('pagoSi'), pagoNo = document.getElementById('pagoNo');
+  const pagoSinpe = document.getElementById('pagoSinpe');
   function actualizarVender() {
     document.getElementById('avisoNoPago').style.display = pagoNo.checked ? '' : 'none';
-    document.getElementById('btnVender').disabled = !(pagoSi.checked || pagoNo.checked);
+    document.getElementById('btnVender').disabled = !(pagoSi.checked || pagoSinpe.checked || pagoNo.checked);
   }
-  pagoSi.addEventListener('change', actualizarVender);
-  pagoNo.addEventListener('change', actualizarVender);
+  [pagoSi, pagoSinpe, pagoNo].forEach(r => r.addEventListener('change', actualizarVender));
   document.querySelectorAll('.js-vender').forEach(btn => btn.addEventListener('click', () => {
     fVender.action = '/admin/pedidos/' + btn.dataset.id + '/convertir';
     document.getElementById('vNombre').textContent = btn.dataset.nombre;
     document.getElementById('vTotal').textContent = colones(parseFloat(btn.dataset.total));
-    pagoSi.checked = false; pagoNo.checked = false; actualizarVender();
+    pagoSi.checked = false; pagoSinpe.checked = false; pagoNo.checked = false; actualizarVender();
     bootstrap.Modal.getOrCreateInstance(mVender).show();
   }));
 
