@@ -42,6 +42,11 @@
   .rp-pago button.no:active { background:#FBE4E1; border-color:#b3261e; }
   .rp-fallo summary { cursor:pointer; color:#b3261e; font-weight:600; font-size:.85rem; margin-top:12px; list-style:none; }
   .rp-fallo summary::-webkit-details-marker { display:none; }
+  .rp-huevos { display:flex; gap:10px; align-items:center; margin-top:12px; padding:10px 12px; border-radius:12px;
+               background:#FDF0E6; border:1.5px solid #D9742E; color:#7A3E10; }
+  .rp-huevos .ic { font-size:1.6rem; line-height:1; }
+  .rp-huevos b { display:block; font-size:.95rem; color:#A4501A; }
+  .rp-huevos span { font-size:.82rem; }
   .rp-vacio { text-align:center; color:#8a948a; padding:40px 16px; background:#f6f8f6; border-radius:16px; }
 </style>
 
@@ -88,6 +93,13 @@
     </div>
     <div class="rp-monto">{{ colones(e.total) }}</div>
   </div>
+
+  {% if e.huevos %}
+  <div class="rp-huevos">
+    <div class="ic">🥚</div>
+    <div><b>Lleva huevos · manejar con cuidado</b><span>{{ e.huevos|join(' · ') }}</span></div>
+  </div>
+  {% endif %}
 
   <div class="rp-btns">
     {% if e.lat is not none %}

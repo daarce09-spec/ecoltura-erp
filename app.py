@@ -158,6 +158,13 @@ def exigir_login():
         return None
     if session.get("admin_ok"):
         return None
+    if session.get("reparto_ok"):
+        # El repartidor solo ve Reparto (lista, entregar, no entregado y cierre)
+        if ruta == "/reparto" or ruta.startswith("/reparto/") or ruta == "/logout":
+            return None
+        if ruta.startswith("/api/") or "/api/" in ruta or request.method != "GET":
+            return jsonify({"error": "No autorizado"}), 403
+        return redirect("/reparto")
     if ruta.startswith("/api/") or "/api/" in ruta or request.method != "GET":
         return jsonify({"error": "No autorizado"}), 401
     return redirect(url_for("login", next=ruta))
@@ -179,15 +186,28 @@ def login():
         if espera:
             error = f"Demasiados intentos. Probá de nuevo en {espera} min."
         else:
+            escrito_u = request.form.get("usuario", "").strip().lower().encode()
+            escrito_p = request.form.get("clave", "").encode()
             usuario = os.environ.get("ADMIN_USER", "ecoltura")
-            ok_u = hmac.compare_digest(request.form.get("usuario", "").strip().lower().encode(), usuario.lower().encode())
-            ok_p = hmac.compare_digest(request.form.get("clave", "").encode(), clave.encode())
+            ok_u = hmac.compare_digest(escrito_u, usuario.lower().encode())
+            ok_p = hmac.compare_digest(escrito_p, clave.encode())
+            # Usuario del repartidor: solo existe si en Railway está REPARTO_PASSWORD
+            clave_rep = os.environ.get("REPARTO_PASSWORD", "")
+            usuario_rep = os.environ.get("REPARTO_USER", "reparto")
+            ok_rep = bool(clave_rep) and hmac.compare_digest(escrito_u, usuario_rep.lower().encode()) \
+                and hmac.compare_digest(escrito_p, clave_rep.encode())
             if ok_u and ok_p:
                 _INTENTOS.pop(ip, None)
                 session.clear()
                 session["admin_ok"] = True
                 session.permanent = True
                 return redirect(destino)
+            if ok_rep:
+                _INTENTOS.pop(ip, None)
+                session.clear()
+                session["reparto_ok"] = True
+                session.permanent = True
+                return redirect(destino if destino.startswith("/reparto") else "/reparto")
             reg = _INTENTOS.setdefault(ip, [0, 0])
             reg[0] += 1
             reg[1] = time.time()
@@ -335,7 +355,7 @@ def api_version():
 
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE, "LOGIN_ACTIVO": bool(os.environ.get("ADMIN_PASSWORD")) and os.environ.get("SOLO_TIENDA") != "1", "ENTORNO_PRUEBAS": os.environ.get("ENTORNO", "").lower() == "pruebas"}
+    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE, "LOGIN_ACTIVO": bool(os.environ.get("ADMIN_PASSWORD")) and os.environ.get("SOLO_TIENDA") != "1", "ENTORNO_PRUEBAS": os.environ.get("ENTORNO", "").lower() == "pruebas", "ES_REPARTO": bool(session.get("reparto_ok")) and not session.get("admin_ok")}
 
 if __name__ == "__main__":
     import os

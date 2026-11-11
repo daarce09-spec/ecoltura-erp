@@ -155,6 +155,7 @@ def armar_ruta(cur):
     filas = cur.fetchall()
     ids = [f[0] for f in filas]
     productos = {}
+    huevos = {}
     if ids:
         cur.execute("""
             SELECT d.pedido_id, pr.nombre, pr.unidad, d.cantidad
@@ -163,7 +164,10 @@ def armar_ruta(cur):
             ORDER BY pr.nombre
         """, (ids,))
         for pid, nom, uni, cant in cur.fetchall():
-            productos.setdefault(pid, []).append(_cantidad(cant, uni) + " · " + nom)
+            linea = _cantidad(cant, uni) + " · " + nom
+            productos.setdefault(pid, []).append(linea)
+            if "huevo" in (nom or "").lower():          # cualquier tipo de huevos
+                huevos.setdefault(pid, []).append(linea)
 
     entregas = []
     for pid, nombre, cel, total, notas, dir_cli, lat, lng, fallida, creado in filas:
@@ -173,6 +177,7 @@ def armar_ruta(cur):
             "direccion": direccion, "nota": nota, "fallida": (fallida or "").strip(),
             "lat": float(lat) if lat is not None else None, "lng": float(lng) if lng is not None else None,
             "productos": productos.get(pid, []),
+            "huevos": huevos.get(pid, []),
         })
 
     # Orden: con ubicación (ruta optimizada) → sin ubicación → los que ya fallaron, al final

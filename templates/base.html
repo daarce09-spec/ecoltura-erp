@@ -270,7 +270,7 @@
 
   <nav class="navbar">
     <div class="container-fluid px-3 px-md-4">
-      <a class="navbar-brand" href="{{ url_for('menu') }}">
+      <a class="navbar-brand" href="{{ '/reparto' if ES_REPARTO else url_for('menu') }}">
         <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="navbar-logo" alt="ECOLTURA">
         <div class="brand-text">
           <span class="brand-name">ECOLTURA</span>
@@ -278,6 +278,10 @@
         </div>
       </a>
       <nav class="nav-tabs-eco" id="navTabsEco">
+        {% if ES_REPARTO %}
+        <a href="/reparto" data-sec="reparto">Reparto</a>
+        <a href="/reparto/cierre" data-sec="cierre">Cierre</a>
+        {% else %}
         <a href="/menu" data-sec="inicio">Inicio</a>
         <a href="/admin/pedidos" data-sec="pedidos">Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
         <a href="/reparto" data-sec="reparto">Reparto</a>
@@ -285,15 +289,18 @@
         <a href="/menu/clientes" data-sec="clientes">Clientes</a>
         <a href="/menu/inventario" data-sec="inventario">Inventario</a>
         <a href="/contabilidad" data-sec="contabilidad">Contabilidad</a>
+        {% endif %}
       </nav>
       <div class="navbar-right">
         <span class="topbar-hora" id="reloj-admin"></span>
+        {% if not ES_REPARTO %}
         <a href="{{ url_for('menu') }}" class="btn-volver-menu btn-menu-grid" title="Volver al menú">
           <i class="bi bi-grid-3x3-gap-fill"></i>
         </a>
         <button id="btn-activar-push" class="btn-volver-menu" title="Activar notificaciones">
           <i class="bi bi-bell"></i>
         </button>
+        {% endif %}
         {% if LOGIN_ACTIVO %}
         <a href="/logout" hx-boost="false" class="btn-volver-menu" title="Cerrar sesión">
           <i class="bi bi-box-arrow-right"></i>
@@ -308,6 +315,13 @@
   </main>
 
   <!-- Barra de abajo (solo celular) -->
+  {% if ES_REPARTO %}
+  <nav class="barra-eco" id="barraEco" style="grid-template-columns:repeat(3, 1fr)">
+    <a href="/reparto" data-sec="reparto"><i class="bi bi-truck"></i>Reparto</a>
+    <a href="/reparto/cierre" data-sec="cierre"><i class="bi bi-calculator"></i>Cierre</a>
+    <a href="/logout" hx-boost="false"><i class="bi bi-box-arrow-right"></i>Salir</a>
+  </nav>
+  {% else %}
   <nav class="barra-eco" id="barraEco">
     <a href="/menu" data-sec="inicio"><i class="bi bi-house-door"></i>Inicio</a>
     <a href="/admin/pedidos" data-sec="pedidos"><i class="bi bi-bag"></i>Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
@@ -315,6 +329,7 @@
     <a href="/ventas/registrar" data-sec="vender"><i class="bi bi-cart-plus"></i>Vender</a>
     <a href="/menu/mas" data-sec="mas"><i class="bi bi-three-dots"></i>Más</a>
   </nav>
+  {% endif %}
   <script>
     // Marca la sección activa (pestañas y barra viven fuera de #main-content, así que
     // se actualizan con cada navegación de htmx) y pone el numerito de pedidos.
@@ -322,6 +337,7 @@
       var REGLAS = [
         ['vender',       /^\/ventas\/registrar/],
         ['pedidos',      /^\/admin\/pedidos/],
+        ['cierre',       /^\/reparto\/cierre/],
         ['reparto',      /^\/reparto/],
         ['clientes',     /^\/(clientes|recordatorios|menu\/clientes)/],
         ['visitas',      /^\/admin\/visitas/],
@@ -332,9 +348,10 @@
         ['inicio',       /^\/menu\/?$/]
       ];
       // En la barra del celular, lo que no tiene botón propio cae en "Más"
-      var EN_BARRA = { pedidos: 1, reparto: 1, vender: 1, inicio: 1 };
+      var ES_REPARTO = {{ 'true' if ES_REPARTO else 'false' }};
+      var EN_BARRA = ES_REPARTO ? { reparto: 1, cierre: 1 } : { pedidos: 1, reparto: 1, vender: 1, inicio: 1 };
       // En las pestañas de la computadora, "Vender" es parte de Ventas
-      var EN_PESTANAS = { vender: 'ventas', mas: '' };
+      var EN_PESTANAS = ES_REPARTO ? {} : { vender: 'ventas', mas: '', cierre: 'reparto' };
       function marcar() {
         var ruta = location.pathname, sec = '';
         for (var i = 0; i < REGLAS.length; i++) { if (REGLAS[i][1].test(ruta)) { sec = REGLAS[i][0]; break; } }
@@ -345,6 +362,7 @@
       }
       var ultimo = 0;
       function contadores() {
+        if (ES_REPARTO) return;                       // el repartidor no ve contadores
         if (Date.now() - ultimo < 15000) return;      // como mucho cada 15 s
         ultimo = Date.now();
         fetch('/admin/api/contadores').then(function (r) { return r.json(); }).then(function (d) {
