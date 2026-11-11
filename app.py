@@ -38,8 +38,21 @@ from modulos.reparto import reparto_bp
 
 app = Flask(__name__, template_folder="templates")
 # La llave que firma las sesiones se toma de la variable SECRET_KEY de Railway.
-# (Si no existe se usa la antigua, para que nada se rompa mientras se configura.)
-app.secret_key = os.environ.get("SECRET_KEY") or "ecoltura_secret_key_2025"
+# Si falta, NO se usa una llave escrita en el código (cualquiera que la conozca podría
+# fabricar una sesión de Admin): se deriva de DATABASE_URL, que es secreta y no cambia
+# entre reinicios. Igual conviene tener SECRET_KEY configurada en cada servicio.
+def _llave_sesion():
+    llave = (os.environ.get("SECRET_KEY") or "").strip()
+    if llave:
+        return llave
+    import hashlib, secrets
+    print("AVISO: falta la variable SECRET_KEY en Railway; se usa una llave derivada.")
+    base = os.environ.get("DATABASE_URL", "")
+    if base:
+        return hashlib.sha256(("ecoltura-sesion|" + base).encode("utf-8")).hexdigest()
+    return secrets.token_hex(32)
+
+app.secret_key = _llave_sesion()
 # La sesión del Admin queda guardada 90 días en el dispositivo.
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=90)
 app.config["SESSION_COOKIE_HTTPONLY"] = True
@@ -120,7 +133,12 @@ _MAX_FALLOS = 5
 _BLOQUEO_SEG = 300
 
 def _ip():
-    return (request.headers.get("X-Forwarded-For", request.remote_addr or "").split(",")[0]).strip()
+    """IP real de quien intenta entrar.
+    Railway agrega la IP verdadera AL FINAL de X-Forwarded-For; lo que viene antes lo
+    puede escribir cualquiera. Por eso se toma el último valor (antes se tomaba el
+    primero y un atacante podía cambiarlo en cada intento para no quedar bloqueado)."""
+    cadena = [x.strip() for x in request.headers.get("X-Forwarded-For", "").split(",") if x.strip()]
+    return cadena[-1] if cadena else (request.remote_addr or "")
 
 def _bloqueado(ip):
     reg = _INTENTOS.get(ip)
@@ -173,6 +191,7 @@ def login():
             reg = _INTENTOS.setdefault(ip, [0, 0])
             reg[0] += 1
             reg[1] = time.time()
+            time.sleep(1)   # cada intento fallido tarda: probar muchas claves se vuelve lento
             error = "Usuario o contraseña incorrectos."
     return render_template("login.html", error=error, next=destino)
 
