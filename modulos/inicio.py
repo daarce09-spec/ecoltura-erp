@@ -14,9 +14,9 @@ La base guarda la hora de Costa Rica, así que NOW() ya es hora local.
 from db.conexion import obtener_conexion
 
 PERIODOS = {
-    "hoy":    ("day",   "1 day",   "Hoy",         "ayer a esta hora"),
-    "semana": ("week",  "7 days",  "Esta semana", "la semana pasada"),
-    "mes":    ("month", "1 month", "Este mes",    "el mes pasado"),
+    "hoy":    ("day",   "1 day",   "Hoy",         "Ayer"),
+    "semana": ("week",  "7 days",  "Esta semana", "La semana pasada"),
+    "mes":    ("month", "1 month", "Este mes",    "El mes pasado"),
 }
 ID_EXPRESS = 118
 DIAS = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"]
@@ -40,13 +40,16 @@ def _cifras(cur, periodo):
         SELECT
           COALESCE(SUM(v.total) FILTER (WHERE v.fecha_venta >= r.ini), 0),
           COUNT(*)              FILTER (WHERE v.fecha_venta >= r.ini),
-          COALESCE(SUM(v.total) FILTER (WHERE v.fecha_venta >= r.ini - INTERVAL '{intervalo}'
-                                          AND v.fecha_venta <  NOW()  - INTERVAL '{intervalo}'), 0)
+          COALESCE(SUM(v.total) FILTER (WHERE v.fecha_venta <  r.ini), 0),
+          COUNT(*)              FILTER (WHERE v.fecha_venta <  r.ini)
         FROM ventas v, r
         WHERE COALESCE(v.estado, '') NOT ILIKE 'anul%%'
           AND v.fecha_venta >= r.ini - INTERVAL '{intervalo}'
     """)
-    ventas, n_ventas, antes = cur.fetchone()
+    # "antes" = el periodo anterior COMPLETO (la semana pasada entera, ayer entero…).
+    # Antes se comparaba solo hasta la misma hora, y como las entregas son los viernes
+    # el porcentaje salía inflado (ej. +1271 % un miércoles).
+    ventas, n_ventas, antes, n_antes = cur.fetchone()
     cur.execute(f"""
         SELECT COUNT(*) FROM pedidos
         WHERE creado >= date_trunc('{trunc}', NOW()) AND estado <> 'Rechazado'
@@ -63,7 +66,8 @@ def _cifras(cur, periodo):
     ventas, antes = float(ventas), float(antes)
     cambio = None if antes <= 0 else round((ventas - antes) / antes * 100)
     return {
-        "ventas": ventas, "cambio": cambio, "pedidos": n_pedidos, "n_ventas": n_ventas,
+        "ventas": ventas, "cambio": cambio, "antes": antes, "n_antes": n_antes,
+        "pedidos": n_pedidos, "n_ventas": n_ventas,
         "ticket": (ventas / n_ventas) if n_ventas else 0.0,
         "por_cobrar": float(por_cobrar), "n_sinpe": n_sinpe,
     }

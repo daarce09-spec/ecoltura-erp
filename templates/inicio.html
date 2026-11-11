@@ -114,9 +114,7 @@
   {% if cifras %}
   <section class="in-cifras">
     <div class="in-cifra destacada"><div class="l">Ventas · {{ periodo_txt|lower }}</div><div class="v">{{ colones(cifras.ventas) }}</div>
-      {% if cifras.cambio is none %}<div class="d">Sin datos de {{ comparado }}</div>
-      {% elif cifras.cambio >= 0 %}<div class="d up">▲ {{ cifras.cambio }} % vs. {{ comparado }}</div>
-      {% else %}<div class="d down">▼ {{ -cifras.cambio }} % vs. {{ comparado }}</div>{% endif %}</div>
+      <div class="d">{{ comparado }}: {{ colones(cifras.antes) }}{% if cifras.n_antes %} · {{ cifras.n_antes }} venta{{ '' if cifras.n_antes == 1 else 's' }}{% endif %}</div></div>
     <div class="in-cifra"><div class="l">Pedidos web</div><div class="v">{{ cifras.pedidos }}</div><div class="d">{{ cifras.n_ventas }} venta{{ '' if cifras.n_ventas == 1 else 's' }} en total</div></div>
     <div class="in-cifra"><div class="l">Ticket promedio</div><div class="v">{{ colones(cifras.ticket) }}</div><div class="d">por venta</div></div>
     <div class="in-cifra"><div class="l">Por cobrar</div><div class="v">{{ colones(cifras.por_cobrar) }}</div>
