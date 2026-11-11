@@ -93,6 +93,17 @@
       {% if pedido[7] %}
       <div class="dato-row"><span class="dato-label">Notas</span><span class="dato-valor" style="max-width:60%;text-align:right">{{ pedido[7] }}</span></div>
       {% endif %}
+      {% if pedido[15] is not none and pedido[16] is not none %}
+      <div class="dato-row">
+        <span class="dato-label">Ubicación</span>
+        <span class="dato-valor d-flex gap-2 flex-wrap justify-content-end">
+          <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" hx-boost="false"
+             href="https://waze.com/ul?ll={{ pedido[15] }},{{ pedido[16] }}&navigate=yes"><i class="bi bi-sign-turn-right me-1"></i>Waze</a>
+          <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" hx-boost="false"
+             href="https://www.google.com/maps/search/?api=1&query={{ pedido[15] }},{{ pedido[16] }}"><i class="bi bi-geo-alt me-1"></i>Google Maps</a>
+        </span>
+      </div>
+      {% endif %}
       {% if pedido[9] %}
       <div class="dato-row">
         <span class="dato-label">Venta generada</span>

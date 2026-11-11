@@ -33,6 +33,9 @@ def _asegurar_destacado():
             cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
             # Correo opcional del cliente (para la confirmación del pedido)
             cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS correo VARCHAR(120)")
+            # Ubicación de entrega marcada en el mapa (opcional)
+            cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS lat NUMERIC(9,6), ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6)")
+            cur.execute("ALTER TABLE pedidos  ADD COLUMN IF NOT EXISTS lat NUMERIC(9,6), ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6)")
             conn.commit()
     except Exception as ex:
         print("No se pudo asegurar la columna destacado:", ex)
@@ -306,6 +309,7 @@ def api_pedidos():
     items     = data.get("items", [])
     agregar_a = (data.get("agregar_a") or "").strip()   # token del pedido en curso que ve el cliente
     correo    = correo_valido(data.get("correo"))           # opcional: si viene mal escrito se ignora
+    lat, lng  = _coordenadas(data)                         # opcional: punto de entrega en el mapa
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
@@ -342,6 +346,10 @@ def api_pedidos():
                 RETURNING id
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
+
+        # 1c. Ubicación: si la marcó, queda guardada en su ficha para el próximo pedido
+        if lat is not None:
+            cur.execute("UPDATE clientes SET lat = %s, lng = %s WHERE id = %s", (lat, lng, cliente_id))
 
         # 1b. Correo: si lo escribió se guarda; si no, se usa el que ya teníamos
         if correo:
@@ -398,8 +406,9 @@ def api_pedidos():
             total = _recalcular_total_pedido(cur, pedido_id)
             extra = f" ➕ {notas}" if notas else ""
             cur.execute("""UPDATE pedidos SET modificado = TRUE, modificado_en = NOW(), creado = NOW(),
-                                  notas = COALESCE(notas, '') || %s
-                           WHERE id = %s""", (extra, pedido_id))
+                                  notas = COALESCE(notas, '') || %s,
+                                  lat = COALESCE(%s, lat), lng = COALESCE(%s, lng)
+                           WHERE id = %s""", (extra, lat, lng, pedido_id))
             conn.commit()
             unido = True
         else:
@@ -407,10 +416,10 @@ def api_pedidos():
             notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
             cur.execute("""
                 INSERT INTO pedidos
-                    (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado)
-                VALUES (%s, %s, '', %s, %s, 0, 'Pendiente', NOW())
+                    (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado, lat, lng)
+                VALUES (%s, %s, '', %s, %s, 0, 'Pendiente', NOW(), %s, %s)
                 RETURNING id, token
-            """, (cliente_id, nombre, celular, notas_completa))
+            """, (cliente_id, nombre, celular, notas_completa, lat, lng))
             pedido_id, token = cur.fetchone()
             for pid, cant in nuevos.items():
                 cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
@@ -446,6 +455,17 @@ def api_pedidos():
 # ─────────────────────────────────────────────
 ID_EXPRESS = 118
 ESTADO_CLIENTE = {"Pendiente": "Preparando", "Resuelto": "Entregado", "Rechazado": "Cancelado"}
+
+
+def _coordenadas(data):
+    """(lat, lng) si el cliente marcó su casa en el mapa y el punto está en Costa Rica; si no, (None, None)."""
+    try:
+        lat, lng = float(data.get("lat")), float(data.get("lng"))
+    except (TypeError, ValueError):
+        return None, None
+    if 5.0 <= lat <= 11.5 and -86.5 <= lng <= -82.4:
+        return round(lat, 6), round(lng, 6)
+    return None, None
 
 
 def _base_tienda():
@@ -773,6 +793,3 @@ def api_visitas_reservar():
         conn.commit()
 
     return jsonify({"ok": True, "reserva_id": reserva_id})
-# actualizado
-# actualizado
-# actualizado
