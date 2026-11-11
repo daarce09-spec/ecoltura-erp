@@ -390,6 +390,18 @@
                          font-size: .8rem; letter-spacing: 1.5px; text-transform: uppercase;
                          cursor: pointer; transition: background .12s; }
     .btn-enviar-pedido:hover { background: var(--verde-os); }
+    .btn-ubicacion { display: flex; align-items: center; justify-content: center; gap: 7px; width: 100%;
+                     margin-top: 8px; padding: 10px 12px; background: #fff; color: var(--verde);
+                     border: 1px dashed #B9CFA9; font-size: .82rem; font-weight: 600; cursor: pointer; }
+    .btn-ubicacion.marcado { border-style: solid; border-color: var(--verde); background: #F4F8F1; }
+    .mapa-ayuda { font-size: .85rem; color: var(--gris); margin: -6px 0 12px; line-height: 1.45; }
+    .mapa-caja { position: relative; height: min(52vh, 420px); border: 1px solid var(--borde); }
+    #mapa { position: absolute; inset: 0; background: #EEF3EA; }
+    .mapa-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); z-index: 500;
+                pointer-events: none; color: #C0392B; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+    .btn-gps { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+               margin: 12px 0 4px; padding: 12px; background: #fff; color: var(--verde);
+               border: 1px solid var(--verde); font-weight: 600; font-size: .88rem; cursor: pointer; }
     .nota-correo { display: flex; gap: 6px; align-items: flex-start; font-size: .74rem; color: var(--gris);
                    margin-top: 6px; line-height: 1.45; }
     .nota-correo svg { flex: 0 0 13px; margin-top: 2px; }
@@ -771,6 +783,7 @@
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
+      <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="abrirMapa()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar mi casa en el mapa (opcional)</span></button>
       <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
       <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
@@ -795,6 +808,24 @@
     <div class="modal-botones">
       <button class="btn-cancelar" onclick="cerrarModal('overlayAvisoPedido')">Ahora no</button>
       <button class="btn-confirmar" id="avisoPedidoBoton" onclick="continuarAvisoPedido()">Continuar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: marcar la casa en el mapa (el pin queda fijo al centro; se mueve el mapa) -->
+<div class="overlay" id="overlayMapa">
+  <div class="modal">
+    <button class="modal-cerrar" onclick="cerrarModal('overlayMapa')">✕</button>
+    <div class="modal-titulo">¿Dónde te lo llevamos?</div>
+    <div class="mapa-ayuda">Mové el mapa hasta que el pin quede sobre tu casa. Podés hacer zoom con los dedos.</div>
+    <div class="mapa-caja">
+      <div id="mapa"></div>
+      <div class="mapa-pin"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>
+    </div>
+    <button type="button" class="btn-gps" id="btnGps" onclick="usarGPS()">◎ Estoy en mi casa: usar mi ubicación</button>
+    <div class="modal-botones">
+      <button class="btn-cancelar" id="btnQuitarUbic" onclick="quitarUbicacion()">Quitar</button>
+      <button class="btn-confirmar" onclick="confirmarUbicacion()">Confirmar ubicación</button>
     </div>
   </div>
 </div>
@@ -1817,6 +1848,81 @@ function cajaCorreo(caja, etiqueta, correo, pie) {
   caja.style.display = "block";
 }
 
+// ── UBICACIÓN DE ENTREGA ─────────────────────────────
+// El mapa (Leaflet + OpenStreetMap, gratis) se carga solo cuando el cliente lo abre.
+// El pin queda fijo al centro y el cliente mueve el mapa: funciona igual con dedo o mouse,
+// esté o no en su casa. El GPS es solo un atajo.
+var ubicacion = null;           // { lat, lng } o null
+var mapa = null;
+var SAN_RAMON = [10.0874, -84.4703];
+
+function cargarLeaflet(listo) {
+  if (window.L) return listo();
+  var css = document.createElement("link");
+  css.rel = "stylesheet"; css.href = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css";
+  document.head.appendChild(css);
+  var js = document.createElement("script");
+  js.src = "https://unpkg.com/leaflet@1.9.4/dist/leaflet.js";
+  js.onload = listo;
+  js.onerror = function () { cerrarModal('overlayMapa'); alert("No se pudo cargar el mapa. Revisá tu conexión e intentá de nuevo."); };
+  document.head.appendChild(js);
+}
+
+function abrirMapa() {
+  document.getElementById("btnQuitarUbic").style.display = ubicacion ? "" : "none";
+  abrirModal('overlayMapa');
+  cargarLeaflet(function () {
+    if (!mapa) {
+      mapa = L.map("mapa", { zoomControl: true });
+      L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+                  { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(mapa);
+    }
+    if (ubicacion) mapa.setView([ubicacion.lat, ubicacion.lng], 17);
+    else mapa.setView(SAN_RAMON, 14);
+    setTimeout(function () { mapa.invalidateSize(); }, 250);   // el modal recién se abrió
+  });
+}
+
+function usarGPS() {
+  if (!navigator.geolocation) { alert("Este aparato no permite usar la ubicación. Mové el mapa a mano."); return; }
+  var btn = document.getElementById("btnGps"), txt = btn.textContent;
+  btn.textContent = "Buscando tu ubicación…"; btn.disabled = true;
+  navigator.geolocation.getCurrentPosition(function (pos) {
+    btn.textContent = txt; btn.disabled = false;
+    if (mapa) mapa.setView([pos.coords.latitude, pos.coords.longitude], 18);
+  }, function () {
+    btn.textContent = txt; btn.disabled = false;
+    alert("No pudimos obtener tu ubicación. Revisá que el permiso de ubicación esté activado, o mové el mapa a mano.");
+  }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+}
+
+function guardarUbicacionLocal() {
+  try {
+    var g = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
+    g.lat = ubicacion ? ubicacion.lat : null; g.lng = ubicacion ? ubicacion.lng : null;
+    localStorage.setItem("ecoltura_cliente", JSON.stringify(g));
+  } catch (e) {}
+}
+
+function confirmarUbicacion() {
+  if (!mapa) return;
+  var c = mapa.getCenter();
+  ubicacion = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
+  guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
+}
+
+function quitarUbicacion() {
+  ubicacion = null;
+  guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
+}
+
+function pintarBotonUbicacion() {
+  var b = document.getElementById("btnUbicacion");
+  document.getElementById("txtUbicacion").textContent =
+    ubicacion ? "✓ Ubicación marcada · Cambiar" : "Marcar mi casa en el mapa (opcional)";
+  b.classList.toggle("marcado", !!ubicacion);
+}
+
 // Pantalla final: a qué correo le mandamos el comprobante
 function mostrarCorreoExito(correo) {
   const caja = document.getElementById("correoExito");
@@ -1868,6 +1974,8 @@ async function enviarPedido() {
         celular:   document.getElementById("pedCelular").value.trim(),
         direccion: document.getElementById("pedDireccion").value.trim(),
         correo:    document.getElementById("pedCorreo").value.trim(),
+        lat:       ubicacion ? ubicacion.lat : null,
+        lng:       ubicacion ? ubicacion.lng : null,
         notas:     document.getElementById("pedNotas").value.trim(),
         agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
@@ -1897,7 +2005,9 @@ async function enviarPedido() {
           nombre:    document.getElementById("pedNombre").value.trim(),
           celular:   document.getElementById("pedCelular").value.trim(),
           direccion: document.getElementById("pedDireccion").value.trim(),
-          correo:    document.getElementById("pedCorreo").value.trim()
+          correo:    document.getElementById("pedCorreo").value.trim(),
+          lat:       ubicacion ? ubicacion.lat : null,
+          lng:       ubicacion ? ubicacion.lng : null
         }));
       } catch(e) {}
       // Guardar el enlace privado del pedido para mostrarlo mientras siga en preparación
@@ -2240,10 +2350,12 @@ try {
   if (guardado.celular)   document.getElementById("pedCelular").value   = formatearCelular(guardado.celular);
   if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
   if (guardado.correo)    document.getElementById("pedCorreo").value    = guardado.correo;
+  if (guardado.lat && guardado.lng) ubicacion = { lat: +guardado.lat, lng: +guardado.lng };
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
 } catch(e) {}
 
 activarFormatoCelular(document.getElementById("pedCelular"));
+pintarBotonUbicacion();
 activarFormatoCelular(document.getElementById("notifCelInput"));
 activarFormatoCelular(document.getElementById("visCelular"));
 

@@ -34,7 +34,9 @@ def _asegurar_columnas_seguimiento():
                            ADD COLUMN IF NOT EXISTS token VARCHAR(64),
                            ADD COLUMN IF NOT EXISTS modificado BOOLEAN DEFAULT FALSE,
                            ADD COLUMN IF NOT EXISTS modificado_en TIMESTAMP,
-                           ADD COLUMN IF NOT EXISTS pagado_en TIMESTAMP""")
+                           ADD COLUMN IF NOT EXISTS pagado_en TIMESTAMP,
+                           ADD COLUMN IF NOT EXISTS lat NUMERIC(9,6),
+                           ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6)""")
             try:
                 cur.execute("SAVEPOINT tk")
                 cur.execute("ALTER TABLE pedidos ALTER COLUMN token SET DEFAULT gen_random_uuid()::text")
@@ -616,7 +618,8 @@ def pedido_detalle(id):
                    p.total_estimado, p.estado, p.creado, p.notas,
                    p.cliente_id, p.venta_id,
                    COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0),
-                   COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago
+                   COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago,
+                   p.lat, p.lng
             FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
             WHERE p.id = %s
         """, (id,))
