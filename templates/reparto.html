@@ -6,27 +6,27 @@
 <style>
   .rp-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; }
   .rp-resumen { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-  .rp-chip { background:#f4f7f5; border-radius:999px; padding:3px 12px; font-size:.8rem; font-weight:700; color:#1b4332; }
+  .rp-chip { background:#F6F8F4; border-radius:999px; padding:3px 12px; font-size:.8rem; font-weight:700; color:#3E6B22; }
   .rp-card { background:#fff; border:1px solid #e7ece9; border-radius:16px; padding:14px 16px; margin-bottom:12px;
              box-shadow:0 1px 6px rgba(0,0,0,.05); }
-  .rp-card.siguiente { border:2px solid #2d6a4f; box-shadow:0 4px 18px rgba(45,106,79,.15); }
+  .rp-card.siguiente { border:2px solid #3E6B22; box-shadow:0 4px 18px rgba(62,107,34,.15); }
   .rp-card.fallida { border-left:4px solid #b3261e; }
   .rp-top { display:flex; gap:12px; align-items:flex-start; }
-  .rp-num { flex:0 0 34px; height:34px; border-radius:50%; background:#e8f3ec; color:#1b4332; font-weight:800;
+  .rp-num { flex:0 0 34px; height:34px; border-radius:50%; background:#EFF5EA; color:#3E6B22; font-weight:800;
             display:flex; align-items:center; justify-content:center; }
-  .siguiente .rp-num { background:#2d6a4f; color:#fff; }
+  .siguiente .rp-num { background:#3E6B22; color:#fff; }
   .rp-info { flex:1; min-width:0; }
-  .rp-nombre { font-weight:800; color:#1b4332; font-size:1.05rem; line-height:1.25; }
+  .rp-nombre { font-weight:800; color:#3E6B22; font-size:1.05rem; line-height:1.25; }
   .rp-dir { color:#444; font-size:.9rem; margin-top:2px; word-break:break-word; }
   .rp-nota { color:#777; font-size:.82rem; margin-top:2px; }
-  .rp-monto { font-weight:800; font-size:1.15rem; color:#1b4332; white-space:nowrap; }
+  .rp-monto { font-weight:800; font-size:1.15rem; color:#3E6B22; white-space:nowrap; }
   .rp-tag { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.72rem; font-weight:800; margin-top:6px; }
-  .rp-tag.sig { background:#2d6a4f; color:#fff; }
+  .rp-tag.sig { background:#3E6B22; color:#fff; }
   .rp-tag.rojo { background:#FBE4E1; color:#b3261e; }
   .rp-tag.gris { background:#eef1f3; color:#666; }
   .rp-btns { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
   .rp-btns a { border-radius:10px; font-weight:700; font-size:.85rem; padding:9px 4px; text-align:center; }
-  .rp-prod summary { cursor:pointer; color:#2d6a4f; font-weight:700; font-size:.85rem; margin-top:10px; }
+  .rp-prod summary { cursor:pointer; color:#3E6B22; font-weight:700; font-size:.85rem; margin-top:10px; }
   .rp-prod ul { margin:6px 0 0; padding-left:18px; font-size:.85rem; color:#444; }
   .rp-pago-lab { font-weight:800; color:#333; font-size:.85rem; margin:14px 0 6px; }
   .rp-pago { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
@@ -39,7 +39,7 @@
 
 <div class="rp-head">
   <div>
-    <h2 class="fw-bold mb-0" style="color:#1b4332"><i class="bi bi-truck me-2"></i>Reparto</h2>
+    <h2 class="fw-bold mb-0" style="color:#3E6B22"><i class="bi bi-truck me-2"></i>Reparto</h2>
     <div class="rp-resumen">
       <span class="rp-chip">{{ ruta|length }} entrega{{ '' if ruta|length == 1 else 's' }}</span>
       {% if km %}<span class="rp-chip">~{{ "%.0f"|format(km) }} km en línea recta</span>{% endif %}

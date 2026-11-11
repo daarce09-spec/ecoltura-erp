@@ -242,27 +242,26 @@ MENU_PRINCIPAL = [
 ]
 MENU_GRUPOS = {
     "clientes": ("Clientes", [
-        {"href": "/clientes",      "icono": "bi-people",  "nombre": "Clientes",      "tag": "Gestión"},
-        {"href": "/recordatorios", "icono": "bi-bell",    "nombre": "Recordatorios", "tag": "Notificaciones"},
+        {"href": "/clientes",      "icono": "bi-people", "nombre": "Clientes",      "tag": "Gestión"},
+        {"href": "/recordatorios", "icono": "bi-bell",   "nombre": "Recordatorios", "tag": "Avisos a clientes"},
     ]),
     "inventario": ("Inventario", [
-        {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",          "tag": "Catálogo"},
-        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",        "tag": "Compras"},
-        {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha",  "tag": "Semanal"},
-        {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",       "tag": "Stock"},
+        {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",         "tag": "Catálogo"},
+        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",       "tag": "Compras"},
+        {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha", "tag": "Semanal"},
+        {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",      "tag": "Stock"},
     ]),
     "ventas": ("Ventas", [
-        {"href": "/admin/pedidos", "icono": "bi-bag-check",      "nombre": "Pedidos Web", "tag": "Bandeja",     "badge": "badgePedidos"},
-        {"href": "/ventas",        "icono": "bi-receipt-cutoff", "nombre": "Ventas",      "tag": "Facturación"},
-        {"href": "/admin/visitas", "icono": "bi-calendar2-check","nombre": "Visitas",     "tag": "Finca",       "badge": "badgeVisitas"},
+        {"href": "/ventas/registrar", "icono": "bi-cart-plus",      "nombre": "Registrar venta",     "tag": "Venta directa"},
+        {"href": "/ventas/anular",    "icono": "bi-x-circle",       "nombre": "Anular venta",        "tag": "Corregir"},
+        {"href": "/ventas/historial", "icono": "bi-clock-history",  "nombre": "Historial de ventas", "tag": "Reportes"},
     ]),
-    # "Más" de la barra de abajo en el celular: lo que no tiene botón propio
+    # "Más" de la barra de abajo en el celular
     "mas": ("Más", [
-        {"href": "/menu/inventario", "icono": "bi-box-seam",        "nombre": "Inventario",   "tag": "Productos y stock"},
-        {"href": "/ventas",          "icono": "bi-receipt-cutoff",  "nombre": "Ventas",       "tag": "Facturación"},
-        {"href": "/admin/visitas",   "icono": "bi-calendar2-check", "nombre": "Visitas",      "tag": "Finca", "badge": "badgeVisitas"},
-        {"href": "/contabilidad",    "icono": "bi-journal-text",    "nombre": "Contabilidad", "tag": "Resultados"},
-        {"href": "/recordatorios",   "icono": "bi-bell",            "nombre": "Recordatorios","tag": "Avisos a clientes"},
+        {"href": "/menu/clientes",   "icono": "bi-people",         "nombre": "Clientes",     "tag": "Clientes y recordatorios"},
+        {"href": "/menu/inventario", "icono": "bi-box-seam",       "nombre": "Inventario",   "tag": "Productos, proveedores y cosecha"},
+        {"href": "/contabilidad",    "icono": "bi-journal-text",   "nombre": "Contabilidad", "tag": "Cuentas, movimientos y resultados"},
+        {"href": "/menu/ventas",     "icono": "bi-receipt-cutoff", "nombre": "Ventas",       "tag": "Registrar, anular e historial"},
     ]),
 }
 

@@ -19,7 +19,7 @@
        ("Mi Ecoltura", que abre en /). Con el manifiesto compartido, el
        ícono instalado desde el admin terminaba abriendo la tienda. -->
   <link rel="manifest" href="{{ url_for('static', filename='manifest-admin.json') }}">
-  <meta name="theme-color" content="#2d6a4f">
+  <meta name="theme-color" content="#3E6B22">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
@@ -41,7 +41,7 @@
       --brand-green:      #3E6B22;   /* verde hoja oscura del logo */
       --brand-green-dark: #2E5117;
       --brand-lima:       #A4C93C;   /* hoja clara del logo */
-      --brand-bg:         #f8faf9;
+      --brand-bg:         #FFFFFF;
     }
 
     /* El documento raíz (html/body) NUNCA hace scroll — ni un pixel, de
@@ -210,6 +210,40 @@
     }
     @media print { .barra-eco, .nav-tabs-eco { display: none !important; } main#main-content { bottom: 0 !important; } }
 
+    /* ── Paleta única del Admin (la misma de la tienda) ──
+       verde #3E6B22 · verde oscuro #2E5117 · verde suave #EFF5EA · lima #A4C93C · naranja #D9742E
+       Bootstrap toma estos colores: todos los botones, switches, enlaces y etiquetas "success"
+       y "primary" quedan en el mismo verde. */
+    :root {
+      --bs-primary: #3E6B22; --bs-primary-rgb: 62,107,34;
+      --bs-success: #3E6B22; --bs-success-rgb: 62,107,34;
+      --bs-link-color: #3E6B22; --bs-link-color-rgb: 62,107,34;
+      --bs-link-hover-color: #2E5117; --bs-link-hover-color-rgb: 46,81,23;
+      --bs-success-bg-subtle: #EFF5EA; --bs-success-border-subtle: #DCE8D2; --bs-success-text-emphasis: #2E5117;
+      --bs-primary-bg-subtle: #EFF5EA; --bs-primary-border-subtle: #DCE8D2; --bs-primary-text-emphasis: #2E5117;
+    }
+    .btn-success, .btn-primary {
+      --bs-btn-bg: #3E6B22; --bs-btn-border-color: #3E6B22;
+      --bs-btn-hover-bg: #2E5117; --bs-btn-hover-border-color: #2E5117;
+      --bs-btn-active-bg: #2E5117; --bs-btn-active-border-color: #2E5117;
+      --bs-btn-disabled-bg: #3E6B22; --bs-btn-disabled-border-color: #3E6B22;
+      --bs-btn-focus-shadow-rgb: 62,107,34;
+    }
+    .btn-outline-success, .btn-outline-primary {
+      --bs-btn-color: #3E6B22; --bs-btn-border-color: #3E6B22;
+      --bs-btn-hover-bg: #3E6B22; --bs-btn-hover-border-color: #3E6B22; --bs-btn-hover-color: #fff;
+      --bs-btn-active-bg: #2E5117; --bs-btn-active-border-color: #2E5117; --bs-btn-active-color: #fff;
+      --bs-btn-focus-shadow-rgb: 62,107,34;
+    }
+    .text-success, .text-primary { color: #3E6B22 !important; }
+    .bg-success, .bg-primary { background-color: #3E6B22 !important; }
+    .border-success, .border-primary { border-color: #3E6B22 !important; }
+    .alert-success { --bs-alert-color: #2E5117; --bs-alert-bg: #EFF5EA; --bs-alert-border-color: #DCE8D2; }
+    .form-check-input:checked { background-color: #3E6B22; border-color: #3E6B22; }
+    .form-check-input:focus, .form-control:focus, .form-select:focus { border-color: #8FB06F; box-shadow: 0 0 0 .2rem rgba(62,107,34,.18); }
+    .nav-pills { --bs-nav-pills-link-active-bg: #3E6B22; }
+    .nav-link { --bs-nav-link-color: #3E6B22; --bs-nav-link-hover-color: #2E5117; }
+
     {% block extra_css %}{% endblock %}
   </style>
 </head>
@@ -247,9 +281,9 @@
         <a href="/menu" data-sec="inicio">Inicio</a>
         <a href="/admin/pedidos" data-sec="pedidos">Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
         <a href="/reparto" data-sec="reparto">Reparto</a>
+        <a href="/menu/ventas" data-sec="ventas">Ventas</a>
         <a href="/menu/clientes" data-sec="clientes">Clientes</a>
         <a href="/menu/inventario" data-sec="inventario">Inventario</a>
-        <a href="/menu/ventas" data-sec="ventas">Ventas</a>
         <a href="/contabilidad" data-sec="contabilidad">Contabilidad</a>
       </nav>
       <div class="navbar-right">
@@ -278,7 +312,7 @@
     <a href="/menu" data-sec="inicio"><i class="bi bi-house-door"></i>Inicio</a>
     <a href="/admin/pedidos" data-sec="pedidos"><i class="bi bi-bag"></i>Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
     <a href="/reparto" data-sec="reparto"><i class="bi bi-truck"></i>Reparto</a>
-    <a href="/menu/clientes" data-sec="clientes"><i class="bi bi-people"></i>Clientes</a>
+    <a href="/ventas/registrar" data-sec="vender"><i class="bi bi-cart-plus"></i>Vender</a>
     <a href="/menu/mas" data-sec="mas"><i class="bi bi-three-dots"></i>Más</a>
   </nav>
   <script>
@@ -286,21 +320,26 @@
     // se actualizan con cada navegación de htmx) y pone el numerito de pedidos.
     (function () {
       var REGLAS = [
+        ['vender',       /^\/ventas\/registrar/],
         ['pedidos',      /^\/admin\/pedidos/],
         ['reparto',      /^\/reparto/],
         ['clientes',     /^\/(clientes|recordatorios|menu\/clientes)/],
+        ['visitas',      /^\/admin\/visitas/],
         ['inventario',   /^\/(productos|inventario|menu\/inventario)/],
-        ['ventas',       /^\/(ventas|admin\/visitas|menu\/ventas)/],
+        ['ventas',       /^\/(ventas|menu\/ventas)/],
         ['contabilidad', /^\/contabilidad/],
         ['mas',          /^\/menu\/mas/],
         ['inicio',       /^\/menu\/?$/]
       ];
       // En la barra del celular, lo que no tiene botón propio cae en "Más"
-      var EN_BARRA = { pedidos: 1, reparto: 1, clientes: 1, inicio: 1 };
+      var EN_BARRA = { pedidos: 1, reparto: 1, vender: 1, inicio: 1 };
+      // En las pestañas de la computadora, "Vender" es parte de Ventas
+      var EN_PESTANAS = { vender: 'ventas', mas: '' };
       function marcar() {
         var ruta = location.pathname, sec = '';
         for (var i = 0; i < REGLAS.length; i++) { if (REGLAS[i][1].test(ruta)) { sec = REGLAS[i][0]; break; } }
-        document.querySelectorAll('#navTabsEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === sec); });
+        var secTab = (sec in EN_PESTANAS) ? EN_PESTANAS[sec] : sec;
+        document.querySelectorAll('#navTabsEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === secTab); });
         var secBarra = EN_BARRA[sec] ? sec : (sec ? 'mas' : '');
         document.querySelectorAll('#barraEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === secBarra); });
       }
@@ -515,7 +554,7 @@
 
   <div style="text-align:center;font-size:.72rem;color:#999;padding:10px 0 16px">Versión {{ APP_RELEASE }} · {{ APP_VERSION.split(" · ")[2] }}</div>
 
-<div id="aviso-version" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#2E7D32;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.3);font:600 14px sans-serif;text-align:center;cursor:pointer" onclick="location.reload()">
+<div id="aviso-version" style="display:none;position:fixed;left:12px;right:12px;bottom:12px;z-index:99999;background:#3E6B22;color:#fff;padding:12px 16px;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.3);font:600 14px sans-serif;text-align:center;cursor:pointer" onclick="location.reload()">
   Hay una versión nueva disponible — toque aquí para actualizar
 </div>
 <script>

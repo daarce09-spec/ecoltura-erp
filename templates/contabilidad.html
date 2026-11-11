@@ -9,21 +9,21 @@
                box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
   .chip { border:1px solid #d6dfd2; border-radius:999px; padding:6px 14px; font-size:.85rem;
-          color:#1b4332; text-decoration:none; background:#fff; font-weight:600; }
-  .chip.on { background:#1b4332; color:#fff; border-color:#1b4332; }
+          color:#3E6B22; text-decoration:none; background:#fff; font-weight:600; }
+  .chip.on { background:#3E6B22; color:#fff; border-color:#3E6B22; }
   .er-fila { display:flex; align-items:baseline; gap:10px; padding:6px 0; }
   .er-nombre { flex:1; min-width:0; }
   .er-monto { text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums; min-width:110px; }
   .er-pct { text-align:right; white-space:nowrap; color:#8a948a; font-size:.82rem; width:46px; }
-  .er-seccion { font-weight:700; color:#1b4332; border-top:1px solid #eef1ec; padding-top:12px; margin-top:6px; }
+  .er-seccion { font-weight:700; color:#3E6B22; border-top:1px solid #eef1ec; padding-top:12px; margin-top:6px; }
   .er-seccion:first-child { border-top:none; margin-top:0; padding-top:0; }
   .er-cuenta { font-weight:600; color:#333; padding-left:12px; font-size:.95rem; }
   .er-sub { color:#555; padding-left:26px; font-size:.9rem; }
-  .er-sub .auto { font-size:.7rem; color:#2d6a4f; background:#e8f3ec; border-radius:6px; padding:1px 6px; margin-left:4px; }
+  .er-sub .auto { font-size:.7rem; color:#3E6B22; background:#EFF5EA; border-radius:6px; padding:1px 6px; margin-left:4px; }
   .er-detalle { color:#6b746b; padding-left:42px; font-size:.84rem; padding-top:2px; padding-bottom:2px; }
   .er-detalle.rojo { color:#c0392b; font-weight:600; }
-  .er-utilidad { font-weight:800; background:#f4f7f0; border-radius:10px; padding:10px 12px; margin:8px 0; }
-  .er-utilidad.neta { background:#1b4332; color:#fff; }
+  .er-utilidad { font-weight:800; background:#EFF5EA; border-radius:10px; padding:10px 12px; margin:8px 0; }
+  .er-utilidad.neta { background:#3E6B22; color:#fff; }
   .er-utilidad.neta .er-pct { color:#cfe3d4; }
   .negativo { color:#c0392b; }
   .er-utilidad.neta .negativo { color:#ffb4a8; }
@@ -37,7 +37,7 @@
 
 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-bar-chart-line me-2"></i>Estado de resultados</h2>
+    <h2 class="fw-bold mb-1" style="color:#3E6B22"><i class="bi bi-bar-chart-line me-2"></i>Estado de resultados</h2>
     <small class="text-muted">{{ etiqueta }}</small>
   </div>
   <a href="{{ url_for('contabilidad_bp.inicio') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">← Contabilidad</a>

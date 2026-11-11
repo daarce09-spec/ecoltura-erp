@@ -6,9 +6,9 @@
   .filtro-card { background:white; border-radius:16px; padding:20px 24px;
                  box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; margin-bottom:20px; }
   .venta-row { transition: background .15s; }
-  @media (hover: hover) and (pointer: fine) { .venta-row:hover { background:#f8faf9; } }
+  @media (hover: hover) and (pointer: fine) { .venta-row:hover { background:#FFFFFF; } }
   .badge-estado { font-size:.72rem; padding:4px 10px; border-radius:999px; font-weight:700; }
-  .badge-Facturado { background:#D1E7DD; color:#0A4A2A; }
+  .badge-Facturado { background:#EFF5EA; color:#2E5117; }
   .badge-Anulado   { background:#F8D7DA; color:#842029; }
   .resumen-chip { background:#f0f7f0; border-radius:12px; padding:14px 20px; display:inline-block; }
   .resumen-chip.chip-warn { background:#fdeceb; }
@@ -18,11 +18,11 @@
   .vistas-rapidas { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:16px; }
   .vistas-rapidas a {
     text-decoration:none; font-size:.82rem; font-weight:600;
-    padding:6px 14px; border-radius:999px; border:1px solid #d8e6dc;
-    color:#2d6a4f; background:#fff; transition:all .15s;
+    padding:6px 14px; border-radius:999px; border:1px solid #DCE8D2;
+    color:#3E6B22; background:#fff; transition:all .15s;
   }
-  @media (hover: hover) and (pointer: fine) { .vistas-rapidas a:hover { background:#e9f5ee; border-color:#2d6a4f; } }
-  .vistas-rapidas a.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+  @media (hover: hover) and (pointer: fine) { .vistas-rapidas a:hover { background:#EFF5EA; border-color:#3E6B22; } }
+  .vistas-rapidas a.activa { background:#3E6B22; border-color:#3E6B22; color:#fff; }
 
   .aviso-limite {
     font-size:.82rem; color:#8a6d00; background:#fff8e6;
@@ -32,7 +32,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332">
+    <h2 class="fw-bold mb-1" style="color:#3E6B22">
       <i class="bi bi-clock-history me-2"></i>Historial de Ventas
     </h2>
     <small class="text-muted">Consulte ventas pasadas y reenvíe comprobantes</small>
@@ -91,15 +91,15 @@
 <div class="mb-3 d-flex gap-3 flex-wrap">
   <div class="resumen-chip">
     <span class="text-muted small">Ventas encontradas</span>
-    <div class="fw-bold fs-5" style="color:#1b4332">{{ total_ventas }}</div>
+    <div class="fw-bold fs-5" style="color:#3E6B22">{{ total_ventas }}</div>
   </div>
   <div class="resumen-chip">
     <span class="text-muted small">Monto total</span>
-    <div class="fw-bold fs-5" style="color:#2d6a4f">₡{{ "{:,.0f}".format(suma_total) }}</div>
+    <div class="fw-bold fs-5" style="color:#3E6B22">₡{{ "{:,.0f}".format(suma_total) }}</div>
   </div>
   <div class="resumen-chip">
     <span class="text-muted small">Ticket promedio</span>
-    <div class="fw-bold fs-5" style="color:#2d6a4f">₡{{ "{:,.0f}".format(ticket_promedio) }}</div>
+    <div class="fw-bold fs-5" style="color:#3E6B22">₡{{ "{:,.0f}".format(ticket_promedio) }}</div>
   </div>
   {% if estados.get('Anulado') %}
   <div class="resumen-chip chip-warn">
@@ -143,9 +143,9 @@
 
 <style>
   .btn-tab, .btn-metrica {
-    border: 1px solid #d8e6dc; background:#fff; color:#39503f; font-weight:600; font-size:.82rem;
+    border: 1px solid #DCE8D2; background:#fff; color:#39503f; font-weight:600; font-size:.82rem;
   }
-  .btn-tab.activa, .btn-metrica.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+  .btn-tab.activa, .btn-metrica.activa { background:#3E6B22; border-color:#3E6B22; color:#fff; }
 
   /* Alto fijo por CSS (no por el canvas) + maintainAspectRatio:false en el
      JS: los paneles de Top Clientes/Top Productos arrancan ocultos
@@ -192,7 +192,7 @@
             <td class="fw-bold">#{{ v[0] }}</td>
             <td>{{ v[1].strftime('%d/%m/%Y %I:%M %p') }}</td>
             <td>{{ v[5] }}</td>
-            <td class="text-end fw-bold" style="color:#2d6a4f">₡{{ "{:,.0f}".format(v[2]) }}</td>
+            <td class="text-end fw-bold" style="color:#3E6B22">₡{{ "{:,.0f}".format(v[2]) }}</td>
             <td class="text-center">
               <span class="badge-estado badge-{{ v[4] }}">{{ v[4] }}</span>
             </td>
@@ -250,8 +250,8 @@
   const DATA_PRODUCTOS_MONTO    = {{ top_productos_monto_json|safe }};
   const DATA_PRODUCTOS_CANTIDAD = {{ top_productos_cantidad_json|safe }};
 
-  const VERDE = '#2d6a4f';
-  const VERDE_OSC = '#1b4332';
+  const VERDE = '#3E6B22';
+  const VERDE_OSC = '#3E6B22';
   const VERDE_CLARO = '#A4C93C';
 
   let metricaActual = 'monto';
@@ -268,7 +268,7 @@
         label: 'Monto',
         data: DATA_TENDENCIA.map(d => d.monto),
         borderColor: VERDE,
-        backgroundColor: 'rgba(45,106,79,0.08)',
+        backgroundColor: 'rgba(62,107,34,0.08)',
         fill: true,
         tension: 0.35,
         pointRadius: 2.5,

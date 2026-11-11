@@ -8,8 +8,8 @@
                box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
   .chips { display:flex; flex-wrap:wrap; gap:8px; }
   .chip { border:1px solid #d6dfd2; border-radius:999px; padding:6px 14px; font-size:.85rem;
-          color:#1b4332; text-decoration:none; background:#fff; font-weight:600; }
-  .chip.on { background:#1b4332; color:#fff; border-color:#1b4332; }
+          color:#3E6B22; text-decoration:none; background:#fff; font-weight:600; }
+  .chip.on { background:#3E6B22; color:#fff; border-color:#3E6B22; }
   .mov { display:flex; gap:12px; align-items:flex-start; padding:12px 0; border-bottom:1px solid #f2f2f2; }
   .mov:last-child { border-bottom:none; }
   .mov-info { flex:1; min-width:0; }
@@ -18,14 +18,14 @@
   .mov-nota { color:#666; font-size:.88rem; word-break:break-word; }
   .mov-fecha { color:#8a948a; font-size:.8rem; }
   .mov-monto { font-weight:700; white-space:nowrap; font-variant-numeric:tabular-nums; }
-  .ingreso { color:#2d6a4f; } .egreso { color:#c0392b; }
+  .ingreso { color:#3E6B22; } .egreso { color:#c0392b; }
   .mov-acciones { display:flex; gap:6px; margin-top:6px; justify-content:flex-end; }
   .vacio { text-align:center; color:#9aa39a; padding:24px 10px; }
 </style>
 
 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-plus-circle me-2"></i>Ingresar movimiento</h2>
+    <h2 class="fw-bold mb-1" style="color:#3E6B22"><i class="bi bi-plus-circle me-2"></i>Ingresar movimiento</h2>
     <small class="text-muted">Compras, gastos y otros montos. Las ventas se registran solas.</small>
   </div>
   <a href="{{ url_for('contabilidad_bp.inicio') }}" class="btn btn-sm btn-outline-secondary text-nowrap flex-shrink-0">← Contabilidad</a>
@@ -41,7 +41,7 @@
 
 {# ── Formulario: nuevo o editar ── #}
 <div class="cont-card mb-3" id="nuevo">
-  {% if editar %}<div class="fw-bold mb-3" style="color:#1b4332"><i class="bi bi-pencil me-1"></i>Editar movimiento</div>{% endif %}
+  {% if editar %}<div class="fw-bold mb-3" style="color:#3E6B22"><i class="bi bi-pencil me-1"></i>Editar movimiento</div>{% endif %}
   <form method="post"
         action="{{ url_for('contabilidad_bp.movimiento_editar', mid=editar.id) if editar else url_for('contabilidad_bp.movimiento_nuevo') }}">
     <input type="hidden" name="volver" value="{{ url_for('contabilidad_bp.movimientos') if editar else request.full_path }}">
@@ -80,7 +80,7 @@
       </div>
     </div>
     <div class="d-flex gap-2 mt-3">
-      <button class="btn fw-bold text-white" style="background:#1b4332;border-radius:10px">Guardar</button>
+      <button class="btn fw-bold text-white" style="background:#3E6B22;border-radius:10px">Guardar</button>
       {% if editar %}<a href="{{ url_for('contabilidad_bp.movimientos') }}" class="btn btn-outline-secondary">Cancelar</a>{% endif %}
     </div>
   </form>
@@ -88,7 +88,7 @@
 
 {% if not editar %}
 {# ── Movimientos registrados ── #}
-<div class="fw-bold mb-2" style="color:#1b4332">Movimientos registrados</div>
+<div class="fw-bold mb-2" style="color:#3E6B22">Movimientos registrados</div>
   <div class="chips mb-2">
     <a class="chip {{ 'on' if periodo=='mes' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='mes') }}">Este mes</a>
     <a class="chip {{ 'on' if periodo=='anterior' }}" href="{{ url_for('contabilidad_bp.movimientos', periodo='anterior') }}">Mes anterior</a>
