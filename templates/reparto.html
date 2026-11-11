@@ -47,6 +47,29 @@
   .rp-huevos .ic { font-size:1.6rem; line-height:1; }
   .rp-huevos b { display:block; font-size:.95rem; color:#A4501A; }
   .rp-huevos span { font-size:.82rem; }
+  /* Modal de confirmación (reemplaza la alerta del navegador) */
+  .rp-modal { position:fixed; inset:0; z-index:3000; display:none; align-items:flex-end; justify-content:center;
+              background:rgba(26,28,24,.45); padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+  .rp-modal.abierto { display:flex; animation:rpFondo .18s ease; }
+  .rp-modal .caja { width:100%; max-width:420px; background:#fff; border-radius:20px; padding:22px 20px 18px;
+                    text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.25); animation:rpSube .22s ease; }
+  @media (min-width:600px) { .rp-modal { align-items:center; } }
+  .rp-modal .ico { width:56px; height:56px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center;
+                   justify-content:center; font-size:1.6rem; background:#EFF5EA; color:#3E6B22; }
+  .rp-modal.alerta .ico { background:#FBE4E1; color:#b3261e; }
+  .rp-modal h5 { font-weight:800; color:#1A1C18; margin:0 0 12px; font-size:1.15rem; }
+  .rp-modal .quien { background:#F4F4F2; border-radius:12px; padding:10px 12px; display:flex;
+                     justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .rp-modal .quien b { color:#1A1C18; text-align:left; }
+  .rp-modal .quien span { font-weight:800; font-size:1.1rem; color:#1A1C18; white-space:nowrap; }
+  .rp-modal p { color:#6E6E69; font-size:.88rem; margin:0 0 16px; }
+  .rp-modal .acciones { display:grid; grid-template-columns:1fr 1.4fr; gap:10px; }
+  .rp-modal .acciones button { border-radius:12px; padding:12px 6px; font-weight:700; font-size:.95rem; border:1px solid #E6E6E2; }
+  .rp-modal .cancelar { background:#fff; color:#1A1C18; }
+  .rp-modal .si { background:#3E6B22; border-color:#3E6B22 !important; color:#fff; }
+  .rp-modal.alerta .si { background:#b3261e; border-color:#b3261e !important; }
+  @keyframes rpFondo { from { opacity:0 } to { opacity:1 } }
+  @keyframes rpSube { from { transform:translateY(24px); opacity:0 } to { transform:none; opacity:1 } }
   .rp-vacio { text-align:center; color:#8a948a; padding:40px 16px; background:#f6f8f6; border-radius:16px; }
 </style>
 
@@ -126,17 +149,26 @@
   <div class="rp-pago-lab">Entregado · ¿cómo pagó?</div>
   <div class="rp-pago">
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} en EFECTIVO?">
+          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} en EFECTIVO?"
+          data-m-icono="bi-cash-stack" data-m-tipo="ok" data-m-titulo="¿Pagó en efectivo?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado. Guardá el efectivo para el cierre." data-m-boton="Sí, pagó en efectivo">
       <input type="hidden" name="pago" value="efectivo">
       <button class="btn"><i class="bi bi-cash me-1"></i>Efectivo</button>
     </form>
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} por SINPE? La oficina lo va a confirmar.">
+          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} por SINPE? La oficina lo va a confirmar."
+          data-m-icono="bi-phone" data-m-tipo="ok" data-m-titulo="¿Pagó por SINPE?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado. La oficina confirma que el SINPE llegó." data-m-boton="Sí, pagó por SINPE">
       <input type="hidden" name="pago" value="sinpe">
       <button class="btn"><i class="bi bi-phone me-1"></i>SINPE</button>
     </form>
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿Entregado SIN pagar? Va a quedar Por cobrar.">
+          hx-confirm="¿Entregado SIN pagar? Va a quedar Por cobrar."
+          data-m-icono="bi-exclamation-circle" data-m-tipo="alerta" data-m-titulo="¿Entregado sin pagar?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado y el monto pasa a Por cobrar." data-m-boton="Sí, no pagó">
       <input type="hidden" name="pago" value="no">
       <button class="btn no">No pagó</button>
     </form>
@@ -144,7 +176,11 @@
 
   <details class="rp-fallo">
     <summary><i class="bi bi-x-circle me-1"></i>No se pudo entregar</summary>
-    <form method="post" action="{{ url_for('reparto_bp.no_entregado', id=e.id) }}" class="mt-2">
+    <form method="post" action="{{ url_for('reparto_bp.no_entregado', id=e.id) }}" class="mt-2"
+          hx-confirm="¿Marcar que no se pudo entregar?"
+          data-m-icono="bi-x-circle" data-m-tipo="alerta" data-m-titulo="¿No se pudo entregar?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="El pedido sigue pendiente y la oficina lo vuelve a coordinar." data-m-boton="Sí, no se entregó">
       <select name="motivo" class="form-select mb-2" required
               onchange="this.form.otro.style.display = this.value === 'otro' ? '' : 'none'">
         <option value="">¿Qué pasó?</option>
@@ -157,5 +193,63 @@
   </details>
 </div>
 {% endfor %}
+
+<div class="rp-modal" id="rpModal" role="dialog" aria-modal="true" aria-labelledby="rpModalTitulo">
+  <div class="caja">
+    <div class="ico"><i class="bi" id="rpModalIco"></i></div>
+    <h5 id="rpModalTitulo"></h5>
+    <div class="quien"><b id="rpModalNombre"></b><span id="rpModalMonto"></span></div>
+    <p id="rpModalTexto"></p>
+    <div class="acciones">
+      <button type="button" class="cancelar" id="rpModalNo">Cancelar</button>
+      <button type="button" class="si" id="rpModalSi"></button>
+    </div>
+  </div>
+</div>
+<script>
+  // Cambia la alerta gris del navegador por un modal propio en las acciones de Reparto.
+  // Se registra una sola vez aunque htmx vuelva a cargar esta pantalla.
+  (function () {
+    if (window.__rpModal) return;
+    window.__rpModal = true;
+    var pendiente = null;
+    function el(id) { return document.getElementById(id); }
+    function cerrar() { var m = el('rpModal'); if (m) m.classList.remove('abierto'); pendiente = null; }
+    document.body.addEventListener('htmx:confirm', function (evt) {
+      var f = evt.detail.elt;
+      if (!f || !f.dataset || !f.dataset.mTitulo || !el('rpModal')) return;
+      if (f.tagName === 'FORM' && !f.reportValidity()) { evt.preventDefault(); return; }
+      evt.preventDefault();
+      // El contenido vive en un contenedor fijo que encierra el z-index: el modal se
+      // pasa al <body> para que quede encima de la barra de abajo. Si quedó uno de
+      // una visita anterior, se descarta y se usa el de esta pantalla.
+      var nuevo = document.querySelector('#main-content #rpModal');
+      if (nuevo) {
+        document.querySelectorAll('body > .rp-modal').forEach(function (v) { v.remove(); });
+        document.body.appendChild(nuevo);
+      }
+      var m = el('rpModal');
+      m.classList.toggle('alerta', f.dataset.mTipo === 'alerta');
+      el('rpModalIco').className = 'bi ' + (f.dataset.mIcono || 'bi-check2');
+      el('rpModalTitulo').textContent = f.dataset.mTitulo;
+      el('rpModalNombre').textContent = f.dataset.mNombre || '';
+      el('rpModalMonto').textContent = f.dataset.mMonto || '';
+      el('rpModalTexto').textContent = f.dataset.mTexto || '';
+      el('rpModalSi').textContent = f.dataset.mBoton || 'Confirmar';
+      pendiente = evt.detail;
+      m.classList.add('abierto');
+    });
+    document.body.addEventListener('click', function (e) {
+      if (!el('rpModal')) return;
+      if (e.target.closest('#rpModalSi')) {
+        var p = pendiente; cerrar();
+        if (p) p.issueRequest(true);
+      } else if (e.target.closest('#rpModalNo') || e.target.id === 'rpModal') {
+        cerrar();
+      }
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+  })();
+</script>
 
 {% endblock %}
