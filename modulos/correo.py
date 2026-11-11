@@ -155,7 +155,7 @@ def _html(p, enlace, logo, unido):
                         f'<tr><td style="padding:4px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{pasos}</table></td></tr>')
         cierre = "Gracias por ser parte de esto."
     return f"""<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{subtitulo}</title></head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{{color-scheme:light only;supported-color-schemes:light only;}}</style><title>{subtitulo}</title></head>
 <body style="margin:0;padding:0;background:#EEF4EA;">
 <div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · {etiqueta_total} {_colones(p["total"])}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF4EA;">
@@ -163,7 +163,7 @@ def _html(p, enlace, logo, unido):
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FFFFFF;border-radius:18px;overflow:hidden;">
     <tr><td style="height:6px;background:#3E6B22;line-height:6px;font-size:0;">&nbsp;</td></tr>
     <tr><td align="center" style="padding:22px 24px 0;">
-      <img src="{logo}" width="140" height="140" alt="ECOLTURA" style="display:block;border:0;width:140px;height:140px;">
+      <img src="{logo}" width="140" height="140" alt="ECOLTURA" style="display:block;border:0;width:140px;height:140px;border-radius:20px;">
     </td></tr>
     <tr><td align="center" style="padding:10px 28px 0;{SERIF}font-size:30px;color:#1F3A14;">{titulo}</td></tr>
     <tr><td align="center" style="padding:6px 28px 0;{F}font-size:15px;font-weight:bold;color:{"#8A8A84" if cancelado else "#D9742E"};letter-spacing:.5px;">{subtitulo}</td></tr>
