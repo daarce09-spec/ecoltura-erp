@@ -380,18 +380,25 @@ def api_pedidos():
         abierto = None
         if not _es_viernes():
             if agregar_a:
-                cur.execute("SELECT id, token FROM pedidos WHERE token = %s AND estado = 'Pendiente'", (agregar_a,))
+                cur.execute("SELECT id, token, lat FROM pedidos WHERE token = %s AND estado = 'Pendiente'", (agregar_a,))
                 abierto = cur.fetchone()
             if not abierto:
                 cur.execute(f"""
-                    SELECT id, token FROM pedidos
+                    SELECT id, token, lat FROM pedidos
                     WHERE estado = 'Pendiente' AND {SQL_CEL_LIMPIO} = %s
                     ORDER BY id DESC LIMIT 1
                 """, (celular,))
                 abierto = cur.fetchone()
 
+        # La ubicación en el mapa es obligatoria: sin ella el repartidor no puede armar la ruta.
+        # Solo se acepta sin punto si se agrega a un pedido en curso que ya lo tiene.
+        if lat is None and not (abierto and abierto[2] is not None):
+            conn.rollback()
+            return jsonify({"ok": False, "falta_ubicacion": True,
+                            "error": "Marcá en el mapa dónde te llevamos el pedido."}), 400
+
         if abierto:
-            pedido_id, token = abierto
+            pedido_id, token = abierto[0], abierto[1]
             existentes = _leer_lineas(cur, pedido_id)
             for pid, cant in nuevos.items():
                 if pid in existentes:

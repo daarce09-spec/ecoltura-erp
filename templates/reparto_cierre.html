@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Cierre de reparto{% endblock %}
+{% block content %}
+{% macro colones(x) %}₡{{ "{:,.0f}".format(x) }}{% endmacro %}
+
+<style>
+  .ci-card { background:#fff; border:1px solid #e7ece9; border-radius:16px; padding:14px 16px; margin-bottom:12px; }
+  .ci-tile { background:#fff; border:1px solid #e5efe9; border-radius:14px; padding:12px 14px; height:100%; }
+  .ci-tile .lab { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#777; font-weight:700; }
+  .ci-tile .val { font-size:1.3rem; font-weight:800; color:#1b4332; line-height:1.2; }
+  .ci-tile .sub { font-size:.75rem; color:#7A5300; margin-top:2px; }
+  .ci-tile.efectivo { border-left:4px solid #2d6a4f; }
+  .ci-tile.sinpe { border-left:4px solid #0B4F75; }
+  .ci-tile.no { border-left:4px solid #b3261e; }
+  .ci-tile.no .val { color:#b3261e; }
+  .ci-fila { display:flex; justify-content:space-between; gap:10px; padding:9px 0; border-bottom:1px solid #f1f3f2; }
+  .ci-fila:last-child { border-bottom:none; }
+  .ci-nom { font-weight:600; color:#222; }
+  .ci-meta { font-size:.78rem; color:#888; }
+  .ci-pago { font-size:.72rem; font-weight:800; border-radius:999px; padding:2px 9px; white-space:nowrap; }
+  .p-efectivo { background:#D1E7DD; color:#0A4A2A; }
+  .p-sinpe { background:#CFE8F7; color:#0B4F75; }
+  .p-pend { background:#FFF1C9; color:#7A5300; }
+  .p-no { background:#FBE4E1; color:#b3261e; }
+  @media print { .no-print, nav, .navbar { display:none !important; } .ci-card { border:none; } }
+</style>
+
+<div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+  <div>
+    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-calculator me-2"></i>Cierre de reparto</h2>
+    <small class="text-muted">{{ desde_txt }} — {{ hasta_txt }}</small>
+  </div>
+  <a href="{{ url_for('reparto_bp.reparto') }}" class="btn btn-sm btn-outline-secondary text-nowrap no-print">← Reparto</a>
+</div>
+
+<form method="get" class="ci-card d-flex flex-wrap align-items-end gap-2 no-print">
+  <div><label class="form-label small fw-bold mb-0">Desde</label>
+    <input type="datetime-local" name="desde" value="{{ desde }}" class="form-control form-control-sm"></div>
+  <div><label class="form-label small fw-bold mb-0">Hasta</label>
+    <input type="datetime-local" name="hasta" value="{{ hasta }}" class="form-control form-control-sm"></div>
+  <button class="btn btn-sm btn-success">Ver</button>
+  <a href="{{ url_for('reparto_bp.cierre') }}" class="btn btn-sm btn-outline-secondary">Hoy</a>
+  <button type="button" class="btn btn-sm btn-outline-dark ms-auto" onclick="window.print()"><i class="bi bi-printer me-1"></i>Imprimir</button>
+</form>
+
+<div class="row g-2 mb-3">
+  <div class="col-6 col-lg-3"><div class="ci-tile">
+    <div class="lab">Entregas</div><div class="val">{{ resumen.entregas }}</div>
+    <div class="sub" style="color:#777">{{ colones(resumen.facturado) }} en total</div>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="ci-tile efectivo">
+    <div class="lab">Efectivo · a entregar</div><div class="val">{{ colones(resumen.efectivo) }}</div>
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="ci-tile sinpe">
+    <div class="lab">SINPE</div><div class="val">{{ colones(resumen.sinpe) }}</div>
+    {% if resumen.sinpe_pend %}<div class="sub">{{ colones(resumen.sinpe_pend) }} por confirmar</div>{% endif %}
+  </div></div>
+  <div class="col-6 col-lg-3"><div class="ci-tile no">
+    <div class="lab">No pagó</div><div class="val">{{ colones(resumen.no) }}</div>
+  </div></div>
+</div>
+
+<div class="ci-card">
+  <div class="fw-bold mb-1" style="color:#1b4332">Entregas</div>
+  {% for f in filas %}
+  <div class="ci-fila">
+    <div style="min-width:0">
+      <div class="ci-nom">{{ f.nombre }}</div>
+      <div class="ci-meta">#{{ f.id }} · {{ f.hora.strftime('%d/%m %I:%M %p') if f.hora }}{% if f.cobrado_luego %} · luego se cobró en oficina{% endif %}</div>
+    </div>
+    <div class="text-end">
+      <div class="fw-bold">{{ colones(f.total) }}</div>
+      {% if f.pago == 'efectivo' %}<span class="ci-pago p-efectivo">Efectivo</span>
+      {% elif f.pago == 'sinpe' %}<span class="ci-pago {{ 'p-pend' if f.sinpe_pend else 'p-sinpe' }}">SINPE{{ ' · por confirmar' if f.sinpe_pend }}</span>
+      {% else %}<span class="ci-pago p-no">No pagó</span>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <div class="text-muted small py-3 text-center">No hay entregas en este rango.</div>
+  {% endfor %}
+</div>
+
+{% if fallidas %}
+<div class="ci-card">
+  <div class="fw-bold mb-1" style="color:#b3261e">No se pudieron entregar ({{ fallidas|length }})</div>
+  {% for pid, nombre, total, motivo, cuando in fallidas %}
+  <div class="ci-fila">
+    <div><div class="ci-nom">{{ nombre }}</div><div class="ci-meta">#{{ pid }} · {{ motivo }}</div></div>
+    <div class="fw-bold">{{ colones(total or 0) }}</div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% endblock %}

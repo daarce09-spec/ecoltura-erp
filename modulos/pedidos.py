@@ -36,7 +36,14 @@ def _asegurar_columnas_seguimiento():
                            ADD COLUMN IF NOT EXISTS modificado_en TIMESTAMP,
                            ADD COLUMN IF NOT EXISTS pagado_en TIMESTAMP,
                            ADD COLUMN IF NOT EXISTS lat NUMERIC(9,6),
-                           ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6)""")
+                           ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6),
+                           ADD COLUMN IF NOT EXISTS entrega_fallida TEXT,
+                           ADD COLUMN IF NOT EXISTS entrega_fallida_en TIMESTAMP,
+                           ADD COLUMN IF NOT EXISTS entregado_reparto BOOLEAN DEFAULT FALSE""")
+            # SINPE marcado por el repartidor: queda "por confirmar" hasta que la oficina vea el dinero
+            cur.execute("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS sinpe_pendiente BOOLEAN DEFAULT FALSE")
+            # El paso "Listo" ahora se llama "Alistado"
+            cur.execute("UPDATE pedidos SET seguimiento = 'Alistado' WHERE seguimiento = 'Listo'")
             try:
                 cur.execute("SAVEPOINT tk")
                 cur.execute("ALTER TABLE pedidos ALTER COLUMN token SET DEFAULT gen_random_uuid()::text")
@@ -53,8 +60,10 @@ def _asegurar_columnas_seguimiento():
 
 _asegurar_columnas_seguimiento()
 
-# Sin "método de pago": cuando ya pagó, la venta queda como "Efectivo" (como todas las de siempre)
+# Métodos de pago de las ventas que vienen de pedidos
 PAGO_RECIBIDO = "Efectivo"
+METODO_SINPE  = "SINPE Móvil"
+METODOS_PAGO  = {"efectivo": PAGO_RECIBIDO, "si": PAGO_RECIBIDO, "sinpe": METODO_SINPE, "no": "Por cobrar"}
 
 
 def _neto_linea(cantidad, precio, tipo, valor):
@@ -108,12 +117,13 @@ def bandeja_pedidos():
                    p.total_estimado, p.estado, COALESCE(p.seguimiento, 'Preparando'),
                    p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
                    v.metodo_pago, v.total, v.id, p.notas,
-                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id)
+                   (SELECT COUNT(*) FROM pedidos_detalle d WHERE d.pedido_id = p.id),
+                   p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE)
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
             WHERE p.estado = 'Pendiente'
-               OR (p.estado = 'Resuelto' AND (v.metodo_pago = 'Por cobrar'
+               OR (p.estado = 'Resuelto' AND (v.metodo_pago = 'Por cobrar' OR v.sinpe_pendiente
                                               {"OR " + filtro_fecha if filtro_fecha else "OR TRUE"}))
                OR (p.estado = 'Rechazado' {"AND " + filtro_fecha if filtro_fecha else ""})
             ORDER BY p.creado DESC
@@ -124,18 +134,20 @@ def bandeja_pedidos():
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
-         metodo, total_venta, venta_id, notas, n_items) in filas:
+         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend) in filas:
         total = float(total_venta if total_venta is not None else (total_est or 0))
         tarjeta = {
             "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
             "total": total, "creado": creado, "gestionado": gestionado, "modificado": modificado,
             "metodo": metodo, "venta_id": venta_id, "notas": (notas or "").strip(), "n_items": n_items,
+            "seguimiento": "Alistado" if seg in ("Alistado", "Listo") else "Preparando",
+            "fallida": (fallida or "").strip(), "sinpe_pendiente": bool(sinpe_pend),
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)
             columnas["pendientes"].append(tarjeta)
         elif estado == "Resuelto":
-            es_cobrar = (metodo == "Por cobrar")
+            es_cobrar = (metodo == "Por cobrar") or bool(sinpe_pend)   # SINPE sin confirmar todavía no es plata en mano
             tarjeta["por_cobrar"] = es_cobrar
             columnas["entregados"].append(tarjeta)
             if es_cobrar:
@@ -162,12 +174,12 @@ def bandeja_pedidos():
 
 
 # ─────────────────────────────────────────────
-#  SEGUIMIENTO: Preparando <-> Listo
+#  SEGUIMIENTO: Preparando <-> Alistado (el repartidor ve los Alistados)
 # ─────────────────────────────────────────────
 @pedidos_bp.route("/admin/pedidos/<int:id>/seguimiento", methods=["POST"])
 def pedido_seguimiento(id):
     valor = request.form.get("valor", "")
-    if valor not in ("Preparando", "Listo"):
+    if valor not in ("Preparando", "Alistado"):
         flash("Estado inválido.", "danger")
         return redirect(url_for("pedidos_bp.bandeja_pedidos"))
     with obtener_conexion() as conn:
@@ -193,8 +205,9 @@ def pedido_pagar(id):
         if not fila or not fila[0]:
             flash("Este pedido no tiene una venta por cobrar.", "warning")
         else:
+            metodo = METODO_SINPE if request.form.get("metodo") == "sinpe" else PAGO_RECIBIDO
             cur.execute("UPDATE ventas SET metodo_pago = %s WHERE id = %s AND metodo_pago = 'Por cobrar'",
-                        (PAGO_RECIBIDO, fila[0]))
+                        (metodo, fila[0]))
             cur.execute("UPDATE pedidos SET pagado_en = NOW() WHERE id = %s", (id,))
             conn.commit()
             flash(f"Pedido #{id} marcado como cobrado.", "success")
@@ -918,111 +931,152 @@ def detalle_agregar(id):
 # ─────────────────────────────────────────────
 #  CONVERTIR PEDIDO EN VENTA
 # ─────────────────────────────────────────────
-@pedidos_bp.route("/admin/pedidos/<int:id>/convertir", methods=["POST"])
-def pedido_convertir(id):
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
+def convertir_en_venta(cur, id, metodo_venta, sinpe_pendiente=False, por_reparto=False):
+    """Pasa un pedido Pendiente a venta (descuenta inventario y lo marca Entregado).
+    La usan el kanban ("Pasar a venta") y el repartidor ("Entregado").
+    Devuelve (venta_id, None) o (None, motivo). No hace commit."""
+    cur.execute("SELECT estado, cliente_id FROM pedidos WHERE id=%s FOR UPDATE", (id,))
+    row = cur.fetchone()
+    if not row or row[0] != 'Pendiente':
+        return None, "Este pedido ya fue procesado."
+    cliente_id = row[1]
+    ya_pago = metodo_venta != "Por cobrar"
 
-        # Verificar estado
-        cur.execute("SELECT estado, cliente_id, nombre_contacto, celular, total_estimado FROM pedidos WHERE id=%s", (id,))
-        row = cur.fetchone()
-        if not row or row[0] != 'Pendiente':
-            flash("Este pedido ya fue procesado.", "warning")
-            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+    # Obtener detalle del pedido
+    cur.execute("""
+        SELECT producto_id, cantidad, precio_unitario,
+               COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
+        FROM pedidos_detalle WHERE pedido_id = %s ORDER BY id
+    """, (id,))
+    items = cur.fetchall()
+    if not items:
+        return None, "El pedido no tiene productos."
 
-        estado, cliente_id, nombre, celular, total_est = row
+    # subtotal_total = suma de las líneas ya con su descuento por producto;
+    # descuento_total = descuento general del pedido (sobre ese subtotal).
+    subtotal_total, descuento_total, total_total, _, _ = _totales(cur, id)
+    bruto_total = float(sum(round(float(c) * float(p)) for _, c, p, _, _ in items))
+    desc_lineas_total = float(round(bruto_total - subtotal_total))
 
-        # ¿Ya pagó? Si sí, la venta queda cobrada; si no, queda "Por cobrar"
-        ya_pago = request.form.get("pago") == "si"
-        metodo_venta = PAGO_RECIBIDO if ya_pago else "Por cobrar"
+    fecha_hora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
 
-        # Obtener detalle del pedido
+    # Insertar venta (con el descuento del pedido)
+    cur.execute("""
+        INSERT INTO ventas (cliente_id, fecha_venta, subtotal, descuento, iva, total, metodo_pago, estado)
+        VALUES (%s, %s, %s, %s, 0, %s, %s, 'Facturado')
+        RETURNING id
+    """, (cliente_id, fecha_hora, bruto_total, desc_lineas_total + descuento_total, total_total, metodo_venta))
+    venta_id = cur.fetchone()[0]
+
+    desc_asignado = 0.0
+    for i, (producto_id, cantidad, precio, d_tipo, d_valor) in enumerate(items):
+        sub_l, desc_prod, neto_l = _neto_linea(cantidad, precio, d_tipo, d_valor)
+
+        # Descuento general repartido proporcionalmente al neto de cada línea;
+        # la última línea absorbe el redondeo. Se suma al descuento propio del producto.
+        if i == len(items) - 1:
+            desc_gral = float(round(descuento_total - desc_asignado))
+        else:
+            desc_gral = float(round(descuento_total * neto_l / subtotal_total)) if subtotal_total else 0.0
+            desc_asignado += desc_gral
+        desc_l = desc_prod + desc_gral
+        total_l = float(round(sub_l - desc_l))
+
+        # Detalle de venta
         cur.execute("""
-            SELECT producto_id, cantidad, precio_unitario,
-                   COALESCE(descuento_tipo, 'monto'), COALESCE(descuento_valor, 0)
-            FROM pedidos_detalle WHERE pedido_id = %s ORDER BY id
-        """, (id,))
-        items = cur.fetchall()
-        if not items:
-            flash("El pedido no tiene productos.", "warning")
-            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+            INSERT INTO ventas_detalle
+                (venta_id, producto_id, cantidad, precio_unitario,
+                 subtotal_linea, descuento, total_linea)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (venta_id, producto_id, cantidad, precio, sub_l, desc_l, total_l))
 
-        # subtotal_total = suma de las líneas ya con su descuento por producto;
-        # descuento_total = descuento general del pedido (sobre ese subtotal).
-        subtotal_total, descuento_total, total_total, _, _ = _totales(cur, id)
-        bruto_total = float(sum(round(float(c) * float(p)) for _, c, p, _, _ in items))
-        desc_lineas_total = float(round(bruto_total - subtotal_total))
-
-        fecha_hora = (datetime.now() - timedelta(hours=6)).strftime("%Y-%m-%d %H:%M:%S")
-
-        # Insertar venta (con el descuento del pedido)
+        # Movimiento de inventario (salida)
         cur.execute("""
-            INSERT INTO ventas (cliente_id, fecha_venta, subtotal, descuento, iva, total, metodo_pago, estado)
-            VALUES (%s, %s, %s, %s, 0, %s, %s, 'Facturado')
-            RETURNING id
-        """, (cliente_id, fecha_hora, bruto_total, desc_lineas_total + descuento_total, total_total, metodo_venta))
-        venta_id = cur.fetchone()[0]
+            INSERT INTO inventario_movimientos (producto_id, fecha, tipo, cantidad)
+            VALUES (%s, %s, 'F', %s)
+        """, (producto_id, fecha_hora, cantidad))
 
-        desc_asignado = 0.0
-        for i, (producto_id, cantidad, precio, d_tipo, d_valor) in enumerate(items):
-            sub_l, desc_prod, neto_l = _neto_linea(cantidad, precio, d_tipo, d_valor)
-
-            # Descuento general repartido proporcionalmente al neto de cada línea;
-            # la última línea absorbe el redondeo. Se suma al descuento propio del producto.
-            if i == len(items) - 1:
-                desc_gral = float(round(descuento_total - desc_asignado))
-            else:
-                desc_gral = float(round(descuento_total * neto_l / subtotal_total)) if subtotal_total else 0.0
-                desc_asignado += desc_gral
-            desc_l = desc_prod + desc_gral
-            total_l = float(round(sub_l - desc_l))
-
-            # Detalle de venta
-            cur.execute("""
-                INSERT INTO ventas_detalle
-                    (venta_id, producto_id, cantidad, precio_unitario,
-                     subtotal_linea, descuento, total_linea)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            """, (venta_id, producto_id, cantidad, precio, sub_l, desc_l, total_l))
-
-            # Movimiento de inventario (salida)
-            cur.execute("""
-                INSERT INTO inventario_movimientos (producto_id, fecha, tipo, cantidad)
-                VALUES (%s, %s, 'F', %s)
-            """, (producto_id, fecha_hora, cantidad))
-
-            # Reducir inventario_semanal (FIFO)
-            cur.execute("""
-                UPDATE inventario_semanal
-                SET cantidad_disponible = cantidad_disponible - %s
-                WHERE id = (
-                    SELECT id FROM inventario_semanal
-                    WHERE producto_id = %s AND cantidad_disponible >= %s
-                    ORDER BY fecha_semana ASC LIMIT 1
-                )
-            """, (cantidad, producto_id, cantidad))
-
-        # Marcar pedido como Resuelto
+        # Reducir inventario_semanal (FIFO)
         cur.execute("""
-            UPDATE pedidos SET estado='Resuelto', venta_id=%s, gestionado=NOW(),
-                   pagado_en = CASE WHEN %s THEN NOW() ELSE NULL END
-            WHERE id=%s
-        """, (venta_id, ya_pago, id))
+            UPDATE inventario_semanal
+            SET cantidad_disponible = cantidad_disponible - %s
+            WHERE id = (
+                SELECT id FROM inventario_semanal
+                WHERE producto_id = %s AND cantidad_disponible >= %s
+                ORDER BY fecha_semana ASC LIMIT 1
+            )
+        """, (cantidad, producto_id, cantidad))
 
-        conn.commit()
+    if sinpe_pendiente:
+        cur.execute("UPDATE ventas SET sinpe_pendiente = TRUE WHERE id = %s", (venta_id,))
 
-    # Aviso al cliente (si activó la campana): su pedido ya va en camino / fue entregado
+    # Marcar pedido como Resuelto (Entregado); se limpia cualquier aviso de "no entregado"
+    cur.execute("""
+        UPDATE pedidos SET estado='Resuelto', venta_id=%s, gestionado=NOW(),
+               pagado_en = CASE WHEN %s THEN NOW() ELSE NULL END,
+               entregado_reparto = %s, entrega_fallida = NULL, entrega_fallida_en = NULL
+        WHERE id=%s
+    """, (venta_id, ya_pago, por_reparto, id))
+    return venta_id, None
+
+
+def avisar_entrega(celular, id):
+    """Aviso al cliente (si activó la campana): su pedido fue entregado."""
     try:
         from modulos.push import notificar_cliente
         notificar_cliente(celular, "ECOLTURA", "Tu pedido fue entregado. ¡Gracias por apoyar productos locales! 🌱", "/")
     except Exception as ex:
         print(f"No se pudo avisar al cliente del pedido #{id}: {ex}")
 
-    estado_pago = "cobrada" if ya_pago else "por cobrar"
+
+@pedidos_bp.route("/admin/pedidos/<int:id>/convertir", methods=["POST"])
+def pedido_convertir(id):
+    clave = request.form.get("pago", "no")
+    metodo_venta = METODOS_PAGO.get(clave, "Por cobrar")
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT celular FROM pedidos WHERE id=%s", (id,))
+        fila = cur.fetchone()
+        celular = fila[0] if fila else None
+        venta_id, error = convertir_en_venta(cur, id, metodo_venta)
+        if error:
+            flash(error, "warning")
+            return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+        conn.commit()
+
+    avisar_entrega(celular, id)
+
+    estado_pago = "por cobrar" if metodo_venta == "Por cobrar" else f"cobrada ({metodo_venta})"
     flash(f"Pedido #{id} convertido en venta #{venta_id}, {estado_pago}.", "success")
     if request.form.get("volver") == "bandeja":
         return redirect(url_for("pedidos_bp.bandeja_pedidos"))
     return redirect(url_for("ventas_bp.ticket_venta", venta_id=venta_id))
+
+
+# ─────────────────────────────────────────────
+#  SINPE POR CONFIRMAR (lo marcó el repartidor): la oficina confirma que entró
+#  el dinero, o lo devuelve a "Por cobrar" si no llegó.
+# ─────────────────────────────────────────────
+@pedidos_bp.route("/admin/pedidos/<int:id>/sinpe", methods=["POST"])
+def pedido_sinpe(id):
+    llego = request.form.get("accion") == "confirmar"
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("SELECT venta_id FROM pedidos WHERE id = %s", (id,))
+        fila = cur.fetchone()
+        if fila and fila[0]:
+            if llego:
+                cur.execute("UPDATE ventas SET sinpe_pendiente = FALSE WHERE id = %s", (fila[0],))
+                flash(f"Pedido #{id}: SINPE confirmado.", "success")
+            else:
+                cur.execute("""UPDATE ventas SET sinpe_pendiente = FALSE, metodo_pago = 'Por cobrar'
+                               WHERE id = %s""", (fila[0],))
+                cur.execute("UPDATE pedidos SET pagado_en = NULL WHERE id = %s", (id,))
+                flash(f"Pedido #{id}: el SINPE no llegó, quedó Por cobrar.", "warning")
+            conn.commit()
+    if request.form.get("volver") == "detalle":
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+    return redirect(url_for("pedidos_bp.bandeja_pedidos"))
 
 
 # ─────────────────────────────────────────────
