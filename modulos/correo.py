@@ -22,6 +22,7 @@ ID_EXPRESS = 118
 RE_CORREO = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]{2,}$")
 WHATSAPP = "https://wa.me/50689935973"
 INSTAGRAM = "https://www.instagram.com/ecolturacr/"
+SITIO = "https://www.ecoltura.com"   # dominio oficial: logo y pie siempre apuntan aquí
 
 
 def correo_valido(valor):
@@ -155,7 +156,7 @@ def _html(p, enlace, logo, unido):
                         f'<tr><td style="padding:4px 32px 0;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">{pasos}</table></td></tr>')
         cierre = "Gracias por ser parte de esto."
     return f"""<!doctype html>
-<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>{subtitulo}</title></head>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light only"><style>:root{{color-scheme:light only;supported-color-schemes:light only;}}</style><title>{subtitulo}</title></head>
 <body style="margin:0;padding:0;background:#EEF4EA;">
 <div style="display:none;max-height:0;overflow:hidden;">{subtitulo} · {etiqueta_total} {_colones(p["total"])}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#EEF4EA;">
@@ -194,7 +195,8 @@ def _html(p, enlace, logo, unido):
     </td></tr>
     <tr><td align="center" style="background:#1A4226;padding:22px 24px;{F}font-size:13px;line-height:1.8;color:#CFE3D4;">
       <b style="color:#ffffff;letter-spacing:2px;">ECOLTURA</b> · Agricultura regenerativa · San Ramón<br>
-      <a href="{inicio}" style="color:#CFE3D4;">www.ecoltura.com</a> &nbsp;·&nbsp; <a href="{WHATSAPP}" style="color:#CFE3D4;">WhatsApp</a> &nbsp;·&nbsp; <a href="{INSTAGRAM}" style="color:#CFE3D4;">Instagram</a>
+      <a href="{SITIO}" style="color:#CFE3D4;">www.ecoltura.com</a> &nbsp;·&nbsp; <a href="{WHATSAPP}" style="color:#CFE3D4;">WhatsApp</a> &nbsp;·&nbsp; <a href="{INSTAGRAM}" style="color:#CFE3D4;">Instagram</a><br>
+      <span style="font-size:11px;color:#9DBBA5;">Recibiste este correo porque hiciste un pedido en www.ecoltura.com.</span>
     </td></tr>
   </table>
 </td></tr></table>
@@ -237,7 +239,7 @@ def _enviar(destino, token, base, unido):
         if not p:
             return
         enlace = f"{base}/pedido/{token}"
-        logo = f"{base}/static/img/icon-512.png"
+        logo = f"{SITIO}/static/img/icon-512.png"
         cuerpo = {
             "from": os.environ.get("CORREO_REMITENTE", "ECOLTURA <pedidos@ecoltura.com>"),
             "to": [destino],
