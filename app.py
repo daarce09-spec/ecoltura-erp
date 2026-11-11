@@ -211,9 +211,44 @@ def service_worker():
     return response
 
 
+# ── Menú del Admin ─────────────────────────────────────────────────
+# Cinco tarjetas principales; las que agrupan varias pantallas abren un
+# submenú con el mismo diseño (/menu/clientes, /menu/inventario, /menu/ventas).
+MENU_PRINCIPAL = [
+    {"href": "/menu/clientes",   "icono": "bi-people",         "nombre": "Clientes",     "tag": "Gestión y avisos"},
+    {"href": "/menu/inventario", "icono": "bi-box-seam",       "nombre": "Inventario",   "tag": "Productos y stock"},
+    {"href": "/menu/ventas",     "icono": "bi-receipt-cutoff", "nombre": "Ventas",       "tag": "Pedidos y facturación", "badge": "badgeVentas"},
+    {"href": "/reparto",         "icono": "bi-truck",          "nombre": "Reparto",      "tag": "Entregas y cierre"},
+    {"href": "/contabilidad",    "icono": "bi-journal-text",   "nombre": "Contabilidad", "tag": "Resultados"},
+]
+MENU_GRUPOS = {
+    "clientes": ("Clientes", [
+        {"href": "/clientes",      "icono": "bi-people",  "nombre": "Clientes",      "tag": "Gestión"},
+        {"href": "/recordatorios", "icono": "bi-bell",    "nombre": "Recordatorios", "tag": "Notificaciones"},
+    ]),
+    "inventario": ("Inventario", [
+        {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",          "tag": "Catálogo"},
+        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",        "tag": "Compras"},
+        {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha",  "tag": "Semanal"},
+        {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",       "tag": "Stock"},
+    ]),
+    "ventas": ("Ventas", [
+        {"href": "/admin/pedidos", "icono": "bi-bag-check",      "nombre": "Pedidos Web", "tag": "Bandeja",     "badge": "badgePedidos"},
+        {"href": "/ventas",        "icono": "bi-receipt-cutoff", "nombre": "Ventas",      "tag": "Facturación"},
+        {"href": "/admin/visitas", "icono": "bi-calendar2-check","nombre": "Visitas",     "tag": "Finca",       "badge": "badgeVisitas"},
+    ]),
+}
+
 @app.route("/menu")
 def menu():
-    return render_template("menu.html")
+    return render_template("menu.html", modulos=MENU_PRINCIPAL, titulo=None)
+
+@app.route("/menu/<grupo>")
+def menu_grupo(grupo):
+    if grupo not in MENU_GRUPOS:
+        abort(404)
+    titulo, modulos = MENU_GRUPOS[grupo]
+    return render_template("menu.html", modulos=modulos, titulo=titulo)
 
 @app.route("/admin/api/contadores")
 def api_contadores():

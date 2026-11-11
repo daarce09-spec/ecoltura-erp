@@ -34,15 +34,20 @@
     height: 3px; background: linear-gradient(90deg, #2E6B3E, #7AB648);
     transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
   }
-  .modulo:hover, .modulo:active {
+  .modulo:active {
     transform: translateY(-4px);
     box-shadow: 0 14px 32px rgba(46,107,62,.15);
     border-color: rgba(46,107,62,.3);
   }
-  .modulo:hover::after { transform: scaleX(1); }
-  .modulo:hover .mod-icon { background: #2E6B3E; }
-  .modulo:hover .mod-icon i { color: #fff; }
-  .modulo:hover .mod-nombre { color: #2E6B3E; }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(46,107,62,.15);
+    border-color: rgba(46,107,62,.3);
+  } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover::after { transform: scaleX(1); } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon { background: #2E6B3E; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon i { color: #fff; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-nombre { color: #2E6B3E; } }
 
   .mod-icon {
     width: clamp(48px, 5vw, 64px); height: clamp(48px, 5vw, 64px);
@@ -65,6 +70,10 @@
     text-transform: uppercase; letter-spacing: 2px; font-weight: 600; line-height: 1;
   }
 
+  .submenu-head { display: flex; align-items: center; gap: 14px; margin: 0 0 clamp(14px, 2vw, 22px); flex-wrap: wrap; }
+  .submenu-volver { text-decoration: none; color: #2E6B3E; font-weight: 700; font-size: .9rem;
+                    border: 1.5px solid rgba(46,107,62,.25); border-radius: 999px; padding: 6px 14px; background: #fff; }
+  .submenu-titulo { margin: 0; font-weight: 800; color: #1C1C1E; font-size: clamp(1.3rem, 2.4vw, 1.7rem); }
   .badge-alert {
     position: absolute; top: 12px; right: 12px;
     background: #EF4444; color: #fff; border-radius: 999px;
@@ -84,52 +93,28 @@
     }
     .modulo::after { width: 4px; height: 100%; top: 0; bottom: 0; left: 0; right: auto;
                      transform: scaleY(0); transform-origin: top; }
-    .modulo:hover::after, .modulo:active::after { transform: scaleY(1); }
+    .modulo:active::after { transform: scaleY(1); }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover::after { transform: scaleY(1); } }
     .mod-icon { width: 54px; height: 54px; flex-shrink: 0; }
     .mod-texto { text-align: left; align-items: flex-start; }
   }
 </style>
 
-<!-- MÓDULOS -->
+<!-- MÓDULOS (la lista sale de MENU_PRINCIPAL / MENU_GRUPOS en app.py) -->
+{% if titulo %}
+<div class="submenu-head">
+  <a href="/menu" class="submenu-volver"><i class="bi bi-arrow-left"></i> Menú</a>
+  <h2 class="submenu-titulo">{{ titulo }}</h2>
+</div>
+{% endif %}
 <div class="modulos">
-  <a href="/clientes" class="modulo">
-    <div class="mod-icon"><i class="bi bi-people"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Clientes</div><div class="mod-tag">Gestión</div></div>
+  {% for m in modulos %}
+  <a href="{{ m.href }}" class="modulo">
+    {% if m.badge %}<span class="badge-alert" id="{{ m.badge }}">0</span>{% endif %}
+    <div class="mod-icon"><i class="bi {{ m.icono }}"></i></div>
+    <div class="mod-texto"><div class="mod-nombre">{{ m.nombre }}</div><div class="mod-tag">{{ m.tag }}</div></div>
   </a>
-  <a href="/productos" class="modulo">
-    <div class="mod-icon"><i class="bi bi-basket3"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Productos</div><div class="mod-tag">Catálogo</div></div>
-  </a>
-  <a href="/inventario" class="modulo">
-    <div class="mod-icon"><i class="bi bi-box-seam"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Inventario</div><div class="mod-tag">Stock</div></div>
-  </a>
-  <a href="/ventas" class="modulo">
-    <div class="mod-icon"><i class="bi bi-receipt-cutoff"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Ventas</div><div class="mod-tag">Facturación</div></div>
-  </a>
-  <a href="/admin/pedidos" class="modulo">
-    <span class="badge-alert" id="badgePedidos">0</span>
-    <div class="mod-icon"><i class="bi bi-bag-check"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Pedidos Web</div><div class="mod-tag">Bandeja</div></div>
-  </a>
-  <a href="/admin/visitas" class="modulo">
-    <span class="badge-alert" id="badgeVisitas">0</span>
-    <div class="mod-icon"><i class="bi bi-calendar2-check"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Visitas</div><div class="mod-tag">Finca</div></div>
-  </a>
-  <a href="/recordatorios" class="modulo">
-    <div class="mod-icon"><i class="bi bi-bell"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Recordatorios</div><div class="mod-tag">Notificaciones</div></div>
-  </a>
-  <a href="/reparto" class="modulo">
-    <div class="mod-icon"><i class="bi bi-truck"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Reparto</div><div class="mod-tag">Entregas y cierre</div></div>
-  </a>
-  <a href="/contabilidad" class="modulo">
-    <div class="mod-icon"><i class="bi bi-journal-text"></i></div>
-    <div class="mod-texto"><div class="mod-nombre">Contabilidad</div><div class="mod-tag">Resultados</div></div>
-  </a>
+  {% endfor %}
 </div>
 
 <script>
@@ -137,6 +122,12 @@
   fetch('/admin/api/contadores').then(function(r){ return r.json(); }).then(function(d){
     var b = document.getElementById('badgePedidos');
     var v = document.getElementById('badgeVisitas');
+    var t = document.getElementById('badgeVentas');
+    var total = (d.pedidos_pendientes || 0) + (d.visitas_pendientes || 0);
+    if (t) {
+      if (total > 0) { t.textContent = total; t.classList.add('on'); }
+      else { t.classList.remove('on'); }
+    }
     if (b) {
       if (d.pedidos_pendientes > 0) { b.textContent = d.pedidos_pendientes; b.classList.add('on'); }
       else { b.classList.remove('on'); }
@@ -150,7 +141,7 @@
 
 {% endblock %}
 
-{% block before_content %}
+{% block before_content %}{% if not titulo %}
 <!-- INTRO — splash de bienvenida, solo la primera vez en la sesión del navegador -->
 <div id="intro" style="position:fixed;inset:0;z-index:2000;background:#1A4226;display:flex;flex-direction:column;
      align-items:center;justify-content:center;gap:18px;transition:opacity .7s ease, visibility .7s ease;">
@@ -174,5 +165,5 @@
     }
   })();
 </script>
-{% endblock %}
+{% endif %}{% endblock %}
 <!-- prueba de despliegue -->

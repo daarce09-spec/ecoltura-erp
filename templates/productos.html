@@ -9,6 +9,37 @@
   .chip-peso { display:inline-flex; align-items:center; gap:6px; background:#eef5e8; border:1px solid #cfe1c2;
                border-radius:999px; padding:4px 10px; font-weight:600; font-size:.85rem; }
   .chip-peso button { border:none; background:transparent; color:#7a3b2e; padding:0 2px; line-height:1; }
+  .lbl-movil { display:none; }
+
+  /* ── Celular: cada producto es una tarjeta (misma información y botones) ── */
+  @media (max-width: 768px) {
+    .tabla-prod thead { display:none; }
+    .tabla-prod, .tabla-prod tbody { display:block; }
+    .card:has(.tabla-prod) { background:transparent; border:none; box-shadow:none !important; }
+    .card:has(.tabla-prod) .card-footer { background:transparent; border:none; padding-left:2px; }
+    .tabla-prod tr {
+      display:grid; grid-template-columns: 26px minmax(0,1fr) auto;
+      grid-template-areas: "chk nom pre" ". meta meta" ". tog tog" ". acc acc";
+      column-gap:10px; row-gap:8px; align-items:center;
+      background:#fff; border:1px solid #e6ece7; border-radius:16px; padding:14px 14px 12px;
+      margin-bottom:10px; box-shadow:0 1px 6px rgba(0,0,0,.05);
+    }
+    .tabla-prod td { display:block; border:none !important; padding:0 !important; background:transparent !important; box-shadow:none !important; }
+    .tabla-prod .td-chk { grid-area:chk; align-self:start; padding-top:3px !important; }
+    .tabla-prod .td-nom { grid-area:nom; font-size:1.02rem; line-height:1.25; }
+    .tabla-prod .td-pre { grid-area:pre; font-weight:800; color:#1b4332; font-size:1.05rem; align-self:start; }
+    .tabla-prod .td-meta-movil { display:flex !important; gap:8px; align-items:center; color:#666; font-size:.85rem; }
+    .tabla-prod .td-web, .tabla-prod .td-dest { display:none !important; }
+    .tabla-prod .td-tog { grid-area:tog; display:flex !important; gap:18px; flex-wrap:wrap; }
+    .tabla-prod .td-tog .form-check { display:flex; align-items:center; gap:8px; margin:0; padding-left:0; }
+    .tabla-prod .td-tog .form-check-input { margin:0; float:none; }
+    .tabla-prod .td-tog label { font-size:.85rem; color:#444; font-weight:600; }
+    .tabla-prod .td-acc { grid-area:acc; display:flex !important; gap:8px; justify-content:flex-start; }
+    .tabla-prod .td-acc .btn { padding:7px 14px; border-radius:10px; }
+    .tabla-prod .td-acc .lbl-movil { display:inline; margin-left:4px; }
+    .tabla-prod .td-acc form { margin-left:auto; }
+  }
+  @media (min-width: 769px) { .td-meta-movil, .td-tog { display:none !important; } }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
@@ -77,11 +108,11 @@
           <tr data-nombre="{{ (p[1] ~ ' ' ~ (p[7] or '') ~ ' ' ~ (p[8] or ''))|lower }}"
               data-id="{{ p[0] }}" data-prod="{{ p[1] }}" data-cat="{{ (p[2] or '')|trim }}"
               data-gid="{{ p[6] or '' }}">
-            <td>
+            <td class="td-chk">
               <input type="checkbox" class="form-check-input chk-sel" data-id="{{ p[0] }}"
                      {{ 'disabled title="Ya está en un grupo"' if p[6] else '' }}>
             </td>
-            <td class="fw-bold">
+            <td class="fw-bold td-nom">
               {{ p[1] }}
               {% if p[6] %}
               <div>
@@ -92,14 +123,18 @@
               </div>
               {% endif %}
             </td>
-            <td>
+            <td class="td-cat d-md-table-cell d-none">
               <span class="badge bg-light text-dark border">{{ (p[2] or '—')|trim }}</span>
             </td>
-            <td>{{ p[3] }}</td>
-            <td class="text-end">₡{{ "{:,.0f}".format(p[4]) }}</td>
+            <td class="td-uni d-md-table-cell d-none">{{ p[3] }}</td>
+            <!-- En el celular: categoría y unidad juntas en una línea -->
+            <td class="td-meta-movil d-none" style="grid-area:meta">
+              <span class="badge bg-light text-dark border">{{ (p[2] or '—')|trim }}</span> · {{ p[3] }}
+            </td>
+            <td class="text-end td-pre">₡{{ "{:,.0f}".format(p[4]) }}</td>
 
             <!-- Toggle visible_web -->
-            <td class="text-center">
+            <td class="text-center td-web">
               <div class="form-check form-switch d-flex justify-content-center mb-0">
                 <input class="form-check-input toggle-web" type="checkbox"
                        data-id="{{ p[0] }}"
@@ -110,7 +145,7 @@
             </td>
 
             <!-- Toggle destacado -->
-            <td class="text-center">
+            <td class="text-center td-dest">
               <div class="form-check form-switch d-flex justify-content-center mb-0">
                 <input class="form-check-input toggle-destacado" type="checkbox"
                        data-id="{{ p[0] }}"
@@ -120,9 +155,22 @@
               </div>
             </td>
 
-            <td class="text-end text-nowrap">
+            <td class="td-tog d-none">
+              <div class="form-check form-switch">
+                <input class="form-check-input espejo" type="checkbox" data-espejo=".toggle-web" data-id="{{ p[0] }}"
+                       {{ 'checked' if p[5] else '' }} style="width:2.4em;height:1.25em;cursor:pointer" id="mw{{ p[0] }}">
+                <label for="mw{{ p[0] }}">En la tienda</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input espejo" type="checkbox" data-espejo=".toggle-destacado" data-id="{{ p[0] }}"
+                       {{ 'checked' if p[9] else '' }} style="width:2.4em;height:1.25em;cursor:pointer" id="md{{ p[0] }}">
+                <label for="md{{ p[0] }}">Destacado</label>
+              </div>
+            </td>
+
+            <td class="text-end text-nowrap td-acc">
               <button class="btn btn-sm btn-outline-secondary btn-pesos" data-id="{{ p[0] }}" title="Pesos preestablecidos">
-                <i class="bi bi-sliders"></i>
+                <i class="bi bi-sliders"></i><span class="lbl-movil">Pesos</span>
               </button>
               <button class="btn btn-sm btn-outline-secondary btn-editar"
                       data-bs-toggle="modal" data-bs-target="#modalEditar"
@@ -132,7 +180,7 @@
                       data-unidad="{{ p[3] }}"
                       data-precio="{{ p[4] }}"
                       data-action="{{ url_for('productos_bp.editar_producto', id=p[0]) }}">
-                <i class="bi bi-pencil"></i>
+                <i class="bi bi-pencil"></i><span class="lbl-movil">Editar</span>
               </button>
               <form method="POST"
                     action="{{ url_for('productos_bp.eliminar_producto', id=p[0]) }}"
@@ -443,6 +491,23 @@
     });
   }
 
+  // Switches del celular: son un espejo de los de escritorio (misma fila)
+  function sincronizarEspejos(fila) {
+    if (!fila) return;
+    fila.querySelectorAll('.espejo').forEach(function (e) {
+      var real = fila.querySelector(e.dataset.espejo);
+      if (real) e.checked = real.checked;
+    });
+  }
+  document.querySelectorAll('.espejo').forEach(function (e) {
+    e.addEventListener('change', function () {
+      var real = e.closest('tr').querySelector(e.dataset.espejo);
+      if (!real) return;
+      real.checked = e.checked;
+      real.dispatchEvent(new Event('change'));
+    });
+  });
+
   // ===== Toggle visible_web con AJAX =====
   document.querySelectorAll('.toggle-web').forEach(function(chk) {
     chk.addEventListener('change', function() {
@@ -452,9 +517,11 @@
         .then(function(r) { return r.json(); })
         .then(function(data) {
           self.title = data.visible_web ? 'Visible en web' : 'Oculto en web';
+          sincronizarEspejos(self.closest('tr'));
         })
         .catch(function() {
           self.checked = !self.checked;
+          sincronizarEspejos(self.closest('tr'));
           alert('Error al actualizar. Intente de nuevo.');
         });
     });
@@ -473,9 +540,11 @@
           var fila = self.closest('tr');
           var web = fila ? fila.querySelector('.toggle-web') : null;
           if (web && data.visible_web) { web.checked = true; web.title = 'Visible en web'; }
+          sincronizarEspejos(fila);
         })
         .catch(function() {
           self.checked = !self.checked;
+          sincronizarEspejos(self.closest('tr'));
           alert('Error al actualizar. Intente de nuevo.');
         });
     });

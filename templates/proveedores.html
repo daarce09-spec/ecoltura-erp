@@ -7,7 +7,7 @@
                border:1px solid #f0f0f0; padding:18px 20px; }
   .prov-item { display:flex; justify-content:space-between; align-items:center; gap:8px;
                padding:11px 12px; border-radius:12px; cursor:pointer; border:1.5px solid transparent; }
-  .prov-item:hover { background:#f4f8f5; }
+  @media (hover: hover) and (pointer: fine) { .prov-item:hover { background:#f4f8f5; } }
   .prov-item.sel { background:#e8f3ec; border-color:#2d6a4f; }
   .prov-item .nom { font-weight:600; color:#1b4332; }
   .prov-item .tel { font-size:.78rem; color:#777; }
@@ -22,7 +22,7 @@
   .oculto { font-size:.66rem; color:#999; margin-left:6px; }
   .btn-ofi { border:1.5px solid #dee2e6; background:#fff; border-radius:999px; padding:3px 12px;
              font-size:.76rem; font-weight:600; color:#777; cursor:pointer; white-space:nowrap; }
-  .btn-ofi:hover { border-color:#e0a800; color:#8a6d00; }
+  @media (hover: hover) and (pointer: fine) { .btn-ofi:hover { border-color:#e0a800; color:#8a6d00; } }
   .btn-ofi.activo { background:#ffc107; border-color:#ffc107; color:#3d3000; }
   .btn-ofi:disabled { opacity:.35; cursor:not-allowed; }
   .otro { font-size:.72rem; color:#b45309; display:block; margin-top:3px; }

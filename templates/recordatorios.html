@@ -7,7 +7,7 @@
   .bg-verde-eco { background-color: var(--brand-green) !important; }
   .text-verde-eco { color: var(--brand-green) !important; }
   .btn-verde-eco { background-color: var(--brand-green); color: white; border: none; transition: 0.3s; }
-  .btn-verde-eco:hover { background-color: var(--brand-green-hover); color: white; }
+  @media (hover: hover) and (pointer: fine) { .btn-verde-eco:hover { background-color: var(--brand-green-hover); color: white; } }
   .card-eco { border-radius: 15px; border: none; }
   .tab-btn { border: none; background: transparent; padding: 10px 18px; font-weight: 600;
              color: #888; border-bottom: 3px solid transparent; cursor: pointer;
@@ -24,7 +24,7 @@
   .badge-no { background: #f8d7da; color: #721c24; padding: 3px 10px; border-radius: 12px; font-size: .75rem; font-weight: 600; }
   .cliente-item { border: 1px solid #eee; border-radius: 10px; padding: 12px 16px; margin-bottom: 10px;
                   cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
-  .cliente-item:hover { background: #f8faf9; }
+  @media (hover: hover) and (pointer: fine) { .cliente-item:hover { background: #f8faf9; } }
   .cliente-item.seleccionado { border-color: var(--brand-green); background: #f0f7f3; }
   .tabla-masivo td { padding: 10px 8px; }
   .tabla-masivo input[type="checkbox"]:disabled { opacity: .35; }
