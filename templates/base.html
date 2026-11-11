@@ -204,6 +204,7 @@
                      color: #8A8A85; text-decoration: none; position: relative; touch-action: manipulation; }
       .barra-eco a i { font-size: 1.3rem; line-height: 1.2; }
       .barra-eco a.on { color: var(--brand-green); }
+      .barra-eco a.on::before { content: ""; position: absolute; top: -6px; left: 30%; right: 30%; height: 3px; border-radius: 0 0 3px 3px; background: var(--brand-green); }
       .barra-eco .nav-badge { top: 0; right: auto; left: calc(50% + 6px); }
       main#main-content { bottom: calc(64px + env(safe-area-inset-bottom)) !important; }
     }
