@@ -1,0 +1,37 @@
+{# INTRO de ECOLTURA: logo blanco sobre el verde del ícono del Admin.
+   Sale al abrir el login y al abrir el Inicio (una vez por sesión de la app),
+   esté o no logueado. Si acaba de salir hace menos de 90 s (por ejemplo en el
+   login justo antes de entrar), no se repite. #}
+<div id="intro" style="position:fixed;inset:0;z-index:2000;background:#1A4226;display:flex;flex-direction:column;
+     align-items:center;justify-content:center;gap:22px;transition:opacity .7s ease, visibility .7s ease;">
+  <img id="intro-logo" src="/static/img/intro-admin.png" alt="ECOLTURA"
+       style="width:min(62vw,300px);height:auto;opacity:0;transform:scale(.94);transition:opacity .6s ease, transform .9s ease;">
+  <div id="intro-sub" style="font-family:Inter,system-ui,sans-serif;font-size:clamp(.62rem,2.6vw,.75rem);letter-spacing:5px;
+       text-transform:uppercase;color:rgba(255,255,255,.6);font-weight:600;opacity:0;transition:opacity .6s ease .35s;">Administración</div>
+</div>
+<script>
+  (function () {
+    var intro = document.getElementById('intro');
+    if (!intro) return;
+    var ahora = Date.now(), ultimo = 0, yaEnSesion = false, esInicio = {{ 'true' if intro_inicio else 'false' }};
+    try {
+      ultimo = parseInt(sessionStorage.getItem('ecoltura_intro_t') || '0', 10);
+      yaEnSesion = !!sessionStorage.getItem('ecoltura_intro_inicio');
+    } catch (e) {}
+    if ((ahora - ultimo) < 90000 || (esInicio && yaEnSesion)) {
+      intro.style.display = 'none';
+      try { if (esInicio) sessionStorage.setItem('ecoltura_intro_inicio', '1'); } catch (e) {}
+      return;
+    }
+    try {
+      sessionStorage.setItem('ecoltura_intro_t', String(ahora));
+      if (esInicio) sessionStorage.setItem('ecoltura_intro_inicio', '1');
+    } catch (e) {}
+    var logo = document.getElementById('intro-logo'), sub = document.getElementById('intro-sub');
+    requestAnimationFrame(function () { requestAnimationFrame(function () {
+      logo.style.opacity = '1'; logo.style.transform = 'scale(1)'; sub.style.opacity = '1';
+    }); });
+    setTimeout(function () { intro.style.opacity = '0'; intro.style.visibility = 'hidden'; intro.style.pointerEvents = 'none'; }, 2000);
+    setTimeout(function () { intro.style.display = 'none'; }, 2800);
+  })();
+</script>

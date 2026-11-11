@@ -174,3 +174,7 @@
   </div>
 </div>
 {% endblock %}
+
+{% block before_content %}
+{% with intro_inicio = True %}{% include "_intro.html" %}{% endwith %}
+{% endblock %}
