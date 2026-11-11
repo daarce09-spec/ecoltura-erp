@@ -6,7 +6,7 @@
   .filtro-card { background:white; border-radius:16px; padding:20px 24px;
                  box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; margin-bottom:20px; }
   .venta-row { transition: background .15s; }
-  .venta-row:hover { background:#f8faf9; }
+  @media (hover: hover) and (pointer: fine) { .venta-row:hover { background:#f8faf9; } }
   .badge-estado { font-size:.72rem; padding:4px 10px; border-radius:999px; font-weight:700; }
   .badge-Facturado { background:#D1E7DD; color:#0A4A2A; }
   .badge-Anulado   { background:#F8D7DA; color:#842029; }
@@ -21,7 +21,7 @@
     padding:6px 14px; border-radius:999px; border:1px solid #d8e6dc;
     color:#2d6a4f; background:#fff; transition:all .15s;
   }
-  .vistas-rapidas a:hover { background:#e9f5ee; border-color:#2d6a4f; }
+  @media (hover: hover) and (pointer: fine) { .vistas-rapidas a:hover { background:#e9f5ee; border-color:#2d6a4f; } }
   .vistas-rapidas a.activa { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
 
   .aviso-limite {

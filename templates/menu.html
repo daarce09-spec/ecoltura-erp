@@ -34,15 +34,20 @@
     height: 3px; background: linear-gradient(90deg, #2E6B3E, #7AB648);
     transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
   }
-  .modulo:hover, .modulo:active {
+  .modulo:active {
     transform: translateY(-4px);
     box-shadow: 0 14px 32px rgba(46,107,62,.15);
     border-color: rgba(46,107,62,.3);
   }
-  .modulo:hover::after { transform: scaleX(1); }
-  .modulo:hover .mod-icon { background: #2E6B3E; }
-  .modulo:hover .mod-icon i { color: #fff; }
-  .modulo:hover .mod-nombre { color: #2E6B3E; }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 32px rgba(46,107,62,.15);
+    border-color: rgba(46,107,62,.3);
+  } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover::after { transform: scaleX(1); } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon { background: #2E6B3E; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon i { color: #fff; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-nombre { color: #2E6B3E; } }
 
   .mod-icon {
     width: clamp(48px, 5vw, 64px); height: clamp(48px, 5vw, 64px);
@@ -88,7 +93,8 @@
     }
     .modulo::after { width: 4px; height: 100%; top: 0; bottom: 0; left: 0; right: auto;
                      transform: scaleY(0); transform-origin: top; }
-    .modulo:hover::after, .modulo:active::after { transform: scaleY(1); }
+    .modulo:active::after { transform: scaleY(1); }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover::after { transform: scaleY(1); } }
     .mod-icon { width: 54px; height: 54px; flex-shrink: 0; }
     .mod-texto { text-align: left; align-items: flex-start; }
   }
