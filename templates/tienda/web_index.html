@@ -398,7 +398,17 @@
                      border: 1px dashed #B9CFA9; font-size: .82rem; font-weight: 600; cursor: pointer; }
     .btn-ubicacion.marcado { border-style: solid; border-color: var(--verde); background: #F4F8F1; }
     .mapa-ayuda { font-size: .85rem; color: var(--gris); margin: -6px 0 12px; line-height: 1.45; }
-    .mapa-caja { position: relative; height: min(52vh, 420px); border: 1px solid var(--borde); }
+    .mapa-buscar { display: flex; gap: 6px; margin-bottom: 8px; }
+    .mapa-buscar input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid var(--borde); font-size: 16px; background: #fff; outline: none; }
+    .mapa-buscar input:focus { border-color: var(--verde); }
+    .mapa-buscar button { flex: 0 0 48px; border: 1px solid var(--verde); background: var(--verde); color: #fff; font-size: 1.05rem; cursor: pointer; }
+    .mapa-resultados { margin-bottom: 8px; }
+    .mapa-resultados button { display: block; width: 100%; text-align: left; padding: 10px 12px; background: #fff; border: 1px solid var(--borde);
+                              border-top: none; font-size: .85rem; line-height: 1.35; cursor: pointer; color: var(--texto); }
+    .mapa-resultados button:first-child { border-top: 1px solid var(--borde); }
+    .mapa-resultados button b { color: var(--carbon); display: block; font-size: .9rem; }
+    .mapa-resultados .vacio { font-size: .82rem; color: var(--gris); padding: 6px 2px; }
+    .mapa-caja { position: relative; height: min(44vh, 400px); border: 1px solid var(--borde); }
     #mapa { position: absolute; inset: 0; background: #EEF3EA; }
     .mapa-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); z-index: 500;
                 pointer-events: none; color: #C0392B; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
@@ -787,7 +797,7 @@
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
-      <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="abrirMapa()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar mi casa en el mapa (opcional)</span></button>
+      <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="abrirMapa()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
       <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
       <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
@@ -819,9 +829,14 @@
 <!-- Modal: marcar la casa en el mapa (el pin queda fijo al centro; se mueve el mapa) -->
 <div class="overlay" id="overlayMapa">
   <div class="modal">
-    <button class="modal-cerrar" onclick="cerrarModal('overlayMapa')">✕</button>
+    <button class="modal-cerrar" onclick="continuarTrasUbicacion = false; cerrarModal('overlayMapa')">✕</button>
     <div class="modal-titulo">¿Dónde te lo llevamos?</div>
-    <div class="mapa-ayuda">Mové el mapa hasta que el pin quede sobre tu casa. Podés hacer zoom con los dedos.</div>
+    <div class="mapa-ayuda" id="mapaAyuda">Buscá un lugar cercano o mové el mapa hasta que el pin quede sobre tu casa.</div>
+    <form class="mapa-buscar" onsubmit="buscarLugar(event)">
+      <input type="search" id="mapaBuscar" placeholder="Buscar: barrio, escuela, iglesia, súper…" autocomplete="off" enterkeyhint="search">
+      <button type="submit" aria-label="Buscar">🔍</button>
+    </form>
+    <div class="mapa-resultados" id="mapaResultados"></div>
     <div class="mapa-caja">
       <div id="mapa"></div>
       <div class="mapa-pin"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>
@@ -1813,6 +1828,8 @@ function abrirModalConfirmacion() {
     if (!direccion) { alert("Indique la dirección de entrega."); return; }
     const correo = document.getElementById("pedCorreo").value.trim();
     if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correo)) { alert("Revisá el correo, parece que está mal escrito (o dejalo vacío)."); return; }
+    // La ubicación es obligatoria (el repartidor arma la ruta con ella)
+    if (!ubicacion) { continuarTrasUbicacion = true; abrirMapa(); return; }
   }
   const agregando = modoAgregar();
   document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a tu pedido" : "Confirmar pedido");
@@ -1857,6 +1874,7 @@ function cajaCorreo(caja, etiqueta, correo, pie) {
 // El pin queda fijo al centro y el cliente mueve el mapa: funciona igual con dedo o mouse,
 // esté o no en su casa. El GPS es solo un atajo.
 var ubicacion = null;           // { lat, lng } o null
+var continuarTrasUbicacion = false;   // si el mapa se abrió al enviar el pedido, al confirmar se sigue al resumen
 var mapa = null;
 var SAN_RAMON = [10.0874, -84.4703];
 
@@ -1873,6 +1891,10 @@ function cargarLeaflet(listo) {
 }
 
 function abrirMapa() {
+  document.getElementById("mapaAyuda").textContent = continuarTrasUbicacion
+    ? "Para enviarte el pedido necesitamos el punto exacto. Buscá un lugar cercano o mové el mapa hasta tu casa."
+    : "Buscá un lugar cercano o mové el mapa hasta que el pin quede sobre tu casa.";
+  document.getElementById("mapaResultados").innerHTML = "";
   document.getElementById("btnQuitarUbic").style.display = ubicacion ? "" : "none";
   abrirModal('overlayMapa');
   cargarLeaflet(function () {
@@ -1913,6 +1935,41 @@ function confirmarUbicacion() {
   var c = mapa.getCenter();
   ubicacion = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
   guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
+  if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
+}
+
+// Buscador de lugares (OpenStreetMap / Nominatim, gratis): solo Costa Rica, priorizando San Ramón.
+// Busca al tocar 🔍 o Enter (no en cada letra, así respetamos el uso justo del servicio).
+function buscarLugar(ev) {
+  ev.preventDefault();
+  var texto = document.getElementById("mapaBuscar").value.trim();
+  var caja = document.getElementById("mapaResultados");
+  if (texto.length < 3) { caja.innerHTML = '<div class="vacio">Escribí al menos 3 letras.</div>'; return; }
+  caja.innerHTML = '<div class="vacio">Buscando…</div>';
+  var url = "https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=cr&limit=6&accept-language=es" +
+            "&viewbox=-84.75,10.30,-84.20,9.85&q=" + encodeURIComponent(texto);
+  fetch(url).then(function (r) { return r.json(); }).then(function (lista) {
+    caja.innerHTML = "";
+    if (!lista.length) {
+      caja.innerHTML = '<div class="vacio">No encontramos ese lugar. Probá con algo cercano (barrio, escuela, iglesia) o mové el mapa a mano.</div>';
+      return;
+    }
+    lista.forEach(function (l) {
+      var partes = (l.display_name || "").split(", ");
+      var b = document.createElement("button"); b.type = "button";
+      var t = document.createElement("b"); t.textContent = l.name || partes[0];
+      b.appendChild(t);
+      b.appendChild(document.createTextNode(partes.slice(1, 4).join(", ")));
+      b.onclick = function () {
+        caja.innerHTML = "";
+        document.getElementById("mapaBuscar").blur();
+        if (mapa) mapa.setView([+l.lat, +l.lon], 17);
+      };
+      caja.appendChild(b);
+    });
+  }).catch(function () {
+    caja.innerHTML = '<div class="vacio">No se pudo buscar ahora. Mové el mapa a mano.</div>';
+  });
 }
 
 function quitarUbicacion() {
@@ -1923,7 +1980,7 @@ function quitarUbicacion() {
 function pintarBotonUbicacion() {
   var b = document.getElementById("btnUbicacion");
   document.getElementById("txtUbicacion").textContent =
-    ubicacion ? "✓ Ubicación marcada · Cambiar" : "Marcar mi casa en el mapa (opcional)";
+    ubicacion ? "✓ Ubicación marcada · Cambiar" : "Marcar dónde te lo llevamos";
   b.classList.toggle("marcado", !!ubicacion);
 }
 
@@ -2030,6 +2087,11 @@ async function enviarPedido() {
       document.getElementById("pedNotas").value = "";  // mantener nombre/celular/dirección para el próximo pedido
       renderProductos(); renderResumen();
       refrescarFranjaPedido();
+    } else if (data.falta_ubicacion) {
+      // El servidor no recibió el punto (p. ej. una página vieja): se pide en el mapa y se sigue
+      cerrarModal('overlayConfirm');
+      ubicacion = null; pintarBotonUbicacion();
+      continuarTrasUbicacion = true; abrirMapa();
     } else {
       alert("Error: " + data.error);
     }
