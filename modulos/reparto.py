@@ -142,29 +142,28 @@ def _direccion(notas, dir_cliente):
     return (dir_cliente or "").strip(), notas
 
 
-@reparto_bp.route("/reparto")
-def reparto():
-    with obtener_conexion() as conn:
-        cur = conn.cursor()
+def armar_ruta(cur):
+    """Pedidos alistados en el orden de la ruta. Devuelve (ruta, km). La usan la
+    pantalla de Reparto y el Inicio del Admin."""
+    cur.execute("""
+        SELECT p.id, COALESCE(c.nombre, p.nombre_contacto), p.celular, p.total_estimado,
+               p.notas, c.direccion, p.lat, p.lng, p.entrega_fallida, p.creado
+        FROM pedidos p LEFT JOIN clientes c ON c.id = p.cliente_id
+        WHERE p.estado = 'Pendiente' AND p.seguimiento IN ('Alistado', 'Listo')
+        ORDER BY p.creado
+    """)
+    filas = cur.fetchall()
+    ids = [f[0] for f in filas]
+    productos = {}
+    if ids:
         cur.execute("""
-            SELECT p.id, COALESCE(c.nombre, p.nombre_contacto), p.celular, p.total_estimado,
-                   p.notas, c.direccion, p.lat, p.lng, p.entrega_fallida, p.creado
-            FROM pedidos p LEFT JOIN clientes c ON c.id = p.cliente_id
-            WHERE p.estado = 'Pendiente' AND p.seguimiento IN ('Alistado', 'Listo')
-            ORDER BY p.creado
-        """)
-        filas = cur.fetchall()
-        ids = [f[0] for f in filas]
-        productos = {}
-        if ids:
-            cur.execute("""
-                SELECT d.pedido_id, pr.nombre, pr.unidad, d.cantidad
-                FROM pedidos_detalle d JOIN productos pr ON pr.id = d.producto_id
-                WHERE d.pedido_id = ANY(%s) AND d.producto_id <> 118
-                ORDER BY pr.nombre
-            """, (ids,))
-            for pid, nom, uni, cant in cur.fetchall():
-                productos.setdefault(pid, []).append(_cantidad(cant, uni) + " · " + nom)
+            SELECT d.pedido_id, pr.nombre, pr.unidad, d.cantidad
+            FROM pedidos_detalle d JOIN productos pr ON pr.id = d.producto_id
+            WHERE d.pedido_id = ANY(%s) AND d.producto_id <> 118
+            ORDER BY pr.nombre
+        """, (ids,))
+        for pid, nom, uni, cant in cur.fetchall():
+            productos.setdefault(pid, []).append(_cantidad(cant, uni) + " · " + nom)
 
     entregas = []
     for pid, nombre, cel, total, notas, dir_cli, lat, lng, fallida, creado in filas:
@@ -182,7 +181,13 @@ def reparto():
     fallidas = [e for e in entregas if e["fallida"]]
     orden, km = ordenar_ruta([(e["lat"], e["lng"]) for e in con_ubic])
     ruta = [con_ubic[i] for i in orden] + sin_ubic + fallidas
+    return ruta, km
 
+
+@reparto_bp.route("/reparto")
+def reparto():
+    with obtener_conexion() as conn:
+        ruta, km = armar_ruta(conn.cursor())
     return render_template("reparto.html", ruta=ruta, km=km, motivos=MOTIVOS,
                            total=sum(e["total"] for e in ruta))
 

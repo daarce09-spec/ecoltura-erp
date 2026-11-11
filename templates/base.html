@@ -23,7 +23,7 @@
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12"></script>
   <!-- Chart.js vive aquí (no dentro de un módulo) a propósito: el <head>
@@ -175,6 +175,40 @@
       .topbar-hora { display: none; }
     }
 
+    /* ── Navegación (mismo estilo de la tienda) ──
+       Computadora: pestañas en MAYÚSCULAS en el encabezado.
+       Celular: barra fija abajo, al alcance del pulgar. */
+    .nav-tabs-eco { display: none; gap: 26px; align-items: center; margin: 0 auto; }
+    .nav-tabs-eco a { font-family: 'Inter', system-ui, sans-serif; font-size: .78rem; font-weight: 600; letter-spacing: 1.4px;
+                      text-transform: uppercase; color: #888; text-decoration: none; padding: 8px 0;
+                      border-bottom: 2px solid transparent; position: relative; white-space: nowrap; }
+    .nav-tabs-eco a.on { color: var(--brand-green); border-bottom-color: var(--brand-green); }
+    @media (hover: hover) and (pointer: fine) { .nav-tabs-eco a:hover { color: var(--brand-green); } }
+    .nav-badge { position: absolute; top: 0; right: -14px; min-width: 16px; height: 16px; border-radius: 8px; padding: 0 4px;
+                 background: #D9742E; color: #fff; font-size: .6rem; letter-spacing: 0; display: none;
+                 align-items: center; justify-content: center; }
+    .nav-badge.on { display: inline-flex; }
+    .barra-eco { display: none; }
+    @media (min-width: 992px) {
+      .nav-tabs-eco { display: flex; }
+      .brand-text { display: none; }
+      .btn-menu-grid { display: none !important; }
+    }
+    @media (max-width: 991.98px) {
+      .btn-menu-grid { display: none !important; }
+      .barra-eco { display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; left: 0; right: 0; bottom: 0;
+                   z-index: 1030; background: #fff; border-top: 1px solid #E6E6E2;
+                   padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+      .barra-eco a { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 4px 0;
+                     font-family: 'Inter', system-ui, sans-serif; font-size: .64rem; font-weight: 600; letter-spacing: .3px;
+                     color: #8A8A85; text-decoration: none; position: relative; touch-action: manipulation; }
+      .barra-eco a i { font-size: 1.3rem; line-height: 1.2; }
+      .barra-eco a.on { color: var(--brand-green); }
+      .barra-eco .nav-badge { top: 0; right: auto; left: calc(50% + 6px); }
+      main#main-content { bottom: calc(64px + env(safe-area-inset-bottom)) !important; }
+    }
+    @media print { .barra-eco, .nav-tabs-eco { display: none !important; } main#main-content { bottom: 0 !important; } }
+
     {% block extra_css %}{% endblock %}
   </style>
 </head>
@@ -208,9 +242,18 @@
           <span class="brand-sub">Agricultura Regenerativa</span>
         </div>
       </a>
+      <nav class="nav-tabs-eco" id="navTabsEco">
+        <a href="/menu" data-sec="inicio">Inicio</a>
+        <a href="/admin/pedidos" data-sec="pedidos">Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
+        <a href="/reparto" data-sec="reparto">Reparto</a>
+        <a href="/menu/clientes" data-sec="clientes">Clientes</a>
+        <a href="/menu/inventario" data-sec="inventario">Inventario</a>
+        <a href="/menu/ventas" data-sec="ventas">Ventas</a>
+        <a href="/contabilidad" data-sec="contabilidad">Contabilidad</a>
+      </nav>
       <div class="navbar-right">
         <span class="topbar-hora" id="reloj-admin"></span>
-        <a href="{{ url_for('menu') }}" class="btn-volver-menu" title="Volver al menú">
+        <a href="{{ url_for('menu') }}" class="btn-volver-menu btn-menu-grid" title="Volver al menú">
           <i class="bi bi-grid-3x3-gap-fill"></i>
         </a>
         <button id="btn-activar-push" class="btn-volver-menu" title="Activar notificaciones">
@@ -228,6 +271,54 @@
   <main id="main-content" class="container py-4">
     {% block content %}{% endblock %}
   </main>
+
+  <!-- Barra de abajo (solo celular) -->
+  <nav class="barra-eco" id="barraEco">
+    <a href="/menu" data-sec="inicio"><i class="bi bi-house-door"></i>Inicio</a>
+    <a href="/admin/pedidos" data-sec="pedidos"><i class="bi bi-bag"></i>Pedidos<span class="nav-badge" data-badge="pedidos"></span></a>
+    <a href="/reparto" data-sec="reparto"><i class="bi bi-truck"></i>Reparto</a>
+    <a href="/menu/clientes" data-sec="clientes"><i class="bi bi-people"></i>Clientes</a>
+    <a href="/menu/mas" data-sec="mas"><i class="bi bi-three-dots"></i>Más</a>
+  </nav>
+  <script>
+    // Marca la sección activa (pestañas y barra viven fuera de #main-content, así que
+    // se actualizan con cada navegación de htmx) y pone el numerito de pedidos.
+    (function () {
+      var REGLAS = [
+        ['pedidos',      /^\/admin\/pedidos/],
+        ['reparto',      /^\/reparto/],
+        ['clientes',     /^\/(clientes|recordatorios|menu\/clientes)/],
+        ['inventario',   /^\/(productos|inventario|menu\/inventario)/],
+        ['ventas',       /^\/(ventas|admin\/visitas|menu\/ventas)/],
+        ['contabilidad', /^\/contabilidad/],
+        ['mas',          /^\/menu\/mas/],
+        ['inicio',       /^\/menu\/?$/]
+      ];
+      // En la barra del celular, lo que no tiene botón propio cae en "Más"
+      var EN_BARRA = { pedidos: 1, reparto: 1, clientes: 1, inicio: 1 };
+      function marcar() {
+        var ruta = location.pathname, sec = '';
+        for (var i = 0; i < REGLAS.length; i++) { if (REGLAS[i][1].test(ruta)) { sec = REGLAS[i][0]; break; } }
+        document.querySelectorAll('#navTabsEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === sec); });
+        var secBarra = EN_BARRA[sec] ? sec : (sec ? 'mas' : '');
+        document.querySelectorAll('#barraEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === secBarra); });
+      }
+      var ultimo = 0;
+      function contadores() {
+        if (Date.now() - ultimo < 15000) return;      // como mucho cada 15 s
+        ultimo = Date.now();
+        fetch('/admin/api/contadores').then(function (r) { return r.json(); }).then(function (d) {
+          var n = d.pedidos_pendientes || 0;
+          document.querySelectorAll('[data-badge="pedidos"]').forEach(function (b) {
+            b.textContent = n > 99 ? '99+' : n; b.classList.toggle('on', n > 0);
+          });
+        }).catch(function () {});
+      }
+      marcar(); contadores();
+      document.body.addEventListener('htmx:afterSettle', function () { marcar(); contadores(); });
+      window.addEventListener('popstate', function () { setTimeout(marcar, 0); });
+    })();
+  </script>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 

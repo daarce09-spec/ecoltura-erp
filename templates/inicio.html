@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+{% block title %}ECOLTURA | Inicio{% endblock %}
+{% block content %}
+{% macro colones(x) %}₡{{ "{:,.0f}".format(x).replace(",", ".") }}{% endmacro %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  /* Inicio con el mismo lenguaje visual de la tienda (todas las clases llevan "in-") */
+  .in-wrap { --negro:#1A1C18; --carbon:#3F3F41; --crema:#F6F6F4; --borde:#E6E6E2; --texto:#3B3B37;
+             --gris:#6E6E69; --verde:#3E6B22; --verde-os:#2E5117; --naranja:#D9742E;
+             font-family: Inter, system-ui, sans-serif; color: var(--texto); max-width: 1120px; margin: 0 auto;
+             font-feature-settings: "tnum"; -webkit-font-smoothing: antialiased; }
+  .in-wrap a { text-decoration: none; color: inherit; }
+  .in-serif { font-family: Fraunces, Georgia, serif; font-weight: 400; color: var(--negro); }
+  .in-top { display: flex; justify-content: space-between; align-items: flex-end; gap: 14px; flex-wrap: wrap; }
+  .in-eyebrow { font-size: .68rem; letter-spacing: 3px; text-transform: uppercase; color: var(--verde); font-weight: 600; }
+  .in-top h1 { font-size: clamp(1.5rem, 2.6vw, 1.9rem); margin: 2px 0 0; }
+  .in-rango { display: flex; border: 1px solid var(--borde); }
+  .in-rango a { font-size: .75rem; font-weight: 600; padding: 7px 14px; color: var(--gris); letter-spacing: .5px; }
+  .in-rango a.on { background: var(--negro); color: #fff; }
+
+  .in-cifras { display: grid; grid-template-columns: repeat(4, 1fr); border: 1px solid var(--borde); margin-top: 18px; background: #fff; }
+  .in-cifra { padding: 16px 20px; }
+  .in-cifra + .in-cifra { border-left: 1px solid var(--borde); }
+  .in-cifra .l { font-size: .72rem; color: var(--gris); font-weight: 500; }
+  .in-cifra .v { font-size: 1.5rem; font-weight: 700; color: var(--negro); letter-spacing: -.3px; margin-top: 2px; white-space: nowrap; }
+  .in-cifra .d { font-size: .74rem; color: var(--gris); }
+  .in-cifra .d.up { color: var(--verde); font-weight: 600; }
+  .in-cifra .d.down { color: #B3392F; font-weight: 600; }
+
+  .in-grid { display: grid; grid-template-columns: 1fr 330px; gap: 32px; margin-top: 30px; align-items: start; }
+  .in-h { display: flex; justify-content: space-between; align-items: baseline; padding-bottom: 10px; border-bottom: 1px solid var(--negro); }
+  .in-h h2 { font-size: 1.25rem; margin: 0; }
+  .in-h a { font-size: .72rem; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; color: var(--verde); }
+
+  .in-tarea { display: grid; grid-template-columns: 42px 1fr auto 18px; align-items: center; gap: 14px;
+              padding: 14px 4px; border-bottom: 1px solid var(--borde); }
+  @media (hover: hover) and (pointer: fine) { .in-tarea:hover { background: var(--crema); } }
+  .in-tarea .n { font-family: Fraunces, Georgia, serif; font-size: 1.6rem; color: var(--negro); text-align: center; line-height: 1; }
+  .in-tarea .n.urg { color: var(--naranja); }
+  .in-tarea b { display: block; color: var(--negro); font-weight: 600; font-size: .95rem; }
+  .in-tarea small { color: var(--gris); font-size: .8rem; }
+  .in-tarea .acc { font-size: .68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+                   color: var(--verde); border: 1.5px solid var(--verde); padding: 6px 12px; white-space: nowrap; }
+  .in-tarea .acc.urg { background: var(--verde); color: #fff; }
+  .in-tarea .fl { color: #aaa; }
+  .in-vacio { padding: 18px 4px; color: var(--gris); font-size: .9rem; border-bottom: 1px solid var(--borde); }
+
+  .in-pedidos { margin-top: 34px; }
+  .in-ped { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 14px; align-items: center;
+            padding: 12px 4px; border-bottom: 1px solid var(--borde); font-size: .9rem; }
+  .in-ped .t { color: var(--gris); font-size: .8rem; }
+  .in-ped b { color: var(--negro); font-weight: 600; }
+  .in-ped small { display: block; color: var(--gris); font-size: .78rem; }
+  .in-est { font-size: .64rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase;
+            padding: 4px 9px; border: 1px solid var(--borde); color: var(--gris); white-space: nowrap; }
+  .in-est.nuevo { border-color: var(--naranja); color: var(--naranja); }
+  .in-est.al { border-color: var(--verde); color: var(--verde); }
+  .in-ped .m { font-weight: 700; color: var(--negro); min-width: 78px; text-align: right; white-space: nowrap; }
+
+  .in-panel { border: 1px solid var(--borde); padding: 20px; background: #fff; }
+  .in-panel .tt { font-size: .7rem; font-weight: 600; letter-spacing: 2.5px; text-transform: uppercase;
+                  color: var(--negro); padding-bottom: 12px; border-bottom: 1px solid var(--borde); }
+  .in-pasos { display: flex; gap: 4px; margin: 14px 0 6px; }
+  .in-pasos i { flex: 1; height: 3px; background: var(--borde); }
+  .in-pasos i.ok { background: var(--verde); }
+  .in-leg { font-size: .78rem; color: var(--gris); }
+  .in-par { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--crema); font-size: .88rem; }
+  .in-par .p { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--verde); display: grid; place-items: center;
+               font-size: .66rem; font-weight: 700; color: var(--verde); flex: 0 0 22px; font-style: normal; }
+  .in-par.sig .p { background: var(--naranja); border-color: var(--naranja); color: #fff; }
+  .in-par small { display: block; color: var(--gris); font-size: .76rem; }
+  .in-btn { display: block; margin-top: 16px; background: var(--verde); color: #fff !important; padding: 14px; text-align: center;
+            font-weight: 600; font-size: .78rem; letter-spacing: 1.5px; text-transform: uppercase; }
+  @media (hover: hover) and (pointer: fine) { .in-btn:hover { background: var(--verde-os); } }
+
+  @media (max-width: 900px) {
+    .in-cifras { grid-template-columns: 1fr 1fr; }
+    .in-cifra { padding: 13px 14px; }
+    .in-cifra:nth-child(3) { border-left: none; }
+    .in-cifra:nth-child(n+3) { border-top: 1px solid var(--borde); }
+    .in-cifra .v { font-size: 1.2rem; }
+    .in-grid { grid-template-columns: 1fr; gap: 28px; }
+    .in-tarea { grid-template-columns: 34px 1fr 16px; gap: 10px; }
+    .in-tarea .acc { display: none; }
+    .in-ped { grid-template-columns: 1fr auto; gap: 4px 10px; }
+    .in-ped .t { display: none; }
+    .in-ped .in-est { grid-column: 1; grid-row: 2; justify-self: start; }
+    .in-ped .m { grid-column: 2; grid-row: 1 / 3; }
+  }
+</style>
+
+<div class="in-wrap">
+  <div class="in-top">
+    <div><span class="in-eyebrow">{{ fecha }}</span><h1 class="in-serif">{{ saludo }}</h1></div>
+    <div class="in-rango">
+      <a href="/menu?periodo=hoy"    class="{{ 'on' if periodo == 'hoy' }}">Hoy</a>
+      <a href="/menu?periodo=semana" class="{{ 'on' if periodo == 'semana' }}">Semana</a>
+      <a href="/menu?periodo=mes"    class="{{ 'on' if periodo == 'mes' }}">Mes</a>
+    </div>
+  </div>
+
+  {% if cifras %}
+  <section class="in-cifras">
+    <div class="in-cifra"><div class="l">Ventas · {{ periodo_txt|lower }}</div><div class="v">{{ colones(cifras.ventas) }}</div>
+      {% if cifras.cambio is none %}<div class="d">Sin datos de {{ comparado }}</div>
+      {% elif cifras.cambio >= 0 %}<div class="d up">▲ {{ cifras.cambio }} % vs. {{ comparado }}</div>
+      {% else %}<div class="d down">▼ {{ -cifras.cambio }} % vs. {{ comparado }}</div>{% endif %}</div>
+    <div class="in-cifra"><div class="l">Pedidos web</div><div class="v">{{ cifras.pedidos }}</div><div class="d">{{ cifras.n_ventas }} venta{{ '' if cifras.n_ventas == 1 else 's' }} en total</div></div>
+    <div class="in-cifra"><div class="l">Ticket promedio</div><div class="v">{{ colones(cifras.ticket) }}</div><div class="d">por venta</div></div>
+    <div class="in-cifra"><div class="l">Por cobrar</div><div class="v">{{ colones(cifras.por_cobrar) }}</div>
+      <div class="d">{% if cifras.n_sinpe %}{{ cifras.n_sinpe }} SINPE sin confirmar{% else %}todo lo pendiente{% endif %}</div></div>
+  </section>
+  {% endif %}
+
+  <div class="in-grid">
+    <div>
+      <div class="in-h"><h2 class="in-serif">Por hacer</h2></div>
+      {% for t in tareas %}
+      <a class="in-tarea" href="{{ t.href }}">
+        <span class="n {{ 'urg' if t.urgente }}">{{ t.n }}</span>
+        <span><b>{{ t.titulo }}</b><small>{{ t.detalle }}</small></span>
+        <span class="acc {{ 'urg' if t.urgente }}">{{ t.boton }}</span>
+        <i class="bi bi-chevron-right fl"></i>
+      </a>
+      {% else %}
+      <div class="in-vacio">Todo al día. No hay nada pendiente 🌱</div>
+      {% endfor %}
+
+      <div class="in-pedidos">
+        <div class="in-h"><h2 class="in-serif">Pedidos recientes</h2><a href="/admin/pedidos">Ver todos</a></div>
+        {% for p in recientes %}
+        <a class="in-ped" href="/admin/pedidos/{{ p.id }}">
+          <span class="t">{{ p.hora.strftime('%d/%m %H:%M') if p.hora }}</span>
+          <span><b>{{ p.nombre }}</b><small>{{ p.n }} producto{{ '' if p.n == 1 else 's' }}{% if p.zona %} · {{ p.zona }}{% endif %}</small></span>
+          <span class="in-est {{ p.clase }}">{{ p.etiqueta }}</span>
+          <span class="m">{{ colones(p.total) }}</span>
+        </a>
+        {% else %}
+        <div class="in-vacio">Todavía no hay pedidos.</div>
+        {% endfor %}
+      </div>
+    </div>
+
+    {% if reparto %}
+    <aside class="in-panel">
+      <div class="tt">Reparto de hoy</div>
+      {% if reparto.total %}
+      <div class="in-pasos">{% for i in range(reparto.total if reparto.total < 12 else 12) %}<i class="{{ 'ok' if i < reparto.hechas }}"></i>{% endfor %}</div>
+      <div class="in-leg">{{ reparto.hechas }} de {{ reparto.total }} entregas{% if reparto.km %} · ~{{ "%.0f"|format(reparto.km) }} km por recorrer{% endif %}</div>
+      {% for e in reparto.ruta %}
+      <div class="in-par {{ 'sig' if loop.first }}"><i class="p">{{ loop.index }}</i>
+        <span>{% if loop.first %}<b style="color:var(--negro)">{{ e.nombre }}</b>{% else %}{{ e.nombre }}{% endif %}
+        <small>{{ 'Siguiente · ' if loop.first }}{{ e.direccion[:40] if e.direccion else 'Sin dirección' }}</small></span></div>
+      {% endfor %}
+      {% if reparto.pendientes > reparto.ruta|length %}<div class="in-leg" style="margin-top:8px">y {{ reparto.pendientes - reparto.ruta|length }} más</div>{% endif %}
+      {% else %}
+      <div class="in-leg" style="margin-top:12px">No hay pedidos alistados todavía. Cuando marques uno como <b>Alistado</b>, aparece aquí.</div>
+      {% endif %}
+      <a class="in-btn" href="/reparto">Abrir reparto</a>
+    </aside>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

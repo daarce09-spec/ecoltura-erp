@@ -256,10 +256,25 @@ MENU_GRUPOS = {
         {"href": "/ventas",        "icono": "bi-receipt-cutoff", "nombre": "Ventas",      "tag": "Facturación"},
         {"href": "/admin/visitas", "icono": "bi-calendar2-check","nombre": "Visitas",     "tag": "Finca",       "badge": "badgeVisitas"},
     ]),
+    # "Más" de la barra de abajo en el celular: lo que no tiene botón propio
+    "mas": ("Más", [
+        {"href": "/menu/inventario", "icono": "bi-box-seam",        "nombre": "Inventario",   "tag": "Productos y stock"},
+        {"href": "/ventas",          "icono": "bi-receipt-cutoff",  "nombre": "Ventas",       "tag": "Facturación"},
+        {"href": "/admin/visitas",   "icono": "bi-calendar2-check", "nombre": "Visitas",      "tag": "Finca", "badge": "badgeVisitas"},
+        {"href": "/contabilidad",    "icono": "bi-journal-text",    "nombre": "Contabilidad", "tag": "Resultados"},
+        {"href": "/recordatorios",   "icono": "bi-bell",            "nombre": "Recordatorios","tag": "Avisos a clientes"},
+    ]),
 }
 
 @app.route("/menu")
 def menu():
+    """Inicio del Admin: cifras, pendientes, pedidos recientes y reparto del día."""
+    from modulos.inicio import datos_inicio
+    return render_template("inicio.html", **datos_inicio(request.args.get("periodo", "semana")))
+
+@app.route("/menu/modulos")
+def menu_modulos():
+    """El menú de tarjetas de antes, por si se necesita."""
     return render_template("menu.html", modulos=MENU_PRINCIPAL, titulo=None)
 
 @app.route("/menu/<grupo>")
