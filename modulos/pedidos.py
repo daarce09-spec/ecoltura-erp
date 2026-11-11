@@ -302,7 +302,7 @@ def _elementos_lista(items, n_pendientes, fecha):
                           f"{n} pedido{'' if n == 1 else 's'}"])
         t = Table(datos, colWidths=[12*mm, 85*mm, 45*mm, 38*mm], repeatRows=1)
         estilo = [
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3E6B22")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),
@@ -478,7 +478,7 @@ def _elementos_proveedores(proveedores, sin_proveedor, fecha):
                           Paragraph(f"<font size=9 color='#555555'>{escape(ped)}</font>", est["Normal"])])
         t = Table(filas, colWidths=[12*mm, 78*mm, 42*mm, 48*mm], repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3E6B22")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),
@@ -577,7 +577,7 @@ def _elementos_hojas(pedidos, fecha):
             filas.append([Caja(), Paragraph(texto, est["Normal"]), cant, _miles(sub)])
         t = Table(filas, colWidths=[12*mm, 85*mm, 40*mm, 43*mm], repeatRows=1)
         t.setStyle(TableStyle([
-            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2d6a4f")),
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#3E6B22")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
             ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
             ("FONTNAME", (2, 1), (2, -1), "Helvetica-Bold"),

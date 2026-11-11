@@ -158,6 +158,13 @@ def exigir_login():
         return None
     if session.get("admin_ok"):
         return None
+    if session.get("reparto_ok"):
+        # El repartidor solo ve Reparto (lista, entregar, no entregado y cierre)
+        if ruta == "/reparto" or ruta.startswith("/reparto/") or ruta == "/logout":
+            return None
+        if ruta.startswith("/api/") or "/api/" in ruta or request.method != "GET":
+            return jsonify({"error": "No autorizado"}), 403
+        return redirect("/reparto")
     if ruta.startswith("/api/") or "/api/" in ruta or request.method != "GET":
         return jsonify({"error": "No autorizado"}), 401
     return redirect(url_for("login", next=ruta))
@@ -179,15 +186,28 @@ def login():
         if espera:
             error = f"Demasiados intentos. Probá de nuevo en {espera} min."
         else:
+            escrito_u = request.form.get("usuario", "").strip().lower().encode()
+            escrito_p = request.form.get("clave", "").encode()
             usuario = os.environ.get("ADMIN_USER", "ecoltura")
-            ok_u = hmac.compare_digest(request.form.get("usuario", "").strip().lower().encode(), usuario.lower().encode())
-            ok_p = hmac.compare_digest(request.form.get("clave", "").encode(), clave.encode())
+            ok_u = hmac.compare_digest(escrito_u, usuario.lower().encode())
+            ok_p = hmac.compare_digest(escrito_p, clave.encode())
+            # Usuario del repartidor: solo existe si en Railway está REPARTO_PASSWORD
+            clave_rep = os.environ.get("REPARTO_PASSWORD", "")
+            usuario_rep = os.environ.get("REPARTO_USER", "reparto")
+            ok_rep = bool(clave_rep) and hmac.compare_digest(escrito_u, usuario_rep.lower().encode()) \
+                and hmac.compare_digest(escrito_p, clave_rep.encode())
             if ok_u and ok_p:
                 _INTENTOS.pop(ip, None)
                 session.clear()
                 session["admin_ok"] = True
                 session.permanent = True
                 return redirect(destino)
+            if ok_rep:
+                _INTENTOS.pop(ip, None)
+                session.clear()
+                session["reparto_ok"] = True
+                session.permanent = True
+                return redirect(destino if destino.startswith("/reparto") else "/reparto")
             reg = _INTENTOS.setdefault(ip, [0, 0])
             reg[0] += 1
             reg[1] = time.time()
@@ -242,24 +262,38 @@ MENU_PRINCIPAL = [
 ]
 MENU_GRUPOS = {
     "clientes": ("Clientes", [
-        {"href": "/clientes",      "icono": "bi-people",  "nombre": "Clientes",      "tag": "Gestión"},
-        {"href": "/recordatorios", "icono": "bi-bell",    "nombre": "Recordatorios", "tag": "Notificaciones"},
+        {"href": "/clientes",      "icono": "bi-people", "nombre": "Clientes",      "tag": "Gestión"},
+        {"href": "/recordatorios", "icono": "bi-bell",   "nombre": "Recordatorios", "tag": "Avisos a clientes"},
     ]),
     "inventario": ("Inventario", [
-        {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",          "tag": "Catálogo"},
-        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",        "tag": "Compras"},
-        {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha",  "tag": "Semanal"},
-        {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",       "tag": "Stock"},
+        {"href": "/productos",              "icono": "bi-basket3",        "nombre": "Productos",         "tag": "Catálogo"},
+        {"href": "/inventario/proveedores", "icono": "bi-shop",           "nombre": "Proveedores",       "tag": "Compras"},
+        {"href": "/inventario/registrar",   "icono": "bi-journal-plus",   "nombre": "Registrar cosecha", "tag": "Semanal"},
+        {"href": "/inventario/saldo",       "icono": "bi-clipboard-data", "nombre": "Saldo actual",      "tag": "Stock"},
     ]),
     "ventas": ("Ventas", [
-        {"href": "/admin/pedidos", "icono": "bi-bag-check",      "nombre": "Pedidos Web", "tag": "Bandeja",     "badge": "badgePedidos"},
-        {"href": "/ventas",        "icono": "bi-receipt-cutoff", "nombre": "Ventas",      "tag": "Facturación"},
-        {"href": "/admin/visitas", "icono": "bi-calendar2-check","nombre": "Visitas",     "tag": "Finca",       "badge": "badgeVisitas"},
+        {"href": "/ventas/registrar", "icono": "bi-cart-plus",      "nombre": "Registrar venta",     "tag": "Venta directa"},
+        {"href": "/ventas/anular",    "icono": "bi-x-circle",       "nombre": "Anular venta",        "tag": "Corregir"},
+        {"href": "/ventas/historial", "icono": "bi-clock-history",  "nombre": "Historial de ventas", "tag": "Reportes"},
+    ]),
+    # "Más" de la barra de abajo en el celular
+    "mas": ("Más", [
+        {"href": "/menu/clientes",   "icono": "bi-people",         "nombre": "Clientes",     "tag": "Clientes y recordatorios"},
+        {"href": "/menu/inventario", "icono": "bi-box-seam",       "nombre": "Inventario",   "tag": "Productos, proveedores y cosecha"},
+        {"href": "/contabilidad",    "icono": "bi-journal-text",   "nombre": "Contabilidad", "tag": "Cuentas, movimientos y resultados"},
+        {"href": "/menu/ventas",     "icono": "bi-receipt-cutoff", "nombre": "Ventas",       "tag": "Registrar, anular e historial"},
     ]),
 }
 
 @app.route("/menu")
 def menu():
+    """Inicio del Admin: cifras, pendientes, pedidos recientes y reparto del día."""
+    from modulos.inicio import datos_inicio
+    return render_template("inicio.html", **datos_inicio(request.args.get("periodo", "semana")))
+
+@app.route("/menu/modulos")
+def menu_modulos():
+    """El menú de tarjetas de antes, por si se necesita."""
     return render_template("menu.html", modulos=MENU_PRINCIPAL, titulo=None)
 
 @app.route("/menu/<grupo>")
@@ -321,7 +355,7 @@ def api_version():
 
 @app.context_processor
 def inject_now():
-    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE, "LOGIN_ACTIVO": bool(os.environ.get("ADMIN_PASSWORD")) and os.environ.get("SOLO_TIENDA") != "1", "ENTORNO_PRUEBAS": os.environ.get("ENTORNO", "").lower() == "pruebas"}
+    return {"now": datetime.now(), "APP_VERSION": APP_VERSION, "APP_VERSION_ID": APP_VERSION_ID, "APP_RELEASE": APP_RELEASE, "LOGIN_ACTIVO": bool(os.environ.get("ADMIN_PASSWORD")) and os.environ.get("SOLO_TIENDA") != "1", "ENTORNO_PRUEBAS": os.environ.get("ENTORNO", "").lower() == "pruebas", "ES_REPARTO": bool(session.get("reparto_ok")) and not session.get("admin_ok")}
 
 if __name__ == "__main__":
     import os

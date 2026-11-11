@@ -6,40 +6,76 @@
 <style>
   .rp-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:12px; }
   .rp-resumen { display:flex; flex-wrap:wrap; gap:6px; margin-top:4px; }
-  .rp-chip { background:#f4f7f5; border-radius:999px; padding:3px 12px; font-size:.8rem; font-weight:700; color:#1b4332; }
-  .rp-card { background:#fff; border:1px solid #e7ece9; border-radius:16px; padding:14px 16px; margin-bottom:12px;
+  .rp-chip { background:#F4F4F2; border-radius:999px; padding:3px 12px; font-size:.8rem; font-weight:600; color:#1A1C18; }
+  .rp-card { background:#fff; border:1px solid #E6E6E2; border-radius:16px; padding:14px 16px; margin-bottom:12px;
              box-shadow:0 1px 6px rgba(0,0,0,.05); }
-  .rp-card.siguiente { border:2px solid #2d6a4f; box-shadow:0 4px 18px rgba(45,106,79,.15); }
+  .rp-card.siguiente { border:1.5px solid #3E6B22; box-shadow:0 4px 16px rgba(26,28,24,.08); }
   .rp-card.fallida { border-left:4px solid #b3261e; }
   .rp-top { display:flex; gap:12px; align-items:flex-start; }
-  .rp-num { flex:0 0 34px; height:34px; border-radius:50%; background:#e8f3ec; color:#1b4332; font-weight:800;
+  .rp-num { flex:0 0 34px; height:34px; border-radius:50%; background:#F4F4F2; color:#6E6E69; font-weight:800;
             display:flex; align-items:center; justify-content:center; }
-  .siguiente .rp-num { background:#2d6a4f; color:#fff; }
+  .siguiente .rp-num { background:#3E6B22; color:#fff; }
   .rp-info { flex:1; min-width:0; }
-  .rp-nombre { font-weight:800; color:#1b4332; font-size:1.05rem; line-height:1.25; }
+  .rp-nombre { font-weight:800; color:#1A1C18; font-size:1.05rem; line-height:1.25; }
   .rp-dir { color:#444; font-size:.9rem; margin-top:2px; word-break:break-word; }
   .rp-nota { color:#777; font-size:.82rem; margin-top:2px; }
-  .rp-monto { font-weight:800; font-size:1.15rem; color:#1b4332; white-space:nowrap; }
+  .rp-monto { font-weight:800; font-size:1.15rem; color:#1A1C18; white-space:nowrap; }
   .rp-tag { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.72rem; font-weight:800; margin-top:6px; }
-  .rp-tag.sig { background:#2d6a4f; color:#fff; }
+  .rp-tag.sig { background:#3E6B22; color:#fff; }
   .rp-tag.rojo { background:#FBE4E1; color:#b3261e; }
   .rp-tag.gris { background:#eef1f3; color:#666; }
   .rp-btns { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin-top:12px; }
-  .rp-btns a { border-radius:10px; font-weight:700; font-size:.85rem; padding:9px 4px; text-align:center; }
-  .rp-prod summary { cursor:pointer; color:#2d6a4f; font-weight:700; font-size:.85rem; margin-top:10px; }
+  .rp-btns a { border-radius:10px; font-weight:600; font-size:.85rem; padding:9px 4px; text-align:center; }
+  .rp-sec { background:#fff; border:1px solid #E6E6E2; color:#1A1C18; }
+  .rp-sec:active, .rp-sec:focus { background:#F4F4F2; border-color:#D6D6D1; color:#1A1C18; }
+  .rp-sec .bi-whatsapp { color:#25A244; }
+  .rp-prod summary { cursor:pointer; color:#6E6E69; font-weight:700; font-size:.85rem; margin-top:10px; }
   .rp-prod ul { margin:6px 0 0; padding-left:18px; font-size:.85rem; color:#444; }
-  .rp-pago-lab { font-weight:800; color:#333; font-size:.85rem; margin:14px 0 6px; }
+  .rp-pago-lab { font-weight:700; color:#6E6E69; font-size:.85rem; margin:14px 0 6px; }
   .rp-pago { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; }
   .rp-pago form { margin:0; }
-  .rp-pago button { width:100%; border-radius:12px; font-weight:800; padding:12px 4px; font-size:.92rem; }
-  .rp-fallo summary { cursor:pointer; color:#b3261e; font-weight:700; font-size:.85rem; margin-top:12px; list-style:none; }
+  .rp-pago button { width:100%; border-radius:12px; font-weight:700; padding:12px 4px; font-size:.92rem;
+                  background:#fff; border:1px solid #E6E6E2; color:#1A1C18; }
+  .rp-pago button:active { background:#EFF5EA; border-color:#3E6B22; }
+  .rp-pago button .bi { color:#3E6B22; }
+  .rp-pago button.no { color:#b3261e; }
+  .rp-pago button.no:active { background:#FBE4E1; border-color:#b3261e; }
+  .rp-fallo summary { cursor:pointer; color:#b3261e; font-weight:600; font-size:.85rem; margin-top:12px; list-style:none; }
   .rp-fallo summary::-webkit-details-marker { display:none; }
+  .rp-huevos { display:flex; gap:10px; align-items:center; margin-top:12px; padding:10px 12px; border-radius:12px;
+               background:#FDF0E6; border:1.5px solid #D9742E; color:#7A3E10; }
+  .rp-huevos .ic { font-size:1.6rem; line-height:1; }
+  .rp-huevos b { display:block; font-size:.95rem; color:#A4501A; }
+  .rp-huevos span { font-size:.82rem; }
+  /* Modal de confirmación (reemplaza la alerta del navegador) */
+  .rp-modal { position:fixed; inset:0; z-index:3000; display:none; align-items:flex-end; justify-content:center;
+              background:rgba(26,28,24,.45); padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+  .rp-modal.abierto { display:flex; animation:rpFondo .18s ease; }
+  .rp-modal .caja { width:100%; max-width:420px; background:#fff; border-radius:20px; padding:22px 20px 18px;
+                    text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.25); animation:rpSube .22s ease; }
+  @media (min-width:600px) { .rp-modal { align-items:center; } }
+  .rp-modal .ico { width:56px; height:56px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center;
+                   justify-content:center; font-size:1.6rem; background:#EFF5EA; color:#3E6B22; }
+  .rp-modal.alerta .ico { background:#FBE4E1; color:#b3261e; }
+  .rp-modal h5 { font-weight:800; color:#1A1C18; margin:0 0 12px; font-size:1.15rem; }
+  .rp-modal .quien { background:#F4F4F2; border-radius:12px; padding:10px 12px; display:flex;
+                     justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .rp-modal .quien b { color:#1A1C18; text-align:left; }
+  .rp-modal .quien span { font-weight:800; font-size:1.1rem; color:#1A1C18; white-space:nowrap; }
+  .rp-modal p { color:#6E6E69; font-size:.88rem; margin:0 0 16px; }
+  .rp-modal .acciones { display:grid; grid-template-columns:1fr 1.4fr; gap:10px; }
+  .rp-modal .acciones button { border-radius:12px; padding:12px 6px; font-weight:700; font-size:.95rem; border:1px solid #E6E6E2; }
+  .rp-modal .cancelar { background:#fff; color:#1A1C18; }
+  .rp-modal .si { background:#3E6B22; border-color:#3E6B22 !important; color:#fff; }
+  .rp-modal.alerta .si { background:#b3261e; border-color:#b3261e !important; }
+  @keyframes rpFondo { from { opacity:0 } to { opacity:1 } }
+  @keyframes rpSube { from { transform:translateY(24px); opacity:0 } to { transform:none; opacity:1 } }
   .rp-vacio { text-align:center; color:#8a948a; padding:40px 16px; background:#f6f8f6; border-radius:16px; }
 </style>
 
 <div class="rp-head">
   <div>
-    <h2 class="fw-bold mb-0" style="color:#1b4332"><i class="bi bi-truck me-2"></i>Reparto</h2>
+    <h2 class="fw-bold mb-0" style="color:#3E6B22"><i class="bi bi-truck me-2"></i>Reparto</h2>
     <div class="rp-resumen">
       <span class="rp-chip">{{ ruta|length }} entrega{{ '' if ruta|length == 1 else 's' }}</span>
       {% if km %}<span class="rp-chip">~{{ "%.0f"|format(km) }} km en línea recta</span>{% endif %}
@@ -81,18 +117,25 @@
     <div class="rp-monto">{{ colones(e.total) }}</div>
   </div>
 
+  {% if e.huevos %}
+  <div class="rp-huevos">
+    <div class="ic">🥚</div>
+    <div><b>Lleva huevos · manejar con cuidado</b><span>{{ e.huevos|join(' · ') }}</span></div>
+  </div>
+  {% endif %}
+
   <div class="rp-btns">
     {% if e.lat is not none %}
-      <a class="btn btn-primary" target="_blank" rel="noopener" hx-boost="false"
+      <a class="btn {{ 'btn-primary' if es_sig else 'rp-sec' }}" target="_blank" rel="noopener" hx-boost="false"
          href="https://waze.com/ul?ll={{ e.lat }},{{ e.lng }}&navigate=yes"><i class="bi bi-sign-turn-right me-1"></i>Waze</a>
     {% else %}
-      <a class="btn btn-outline-primary" target="_blank" rel="noopener" hx-boost="false"
+      <a class="btn {{ 'btn-primary' if es_sig else 'rp-sec' }}" target="_blank" rel="noopener" hx-boost="false"
          href="https://waze.com/ul?q={{ e.direccion|urlencode }}&navigate=yes"><i class="bi bi-search me-1"></i>Waze</a>
     {% endif %}
     {% if e.cel8 %}
-      <a class="btn btn-outline-success" target="_blank" rel="noopener" hx-boost="false"
+      <a class="btn rp-sec" target="_blank" rel="noopener" hx-boost="false"
          href="https://wa.me/506{{ e.cel8 }}"><i class="bi bi-whatsapp me-1"></i>WhatsApp</a>
-      <a class="btn btn-outline-secondary" hx-boost="false" href="tel:+506{{ e.cel8 }}"><i class="bi bi-telephone me-1"></i>Llamar</a>
+      <a class="btn rp-sec" hx-boost="false" href="tel:+506{{ e.cel8 }}"><i class="bi bi-telephone me-1"></i>Llamar</a>
     {% endif %}
   </div>
 
@@ -106,25 +149,38 @@
   <div class="rp-pago-lab">Entregado · ¿cómo pagó?</div>
   <div class="rp-pago">
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} en EFECTIVO?">
+          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} en EFECTIVO?"
+          data-m-icono="bi-cash-stack" data-m-tipo="ok" data-m-titulo="¿Pagó en efectivo?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado. Guardá el efectivo para el cierre." data-m-boton="Sí, pagó en efectivo">
       <input type="hidden" name="pago" value="efectivo">
-      <button class="btn btn-success"><i class="bi bi-cash me-1"></i>Efectivo</button>
+      <button class="btn"><i class="bi bi-cash me-1"></i>Efectivo</button>
     </form>
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} por SINPE? La oficina lo va a confirmar.">
+          hx-confirm="¿{{ e.nombre }} pagó {{ colones(e.total) }} por SINPE? La oficina lo va a confirmar."
+          data-m-icono="bi-phone" data-m-tipo="ok" data-m-titulo="¿Pagó por SINPE?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado. La oficina confirma que el SINPE llegó." data-m-boton="Sí, pagó por SINPE">
       <input type="hidden" name="pago" value="sinpe">
-      <button class="btn btn-success"><i class="bi bi-phone me-1"></i>SINPE</button>
+      <button class="btn"><i class="bi bi-phone me-1"></i>SINPE</button>
     </form>
     <form method="post" action="{{ url_for('reparto_bp.entregar', id=e.id) }}"
-          hx-confirm="¿Entregado SIN pagar? Va a quedar Por cobrar.">
+          hx-confirm="¿Entregado SIN pagar? Va a quedar Por cobrar."
+          data-m-icono="bi-exclamation-circle" data-m-tipo="alerta" data-m-titulo="¿Entregado sin pagar?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="Queda como entregado y el monto pasa a Por cobrar." data-m-boton="Sí, no pagó">
       <input type="hidden" name="pago" value="no">
-      <button class="btn btn-outline-danger">No pagó</button>
+      <button class="btn no">No pagó</button>
     </form>
   </div>
 
   <details class="rp-fallo">
     <summary><i class="bi bi-x-circle me-1"></i>No se pudo entregar</summary>
-    <form method="post" action="{{ url_for('reparto_bp.no_entregado', id=e.id) }}" class="mt-2">
+    <form method="post" action="{{ url_for('reparto_bp.no_entregado', id=e.id) }}" class="mt-2"
+          hx-confirm="¿Marcar que no se pudo entregar?"
+          data-m-icono="bi-x-circle" data-m-tipo="alerta" data-m-titulo="¿No se pudo entregar?"
+          data-m-nombre="{{ e.nombre }}" data-m-monto="{{ colones(e.total) }}"
+          data-m-texto="El pedido sigue pendiente y la oficina lo vuelve a coordinar." data-m-boton="Sí, no se entregó">
       <select name="motivo" class="form-select mb-2" required
               onchange="this.form.otro.style.display = this.value === 'otro' ? '' : 'none'">
         <option value="">¿Qué pasó?</option>
@@ -137,5 +193,63 @@
   </details>
 </div>
 {% endfor %}
+
+<div class="rp-modal" id="rpModal" role="dialog" aria-modal="true" aria-labelledby="rpModalTitulo">
+  <div class="caja">
+    <div class="ico"><i class="bi" id="rpModalIco"></i></div>
+    <h5 id="rpModalTitulo"></h5>
+    <div class="quien"><b id="rpModalNombre"></b><span id="rpModalMonto"></span></div>
+    <p id="rpModalTexto"></p>
+    <div class="acciones">
+      <button type="button" class="cancelar" id="rpModalNo">Cancelar</button>
+      <button type="button" class="si" id="rpModalSi"></button>
+    </div>
+  </div>
+</div>
+<script>
+  // Cambia la alerta gris del navegador por un modal propio en las acciones de Reparto.
+  // Se registra una sola vez aunque htmx vuelva a cargar esta pantalla.
+  (function () {
+    if (window.__rpModal) return;
+    window.__rpModal = true;
+    var pendiente = null;
+    function el(id) { return document.getElementById(id); }
+    function cerrar() { var m = el('rpModal'); if (m) m.classList.remove('abierto'); pendiente = null; }
+    document.body.addEventListener('htmx:confirm', function (evt) {
+      var f = evt.detail.elt;
+      if (!f || !f.dataset || !f.dataset.mTitulo || !el('rpModal')) return;
+      if (f.tagName === 'FORM' && !f.reportValidity()) { evt.preventDefault(); return; }
+      evt.preventDefault();
+      // El contenido vive en un contenedor fijo que encierra el z-index: el modal se
+      // pasa al <body> para que quede encima de la barra de abajo. Si quedó uno de
+      // una visita anterior, se descarta y se usa el de esta pantalla.
+      var nuevo = document.querySelector('#main-content #rpModal');
+      if (nuevo) {
+        document.querySelectorAll('body > .rp-modal').forEach(function (v) { v.remove(); });
+        document.body.appendChild(nuevo);
+      }
+      var m = el('rpModal');
+      m.classList.toggle('alerta', f.dataset.mTipo === 'alerta');
+      el('rpModalIco').className = 'bi ' + (f.dataset.mIcono || 'bi-check2');
+      el('rpModalTitulo').textContent = f.dataset.mTitulo;
+      el('rpModalNombre').textContent = f.dataset.mNombre || '';
+      el('rpModalMonto').textContent = f.dataset.mMonto || '';
+      el('rpModalTexto').textContent = f.dataset.mTexto || '';
+      el('rpModalSi').textContent = f.dataset.mBoton || 'Confirmar';
+      pendiente = evt.detail;
+      m.classList.add('abierto');
+    });
+    document.body.addEventListener('click', function (e) {
+      if (!el('rpModal')) return;
+      if (e.target.closest('#rpModalSi')) {
+        var p = pendiente; cerrar();
+        if (p) p.issueRequest(true);
+      } else if (e.target.closest('#rpModalNo') || e.target.id === 'rpModal') {
+        cerrar();
+      }
+    });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+  })();
+</script>
 
 {% endblock %}

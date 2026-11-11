@@ -20,7 +20,7 @@
     max-width: 320px;
     background: #FFFFFF;
     border-radius: clamp(14px, 2vw, 22px);
-    border: 1.5px solid rgba(46,107,62,.1);
+    border: 1.5px solid rgba(62,107,34,.1);
     display: flex; flex-direction: column;
     align-items: center; justify-content: center;
     gap: clamp(8px, 1.2vw, 14px);
@@ -31,33 +31,33 @@
   }
   .modulo::after {
     content: ''; position: absolute; bottom: 0; left: 0; right: 0;
-    height: 3px; background: linear-gradient(90deg, #2E6B3E, #7AB648);
+    height: 3px; background: linear-gradient(90deg, #3E6B22, #A4C93C);
     transform: scaleX(0); transform-origin: left; transition: transform .25s ease;
   }
   .modulo:active {
     transform: translateY(-4px);
-    box-shadow: 0 14px 32px rgba(46,107,62,.15);
-    border-color: rgba(46,107,62,.3);
+    box-shadow: 0 14px 32px rgba(62,107,34,.15);
+    border-color: rgba(62,107,34,.3);
   }
   @media (hover: hover) and (pointer: fine) { .modulo:hover {
     transform: translateY(-4px);
-    box-shadow: 0 14px 32px rgba(46,107,62,.15);
-    border-color: rgba(46,107,62,.3);
+    box-shadow: 0 14px 32px rgba(62,107,34,.15);
+    border-color: rgba(62,107,34,.3);
   } }
   @media (hover: hover) and (pointer: fine) { .modulo:hover::after { transform: scaleX(1); } }
-  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon { background: #2E6B3E; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon { background: #3E6B22; } }
   @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-icon i { color: #fff; } }
-  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-nombre { color: #2E6B3E; } }
+  @media (hover: hover) and (pointer: fine) { .modulo:hover .mod-nombre { color: #3E6B22; } }
 
   .mod-icon {
     width: clamp(48px, 5vw, 64px); height: clamp(48px, 5vw, 64px);
     border-radius: clamp(14px, 1.5vw, 18px);
-    background: #F4F7F0;
+    background: #EFF5EA;
     display: flex; align-items: center; justify-content: center;
     transition: background .22s ease;
   }
   .mod-icon i {
-    font-size: clamp(1.5rem, 2.5vw, 2rem); color: #2E6B3E;
+    font-size: clamp(1.5rem, 2.5vw, 2rem); color: #3E6B22;
     transition: color .22s ease; line-height: 1;
   }
   .mod-texto { text-align: center; display: flex; flex-direction: column; gap: 3px; }
@@ -71,8 +71,8 @@
   }
 
   .submenu-head { display: flex; align-items: center; gap: 14px; margin: 0 0 clamp(14px, 2vw, 22px); flex-wrap: wrap; }
-  .submenu-volver { text-decoration: none; color: #2E6B3E; font-weight: 700; font-size: .9rem;
-                    border: 1.5px solid rgba(46,107,62,.25); border-radius: 999px; padding: 6px 14px; background: #fff; }
+  .submenu-volver { text-decoration: none; color: #3E6B22; font-weight: 700; font-size: .9rem;
+                    border: 1.5px solid rgba(62,107,34,.25); border-radius: 999px; padding: 6px 14px; background: #fff; }
   .submenu-titulo { margin: 0; font-weight: 800; color: #1C1C1E; font-size: clamp(1.3rem, 2.4vw, 1.7rem); }
   .badge-alert {
     position: absolute; top: 12px; right: 12px;
@@ -103,7 +103,6 @@
 <!-- MÓDULOS (la lista sale de MENU_PRINCIPAL / MENU_GRUPOS en app.py) -->
 {% if titulo %}
 <div class="submenu-head">
-  <a href="/menu" class="submenu-volver"><i class="bi bi-arrow-left"></i> Menú</a>
   <h2 class="submenu-titulo">{{ titulo }}</h2>
 </div>
 {% endif %}
@@ -143,11 +142,11 @@
 
 {% block before_content %}{% if not titulo %}
 <!-- INTRO — splash de bienvenida, solo la primera vez en la sesión del navegador -->
-<div id="intro" style="position:fixed;inset:0;z-index:2000;background:#1A4226;display:flex;flex-direction:column;
+<div id="intro" style="position:fixed;inset:0;z-index:2000;background:#2E5117;display:flex;flex-direction:column;
      align-items:center;justify-content:center;gap:18px;transition:opacity .7s ease, visibility .7s ease;">
   <div style="font-weight:800;color:#fff;font-size:clamp(2.2rem,9vw,4rem);letter-spacing:clamp(8px,2.5vw,18px);
        text-indent:8px;" id="intro-marca">ECOLTURA</div>
-  <div style="width:56px;height:2px;background:#7AB648;"></div>
+  <div style="width:56px;height:2px;background:#A4C93C;"></div>
   <div style="font-size:clamp(.6rem,2.5vw,.72rem);letter-spacing:4px;text-transform:uppercase;
        color:rgba(255,255,255,.55);font-weight:600;">Administración</div>
 </div>

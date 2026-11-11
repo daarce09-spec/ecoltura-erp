@@ -5,32 +5,32 @@
 <style>
   .info-card { background:white; border-radius:16px; padding:24px;
                box-shadow:0 2px 12px rgba(0,0,0,.06); border:1px solid #f0f0f0; }
-  .item-producto { background:#f8faf9; border:1px solid #f0f0f0; border-radius:12px; padding:14px 16px; }
+  .item-producto { background:#FFFFFF; border:1px solid #f0f0f0; border-radius:12px; padding:14px 16px; }
   .resultados-producto-lista { position:absolute; top:100%; left:0; right:0; z-index:20;
       background:white; border:1px solid #e0e0e0; border-top:none; border-radius:0 0 10px 10px;
       max-height:220px; overflow-y:auto; box-shadow:0 8px 20px rgba(0,0,0,.1); display:none; }
   .resultado-producto { padding:9px 12px; cursor:pointer; font-size:.88rem; border-bottom:1px solid #f5f5f5; }
   .resultado-producto:last-child { border-bottom:none; }
-  @media (hover: hover) and (pointer: fine) { .resultado-producto:hover { background:#f0f7f3; } }
+  @media (hover: hover) and (pointer: fine) { .resultado-producto:hover { background:#EFF5EA; } }
   .dato-row { display:flex; justify-content:space-between; padding:10px 0;
               border-bottom:1px solid #f5f5f5; font-size:.94rem; }
   .dato-row:last-child { border-bottom:none; }
   .dato-label { color:#888; }
-  .dato-valor { font-weight:600; color:#1b4332; }
+  .dato-valor { font-weight:600; color:#3E6B22; }
   .badge-est { font-size:.78rem; padding:5px 14px; border-radius:999px; font-weight:700; }
   .badge-Pendiente  { background:#FFF3CD; color:#856404; }
-  .badge-Resuelto   { background:#D1E7DD; color:#0A4A2A; }
+  .badge-Resuelto   { background:#EFF5EA; color:#2E5117; }
   .badge-Rechazado  { background:#F8D7DA; color:#842029; }
   .badge-Preparando { background:#FCEBC8; color:#6B4510; }
   .badge-Listo      { background:#CFE8F7; color:#0B4F75; }
   .badge-Alistado   { background:#CFE8F7; color:#0B4F75; }
   .badge-Porcobrar  { background:#FBE4E1; color:#b3261e; }
-  .badge-Pagado     { background:#D1E7DD; color:#0A4A2A; }
+  .badge-Pagado     { background:#EFF5EA; color:#2E5117; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332">
+    <h2 class="fw-bold mb-1" style="color:#3E6B22">
       <i class="bi bi-bag me-2"></i>Pedido Web #{{ pedido[0] }}
     </h2>
     <small class="text-muted">Detalle del pedido recibido desde la tienda en línea</small>
@@ -48,7 +48,7 @@
 
 <!-- Aviso si el pedido ya fue resuelto -->
 {% if pedido[5] == 'Resuelto' %}
-<div class="alert d-flex align-items-center" style="background:#D1E7DD;color:#0A4A2A;border:none;border-radius:12px">
+<div class="alert d-flex align-items-center" style="background:#EFF5EA;color:#2E5117;border:none;border-radius:12px">
   <i class="bi bi-check-circle-fill me-2" style="font-size:1.2rem"></i>
   <div>
     Este pedido ya fue <strong>convertido en venta</strong>{% if pedido[9] %} (venta #{{ pedido[9] }}){% endif %}. El inventario ya se descontó.
@@ -73,7 +73,7 @@
   <!-- Info cliente -->
   <div class="col-md-4">
     <div class="info-card">
-      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#1b4332">
+      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#3E6B22">
         <i class="bi bi-person-circle me-2"></i>Datos del contacto
       </div>
       <div class="dato-row"><span class="dato-label">Nombre</span><span class="dato-valor">{{ pedido[1] }}</span></div>
@@ -127,7 +127,7 @@
   <!-- Detalle productos -->
   <div class="col-md-8">
     <div class="info-card">
-      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#1b4332">
+      <div class="fw-bold mb-3" style="font-size:1.05rem;color:#3E6B22">
         <i class="bi bi-basket me-2"></i>Productos solicitados
       </div>
       {% set editable = pedido[5] == 'Pendiente' %}
@@ -139,7 +139,7 @@
         {% set desc_lineas_total.v = desc_lineas_total.v + d[10]|float %}
         <div class="item-producto" data-linea="{{ d[0] }}" data-precio="{{ d[5]|float }}">
           <div class="d-flex justify-content-between align-items-start mb-2">
-            <div class="fw-bold" style="color:#1b4332;font-size:1rem">{{ d[2] }}</div>
+            <div class="fw-bold" style="color:#3E6B22;font-size:1rem">{{ d[2] }}</div>
             {% if editable %}
             <button type="button" class="btn btn-sm btn-outline-danger" title="Quitar del pedido"
                     onclick="pedQuitar({{ d[0] }}, {{ d[2]|tojson|forceescape }})">
@@ -214,7 +214,7 @@
         </div>
         <div class="d-flex justify-content-between align-items-center pt-2" style="border-top:1px dashed #e5e5e5">
           <span class="fw-bold">{{ 'TOTAL' if not editable else 'TOTAL ESTIMADO' }}</span>
-          <span class="fw-bold" id="ped-total" style="font-size:1.2rem;color:#2d6a4f">₡{{ "{:,.0f}".format(pedido[4]) }}</span>
+          <span class="fw-bold" id="ped-total" style="font-size:1.2rem;color:#3E6B22">₡{{ "{:,.0f}".format(pedido[4]) }}</span>
         </div>
         <div class="small text-muted text-end" id="ped-estado" style="min-height:1.1em"></div>
       </div>
@@ -235,7 +235,7 @@
         <div class="d-flex gap-2" id="zonaCantidadSimple">
           <input type="number" step="any" min="0.01" name="cantidad" id="cantidadSimple" placeholder="Cantidad"
                  class="form-control form-control-sm">
-          <button type="submit" class="btn btn-sm fw-bold px-4" style="background:#2d6a4f;color:white;white-space:nowrap">
+          <button type="submit" class="btn btn-sm fw-bold px-4" style="background:#3E6B22;color:white;white-space:nowrap">
             <i class="bi bi-plus-lg me-1"></i>Agregar
           </button>
         </div>
@@ -244,7 +244,7 @@
           <div class="text-muted small mb-2">Elegí el peso:</div>
           <div id="botonesPeso" class="d-flex flex-wrap gap-2 mb-2"></div>
           <input type="hidden" name="cantidad" id="cantidadPeso" disabled>
-          <button type="submit" class="btn btn-sm fw-bold px-4 w-100" style="background:#2d6a4f;color:white" disabled id="btnAgregarPeso">
+          <button type="submit" class="btn btn-sm fw-bold px-4 w-100" style="background:#3E6B22;color:white" disabled id="btnAgregarPeso">
             <i class="bi bi-plus-lg me-1"></i>Agregar
           </button>
         </div>
@@ -257,7 +257,7 @@
                 data-bs-toggle="modal" data-bs-target="#modalRechazar">
           <i class="bi bi-x-circle me-1"></i>Rechazar
         </button>
-        <button type="button" class="btn fw-bold px-4" style="background:#1b4332;color:white;border-radius:10px"
+        <button type="button" class="btn fw-bold px-4" style="background:#3E6B22;color:white;border-radius:10px"
                 data-bs-toggle="modal" data-bs-target="#modalConvertir">
           <i class="bi bi-bag-check me-1"></i>Convertir en venta
         </button>
@@ -273,7 +273,7 @@
 <div class="modal fade" id="modalConvertir" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;border:none">
-      <div class="modal-header text-white" style="background:#1b4332;border-radius:16px 16px 0 0">
+      <div class="modal-header text-white" style="background:#3E6B22;border-radius:16px 16px 0 0">
         <h5 class="modal-title fw-bold"><i class="bi bi-bag-check me-2"></i>Confirmar venta</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -293,7 +293,7 @@
           <div id="cvAviso" class="small text-muted mb-3" style="display:none">Va a quedar en <b>Por cobrar</b> hasta que la marques como pagada.</div>
           <div class="d-flex justify-content-end gap-2">
             <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
-            <button type="submit" id="cvBtn" class="btn fw-bold px-4 text-white" style="background:#1b4332;border-radius:10px" disabled>
+            <button type="submit" id="cvBtn" class="btn fw-bold px-4 text-white" style="background:#3E6B22;border-radius:10px" disabled>
               <i class="bi bi-check-lg me-1"></i>Generar venta
             </button>
           </div>
@@ -331,7 +331,7 @@
 <div class="modal fade" id="modalPagar" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;border:none">
-      <div class="modal-header text-white" style="background:#2d6a4f;border-radius:16px 16px 0 0">
+      <div class="modal-header text-white" style="background:#3E6B22;border-radius:16px 16px 0 0">
         <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Marcar cobrado</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>

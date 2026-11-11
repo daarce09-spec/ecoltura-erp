@@ -8,8 +8,8 @@
   .prov-item { display:flex; justify-content:space-between; align-items:center; gap:8px;
                padding:11px 12px; border-radius:12px; cursor:pointer; border:1.5px solid transparent; }
   @media (hover: hover) and (pointer: fine) { .prov-item:hover { background:#f4f8f5; } }
-  .prov-item.sel { background:#e8f3ec; border-color:#2d6a4f; }
-  .prov-item .nom { font-weight:600; color:#1b4332; }
+  .prov-item.sel { background:#EFF5EA; border-color:#3E6B22; }
+  .prov-item .nom { font-weight:600; color:#3E6B22; }
   .prov-item .tel { font-size:.78rem; color:#777; }
   .prov-item .cuenta { font-size:.74rem; color:#555; white-space:nowrap; text-align:right; }
   .tabla-prod { width:100%; border-collapse:collapse; }
@@ -30,13 +30,13 @@
   .filtros-prod { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
   .chip { border:1.5px solid #dee2e6; background:#fff; border-radius:999px; padding:5px 14px;
           font-size:.8rem; font-weight:600; cursor:pointer; color:#555; }
-  .chip.activo { background:#2d6a4f; border-color:#2d6a4f; color:#fff; }
+  .chip.activo { background:#3E6B22; border-color:#3E6B22; color:#fff; }
   .aviso-sin { background:#fff3cd; color:#856404; border-radius:12px; padding:9px 14px; font-size:.82rem; margin-bottom:14px; }
 </style>
 
 <div class="d-flex justify-content-between align-items-center mb-4">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-truck me-2"></i>Proveedores</h2>
+    <h2 class="fw-bold mb-1" style="color:#3E6B22"><i class="bi bi-truck me-2"></i>Proveedores</h2>
     <small class="text-muted">A quién se le compra cada producto. Un producto tiene un solo proveedor oficial.</small>
   </div>
   <a href="/inventario" class="btn btn-outline-secondary btn-sm">← Inventario</a>
@@ -49,7 +49,7 @@
   <div class="col-lg-4">
     <div class="prov-card">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <strong style="color:#1b4332">Proveedores</strong>
+        <strong style="color:#3E6B22">Proveedores</strong>
         <button class="btn btn-success btn-sm" onclick="abrirForm()"><i class="bi bi-plus-lg"></i> Nuevo</button>
       </div>
 
@@ -83,7 +83,7 @@
       <div id="contenidoProd" style="display:none">
         <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
           <div>
-            <h5 class="mb-0 fw-bold" id="tituloProv" style="color:#1b4332"></h5>
+            <h5 class="mb-0 fw-bold" id="tituloProv" style="color:#3E6B22"></h5>
             <small class="text-muted" id="subProv"></small>
           </div>
           <button class="btn btn-outline-secondary btn-sm" onclick="editarSel()"><i class="bi bi-pencil"></i> Editar</button>

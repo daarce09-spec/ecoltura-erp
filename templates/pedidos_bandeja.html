@@ -3,37 +3,37 @@
 {% block content %}
 
 <style>
-  .kb-tile { background:white; border:1px solid #e5efe9; border-radius:14px; padding:12px 16px; height:100%; }
+  .kb-tile { background:white; border:1px solid #EFF5EA; border-radius:14px; padding:12px 16px; height:100%; }
   .kb-tile .t-lab { font-size:.74rem; text-transform:uppercase; letter-spacing:.5px; color:#777; font-weight:700; }
-  .kb-tile .t-val { font-size:1.35rem; font-weight:800; color:#1b4332; line-height:1.2; }
+  .kb-tile .t-val { font-size:1.35rem; font-weight:800; color:#3E6B22; line-height:1.2; }
   .kb-tile.cobrar { border-left:4px solid #b3261e; }
   .kb-tile.cobrar .t-val { color:#b3261e; }
-  .kb-tile.ok { border-left:4px solid #2d6a4f; }
+  .kb-tile.ok { border-left:4px solid #3E6B22; }
 
   .periodos { display:flex; gap:6px; flex-wrap:wrap; }
   .per-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px; padding:5px 14px;
              font-size:.8rem; font-weight:600; color:#555; text-decoration:none; }
-  .per-btn.activo { background:#2d6a4f; border-color:#2d6a4f; color:white; }
+  .per-btn.activo { background:#3E6B22; border-color:#3E6B22; color:white; }
 
   .kb-tabs { display:none; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
   .kb-tab { flex:0 0 auto; border:1.5px solid #dee2e6; background:white; border-radius:999px;
             padding:6px 14px; font-size:.82rem; font-weight:700; color:#555; cursor:pointer; white-space:nowrap; }
-  .kb-tab.activo { background:#1b4332; border-color:#1b4332; color:white; }
+  .kb-tab.activo { background:#3E6B22; border-color:#3E6B22; color:white; }
   .kb-tab .n { opacity:.75; margin-left:4px; }
 
   .kb-board { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; }
-  .kb-col { background:#f4f7f5; border-radius:16px; padding:12px; min-height:140px; }
+  .kb-col { background:#F6F8F4; border-radius:16px; padding:12px; min-height:140px; }
   .kb-col-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
-                 font-weight:800; font-size:.9rem; color:#1b4332; }
+                 font-weight:800; font-size:.9rem; color:#3E6B22; }
   .kb-col-head .cnt { background:white; border-radius:999px; padding:1px 10px; font-size:.78rem; color:#555; }
   .filtro-ent { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:10px; }
   .fe-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px; padding:3px 12px;
             font-size:.76rem; font-weight:700; color:#555; cursor:pointer; }
-  .fe-btn.activo { background:#1b4332; border-color:#1b4332; color:white; }
+  .fe-btn.activo { background:#3E6B22; border-color:#3E6B22; color:white; }
   .fe-btn.rojo.activo { background:#b3261e; border-color:#b3261e; }
   .tag { display:inline-block; border-radius:999px; padding:2px 10px; font-size:.7rem; font-weight:800; }
   .tag-cobrar { background:#FBE4E1; color:#b3261e; }
-  .tag-cobrado { background:#D1E7DD; color:#0A4A2A; }
+  .tag-cobrado { background:#EFF5EA; color:#2E5117; }
   .tag-prep { background:#EEF1F3; color:#555; }
   .tag-alistado { background:#CFE8F7; color:#0B4F75; }
   .tag-fallida { background:#FBE4E1; color:#b3261e; }
@@ -42,9 +42,9 @@
 
   .kb-card { background:white; border:1px solid #eceff0; border-radius:12px; padding:12px 14px; margin-bottom:10px;
              box-shadow:0 1px 6px rgba(0,0,0,.05); }
-  .kb-card .nom { font-weight:700; color:#1b4332; font-size:.98rem; line-height:1.25; }
+  .kb-card .nom { font-weight:700; color:#3E6B22; font-size:.98rem; line-height:1.25; }
   .kb-card .meta { font-size:.76rem; color:#777; margin-top:2px; }
-  .kb-card .monto { font-weight:800; color:#2d6a4f; font-size:1.1rem; }
+  .kb-card .monto { font-weight:800; color:#3E6B22; font-size:1.1rem; }
   .kb-card .nota { font-size:.76rem; color:#666; margin-top:6px; }
   .kb-card .acciones { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
   .kb-card .acciones .btn { font-size:.78rem; border-radius:9px; font-weight:600; }
@@ -65,7 +65,7 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332">
+    <h2 class="fw-bold mb-1" style="color:#3E6B22">
       <i class="bi bi-bag-check me-2"></i>Pedidos Web
     </h2>
     <small class="text-muted">Pedidos recibidos desde la tienda en línea</small>
@@ -78,7 +78,6 @@
       <i class="bi bi-printer me-1"></i><span>Exportar PDF</span>
     </button>
     {% endif %}
-    <a href="{{ url_for('menu') }}" class="btn btn-outline-secondary btn-sm">← Menú</a>
   </div>
 </div>
 
@@ -245,7 +244,7 @@
 <div class="modal fade" id="modalVender" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;border:none">
-      <div class="modal-header text-white" style="background:#1b4332;border-radius:16px 16px 0 0">
+      <div class="modal-header text-white" style="background:#3E6B22;border-radius:16px 16px 0 0">
         <h5 class="modal-title fw-bold"><i class="bi bi-bag-check me-2"></i>Pasar a venta</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>
@@ -266,7 +265,7 @@
         <div class="modal-footer border-0 p-4 pt-0">
           <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Cancelar</button>
           <!-- Al generar la venta se abre el comprobante, listo para enviarlo por WhatsApp -->
-          <button type="submit" id="btnVender" class="btn fw-bold px-4 text-white" style="background:#1b4332;border-radius:10px" disabled>
+          <button type="submit" id="btnVender" class="btn fw-bold px-4 text-white" style="background:#3E6B22;border-radius:10px" disabled>
             <i class="bi bi-check-lg me-1"></i>Generar venta
           </button>
         </div>
@@ -279,7 +278,7 @@
 <div class="modal fade" id="modalPagar" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content" style="border-radius:16px;border:none">
-      <div class="modal-header text-white" style="background:#2d6a4f;border-radius:16px 16px 0 0">
+      <div class="modal-header text-white" style="background:#3E6B22;border-radius:16px 16px 0 0">
         <h5 class="modal-title fw-bold"><i class="bi bi-cash-coin me-2"></i>Marcar cobrado</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
       </div>

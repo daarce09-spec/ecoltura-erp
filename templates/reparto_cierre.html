@@ -5,11 +5,11 @@
 
 <style>
   .ci-card { background:#fff; border:1px solid #e7ece9; border-radius:16px; padding:14px 16px; margin-bottom:12px; }
-  .ci-tile { background:#fff; border:1px solid #e5efe9; border-radius:14px; padding:12px 14px; height:100%; }
+  .ci-tile { background:#fff; border:1px solid #EFF5EA; border-radius:14px; padding:12px 14px; height:100%; }
   .ci-tile .lab { font-size:.72rem; text-transform:uppercase; letter-spacing:.5px; color:#777; font-weight:700; }
-  .ci-tile .val { font-size:1.3rem; font-weight:800; color:#1b4332; line-height:1.2; }
+  .ci-tile .val { font-size:1.3rem; font-weight:800; color:#3E6B22; line-height:1.2; }
   .ci-tile .sub { font-size:.75rem; color:#7A5300; margin-top:2px; }
-  .ci-tile.efectivo { border-left:4px solid #2d6a4f; }
+  .ci-tile.efectivo { border-left:4px solid #3E6B22; }
   .ci-tile.sinpe { border-left:4px solid #0B4F75; }
   .ci-tile.no { border-left:4px solid #b3261e; }
   .ci-tile.no .val { color:#b3261e; }
@@ -18,7 +18,7 @@
   .ci-nom { font-weight:600; color:#222; }
   .ci-meta { font-size:.78rem; color:#888; }
   .ci-pago { font-size:.72rem; font-weight:800; border-radius:999px; padding:2px 9px; white-space:nowrap; }
-  .p-efectivo { background:#D1E7DD; color:#0A4A2A; }
+  .p-efectivo { background:#EFF5EA; color:#2E5117; }
   .p-sinpe { background:#CFE8F7; color:#0B4F75; }
   .p-pend { background:#FFF1C9; color:#7A5300; }
   .p-no { background:#FBE4E1; color:#b3261e; }
@@ -27,7 +27,7 @@
 
 <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
   <div>
-    <h2 class="fw-bold mb-1" style="color:#1b4332"><i class="bi bi-calculator me-2"></i>Cierre de reparto</h2>
+    <h2 class="fw-bold mb-1" style="color:#3E6B22"><i class="bi bi-calculator me-2"></i>Cierre de reparto</h2>
     <small class="text-muted">{{ desde_txt }} — {{ hasta_txt }}</small>
   </div>
   <a href="{{ url_for('reparto_bp.reparto') }}" class="btn btn-sm btn-outline-secondary text-nowrap no-print">← Reparto</a>
@@ -61,7 +61,7 @@
 </div>
 
 <div class="ci-card">
-  <div class="fw-bold mb-1" style="color:#1b4332">Entregas</div>
+  <div class="fw-bold mb-1" style="color:#3E6B22">Entregas</div>
   {% for f in filas %}
   <div class="ci-fila">
     <div style="min-width:0">
