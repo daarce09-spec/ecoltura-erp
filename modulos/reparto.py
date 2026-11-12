@@ -160,6 +160,7 @@ def armar_ruta(cur):
                p.notas, c.direccion, p.lat, p.lng, p.entrega_fallida, p.creado
         FROM pedidos p LEFT JOIN clientes c ON c.id = p.cliente_id
         WHERE p.estado = 'Pendiente' AND p.seguimiento IN ('Alistado', 'Listo')
+          AND COALESCE(p.entrega, 'domicilio') <> 'feria'
         ORDER BY p.creado
     """)
     filas = cur.fetchall()

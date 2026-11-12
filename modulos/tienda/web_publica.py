@@ -310,12 +310,16 @@ def api_pedidos():
     agregar_a = (data.get("agregar_a") or "").strip()   # token del pedido en curso que ve el cliente
     correo    = correo_valido(data.get("correo"))           # opcional: si viene mal escrito se ignora
     lat, lng  = _coordenadas(data)                         # opcional: punto de entrega en el mapa
+    # Cómo lo recibe: a domicilio (con envío y mapa) o en la feria (lo recoge, sin envío)
+    entrega   = "feria" if (data.get("entrega") or "").strip().lower() == "feria" else "domicilio"
+    if entrega == "feria":
+        lat, lng = None, None
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
     if len(celular) != 8:
         return jsonify({"ok": False, "error": "El celular debe tener 8 dígitos."}), 400
-    if not direccion:
+    if not direccion and entrega == "domicilio":
         return jsonify({"ok": False, "error": "La dirección de entrega es obligatoria."}), 400
     if not items:
         return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
@@ -329,11 +333,15 @@ def api_pedidos():
         row = cur.fetchone()
         if row:
             cliente_id = row[0]
-            # Actualizar nombre y dirección con los datos más recientes
-            cur.execute(
-                "UPDATE clientes SET nombre=%s, direccion=%s WHERE id=%s",
-                (nombre, direccion, cliente_id)
-            )
+            # Actualizar nombre y dirección con los datos más recientes.
+            # Si recoge en la feria, la dirección de su casa NO se toca.
+            if direccion:
+                cur.execute(
+                    "UPDATE clientes SET nombre=%s, direccion=%s WHERE id=%s",
+                    (nombre, direccion, cliente_id)
+                )
+            else:
+                cur.execute("UPDATE clientes SET nombre=%s WHERE id=%s", (nombre, cliente_id))
         else:
             # Cliente nuevo desde la web: cédula vacía (se completa luego desde el app),
             # marcado como cliente_domicilio = TRUE (la web siempre es entrega a domicilio)
@@ -346,6 +354,9 @@ def api_pedidos():
                 RETURNING id
             """, (nombre, celular, direccion))
             cliente_id = cur.fetchone()[0]
+
+        if entrega == "feria":
+            cur.execute("UPDATE clientes SET cliente_feria = TRUE WHERE id = %s", (cliente_id,))
 
         # 1c. Ubicación: si la marcó, queda guardada en su ficha para el próximo pedido
         if lat is not None:
@@ -392,7 +403,7 @@ def api_pedidos():
 
         # La ubicación en el mapa es obligatoria: sin ella el repartidor no puede armar la ruta.
         # Solo se acepta sin punto si se agrega a un pedido en curso que ya lo tiene.
-        if lat is None and not (abierto and abierto[2] is not None):
+        if entrega == "domicilio" and lat is None and not (abierto and abierto[2] is not None):
             conn.rollback()
             return jsonify({"ok": False, "falta_ubicacion": True,
                             "error": "Marcá en el mapa dónde te llevamos el pedido."}), 400
@@ -409,6 +420,13 @@ def api_pedidos():
                 else:
                     cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
                                    VALUES (%s, %s, %s, %s)""", (pedido_id, pid, cant, precios[pid]))
+            # La forma de entrega que elige ahora vale para todo el pedido
+            cur.execute("SELECT COALESCE(entrega, 'domicilio'), notas FROM pedidos WHERE id = %s", (pedido_id,))
+            entrega_antes, notas_antes = cur.fetchone()
+            if entrega != entrega_antes:
+                prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion}"
+                cur.execute("UPDATE pedidos SET entrega = %s, notas = %s WHERE id = %s",
+                            (entrega, _cambiar_prefijo(notas_antes, prefijo), pedido_id))
             _asegurar_express(cur, pedido_id)
             total = _recalcular_total_pedido(cur, pedido_id)
             extra = f" ➕ {notas}" if notas else ""
@@ -420,13 +438,14 @@ def api_pedidos():
             unido = True
         else:
             # 4. Pedido nuevo (la dirección va en notas para que el admin la vea)
-            notas_completa = f"📍 {direccion}" + (f" — {notas}" if notas else "")
+            prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion}"
+            notas_completa = prefijo + (f" — {notas}" if notas else "")
             cur.execute("""
                 INSERT INTO pedidos
-                    (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado, lat, lng)
-                VALUES (%s, %s, '', %s, %s, 0, 'Pendiente', NOW(), %s, %s)
+                    (cliente_id, nombre_contacto, cedula, celular, notas, total_estimado, estado, creado, lat, lng, entrega)
+                VALUES (%s, %s, '', %s, %s, 0, 'Pendiente', NOW(), %s, %s, %s)
                 RETURNING id, token
-            """, (cliente_id, nombre, celular, notas_completa, lat, lng))
+            """, (cliente_id, nombre, celular, notas_completa, lat, lng, entrega))
             pedido_id, token = cur.fetchone()
             for pid, cant in nuevos.items():
                 cur.execute("""INSERT INTO pedidos_detalle (pedido_id, producto_id, cantidad, precio_unitario)
@@ -510,8 +529,32 @@ def _leer_lineas(cur, pedido_id):
     return {r[0]: (float(r[1]), float(r[2]), r[3], float(r[4])) for r in cur.fetchall()}
 
 
+PREFIJO_FERIA = "🧺 Recoger en la Feria San Ramón"
+
+
+def _cambiar_prefijo(notas, prefijo):
+    """Cambia la primera parte de las notas ("📍 dirección" o "🧺 feria") y deja el resto."""
+    texto = (notas or "").strip()
+    if texto.startswith("📍") or texto.startswith("🧺"):
+        corte = len(texto)
+        for sep in (" — ", " ➕ "):
+            i = texto.find(sep)
+            if i != -1:
+                corte = min(corte, i)
+        texto = texto[corte:]
+    else:
+        texto = (" — " + texto) if texto else ""
+    return prefijo + texto
+
+
 def _asegurar_express(cur, pedido_id):
-    """El envío (Express) va siempre una vez, al precio actual de la base."""
+    """El envío (Express) va siempre una vez, al precio actual de la base.
+    Si el pedido es para recoger en la feria, no lleva envío (se quita si estaba)."""
+    cur.execute("SELECT COALESCE(entrega, 'domicilio') FROM pedidos WHERE id = %s", (pedido_id,))
+    fila = cur.fetchone()
+    if fila and fila[0] == "feria":
+        cur.execute("DELETE FROM pedidos_detalle WHERE pedido_id = %s AND producto_id = %s", (pedido_id, ID_EXPRESS))
+        return
     cur.execute("SELECT precio FROM productos WHERE id = %s", (ID_EXPRESS,))
     fila = cur.fetchone()
     if not fila:
@@ -554,14 +597,15 @@ def api_pedido_estado(token):
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT p.id, p.estado, p.nombre_contacto, p.total_estimado, p.creado, v.metodo_pago
+            SELECT p.id, p.estado, p.nombre_contacto, p.total_estimado, p.creado, v.metodo_pago,
+                   COALESCE(p.entrega, 'domicilio')
             FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
             WHERE p.token = %s
         """, (token,))
         fila = cur.fetchone()
         if not fila:
             return jsonify({"ok": False, "error": "No encontramos este pedido."}), 404
-        pid, estado, nombre, total, creado, metodo = fila
+        pid, estado, nombre, total, creado, metodo, entrega = fila
         cur.execute("""
             SELECT d.producto_id, pr.nombre, pr.unidad, d.cantidad, d.precio_unitario,
                    COALESCE(d.descuento_tipo, 'monto'), COALESCE(d.descuento_valor, 0)
@@ -583,6 +627,7 @@ def api_pedido_estado(token):
         "editable": estado == "Pendiente" and not _es_viernes(),
         "viernes": estado == "Pendiente" and _es_viernes(),
         "pagado": bool(metodo) and metodo != "Por cobrar",
+        "entrega": entrega,
         "nombre": nombre,
         "total": total,
         "descuento": max(0.0, suma - total),

@@ -407,6 +407,19 @@
                      margin-top: 8px; padding: 10px 12px; background: #fff; color: var(--verde);
                      border: 1px dashed #B9CFA9; font-size: .82rem; font-weight: 600; cursor: pointer; }
     .btn-ubicacion.marcado { border-style: solid; border-color: var(--verde); background: #F4F8F1; }
+    /* ¿Cómo lo recibís? domicilio o feria */
+    .bloque-entrega { margin-bottom: 14px; }
+    .entrega-lab { font-size: .78rem; font-weight: 600; color: var(--gris); }
+    #bloqueDomicilio input { width: 100%; margin-top: 10px; padding: 11px 13px; border: 1px solid var(--borde);
+                             background: #F5F5F3; font: 400 16px 'Inter', sans-serif; color: var(--negro); outline: none; border-radius: 0; }
+    #bloqueDomicilio input:focus { border-color: var(--verde); background: #fff; }
+    .entrega-opc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
+    .ent-btn { padding: 10px 6px; border: 1px solid var(--borde); background: #fff; color: var(--negro);
+               font: 600 .82rem 'Inter', sans-serif; border-radius: 10px; cursor: pointer; line-height: 1.25; }
+    .ent-btn small { display: block; font-weight: 500; font-size: .7rem; color: var(--gris); margin-top: 2px; }
+    .ent-btn.on { border-color: var(--verde); background: #F4F8F1; color: var(--verde-os); box-shadow: inset 0 0 0 1px var(--verde); }
+    .nota-feria { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #EAF3E3; color: var(--verde-os);
+                  font-size: .82rem; line-height: 1.4; }
     .mapa-ayuda { font-size: .85rem; color: var(--gris); margin: -6px 0 12px; line-height: 1.45; }
     .mapa-buscar { display: flex; gap: 6px; margin-bottom: 8px; }
     .mapa-buscar input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid var(--borde); font-size: 16px; background: #fff; outline: none; }
@@ -806,8 +819,6 @@
       <div class="total-res"><span>Total</span><span id="totalRes">₡0</span></div>
       <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
-      <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
-      <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="abrirMapa()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
       <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
       <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
       <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
@@ -839,7 +850,7 @@
 <!-- Modal: marcar la casa en el mapa (el pin queda fijo al centro; se mueve el mapa) -->
 <div class="overlay" id="overlayMapa">
   <div class="modal">
-    <button class="modal-cerrar" onclick="continuarTrasUbicacion = false; cerrarModal('overlayMapa')">✕</button>
+    <button class="modal-cerrar" onclick="cerrarMapa()">✕</button>
     <div class="modal-titulo">¿Dónde te lo llevamos?</div>
     <div class="mapa-ayuda" id="mapaAyuda">Buscá un lugar cercano o mové el mapa hasta que el pin quede sobre tu casa.</div>
     <form class="mapa-buscar" onsubmit="buscarLugar(event)">
@@ -863,6 +874,18 @@
   <div class="modal">
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
     <div class="modal-titulo" id="tituloConfirm">Confirmar pedido</div>
+    <div id="bloqueEntrega" class="bloque-entrega">
+      <div class="entrega-lab">¿Cómo querés recibir tu pedido?</div>
+      <div class="entrega-opc" id="entregaOpc">
+        <button type="button" class="ent-btn on" data-ent="domicilio" onclick="elegirEntrega('domicilio')">🚚 A domicilio<small>Te lo llevamos a tu casa</small></button>
+        <button type="button" class="ent-btn" data-ent="feria" onclick="elegirEntrega('feria')">🧺 En la feria<small>Lo recogés, sin envío</small></button>
+      </div>
+      <div id="notaFeria" class="nota-feria" style="display:none">Lo recogés en la <b>Feria San Ramón</b>. No se cobra envío. Tu dirección queda guardada para tus pedidos a domicilio.</div>
+      <div id="bloqueDomicilio">
+        <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
+        <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="ubicacionDesdeConfirm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
+      </div>
+    </div>
     <div class="modal-detalle" id="modalDetalle"></div>
     <div class="bloque-correo" id="bloqueCorreoConfirm" style="display:none"></div>
     <div class="modal-nota">Te escribiremos por WhatsApp para confirmar tu pedido y coordinar la entrega.</div>
@@ -1239,8 +1262,30 @@ function precioVisual(p) {
 // la cantidad; se vuelve a poner sola cada vez que se dibuja el resumen
 // (también después de enviar un pedido). El servidor la agrega igual.
 const ID_EXPRESS = 118;
+// Entrega: "domicilio" (con envío, dirección y mapa) o "feria" (lo recoge en la
+// Feria San Ramón: sin envío ni dirección). La dirección de la casa no se borra.
+var entrega = "domicilio";
 function asegurarExpress() {
+  if (entrega === "feria") { delete pedido[ID_EXPRESS]; return; }
   if (productosPorId[ID_EXPRESS]) pedido[ID_EXPRESS] = 1;
+}
+function elegirEntrega(tipo) {
+  entrega = tipo === "feria" ? "feria" : "domicilio";
+  document.querySelectorAll("#entregaOpc .ent-btn").forEach(b => b.classList.toggle("on", b.dataset.ent === entrega));
+  document.getElementById("bloqueDomicilio").style.display = entrega === "feria" ? "none" : "";
+  document.getElementById("notaFeria").style.display = entrega === "feria" ? "" : "none";
+  try { localStorage.setItem("ecoltura_entrega", entrega); } catch(e) {}
+  if (typeof renderResumen === "function" && typeof productosPorId !== "undefined") renderResumen();
+  if (document.getElementById("overlayConfirm").classList.contains("visible")) pintarConfirmacion();
+}
+// Marcar la casa desde la confirmación: se cierra el resumen, se abre el mapa y al
+// confirmar (o cerrar) el mapa se vuelve al resumen.
+function ubicacionDesdeConfirm() {
+  cerrarModal('overlayConfirm'); continuarTrasUbicacion = true; abrirMapa();
+}
+function cerrarMapa() {
+  cerrarModal('overlayMapa');
+  if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
 }
 function inicializarExpress() { asegurarExpress(); }
 function lineasReales() {
@@ -1829,18 +1874,24 @@ function tocarBarraMovil() {
 function abrirModalConfirmacion() {
   const nombre    = document.getElementById("pedNombre").value.trim();
   const celular   = document.getElementById("pedCelular").value.trim();
-  const direccion = document.getElementById("pedDireccion").value.trim();
   asegurarExpress();
   if (lineasReales().length === 0) { alert(modoEdicion ? "El pedido no puede quedar vacío. Si ya no lo querés, podés cancelarlo desde «Mi pedido»." : "Agregue al menos un producto."); return; }
   if (!modoEdicion) {
     if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
     if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
-    if (!direccion) { alert("Indique la dirección de entrega."); return; }
     const correo = document.getElementById("pedCorreo").value.trim();
     if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correo)) { alert("Revisá el correo, parece que está mal escrito (o dejalo vacío)."); return; }
-    // La ubicación es obligatoria (el repartidor arma la ruta con ella)
-    if (!ubicacion) { continuarTrasUbicacion = true; abrirMapa(); return; }
   }
+  // ¿Domicilio o feria? Se elige aquí, en la confirmación (no aplica al editar)
+  document.getElementById("bloqueEntrega").style.display = modoEdicion ? "none" : "";
+  elegirEntrega(entrega);
+  pintarConfirmacion();
+  prepararBloqueCorreo();
+  abrirModal('overlayConfirm');
+}
+
+function pintarConfirmacion() {
+  asegurarExpress();
   const agregando = modoAgregar();
   document.getElementById("tituloConfirm").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a tu pedido" : "Confirmar pedido");
   document.getElementById("btnConfirmar").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a mi pedido" : "Confirmar y enviar");
@@ -1863,8 +1914,6 @@ function abrirModalConfirmacion() {
     : `<div class="modal-total"><span>Total estimado</span><span>₡${total.toLocaleString('es-CR')}</span></div>`;
   document.getElementById("modalDetalle").innerHTML = `
     <div class="modal-lista"><table><tbody>${filas}</tbody></table></div>${pie}`;
-  prepararBloqueCorreo();
-  abrirModal('overlayConfirm');
 }
 
 // Ícono de sobre (SVG blanco sobre círculo verde; los emojis se ven distinto en cada aparato)
@@ -1984,7 +2033,7 @@ function buscarLugar(ev) {
 
 function quitarUbicacion() {
   ubicacion = null;
-  guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
+  guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarMapa();
 }
 
 function pintarBotonUbicacion() {
@@ -2018,6 +2067,12 @@ function prepararBloqueCorreo() {
 
 async function enviarPedido() {
   const btn = document.getElementById("btnConfirmar");
+  if (!modoEdicion && entrega !== "feria") {
+    const dir = document.getElementById("pedDireccion");
+    if (!dir.value.trim()) { alert("Escribí la dirección de entrega."); dir.focus(); return; }
+    // La ubicación es obligatoria (el repartidor arma la ruta con ella)
+    if (!ubicacion) { ubicacionDesdeConfirm(); return; }
+  }
   const correoModal = document.getElementById("correoConfirm");
   if (!modoEdicion && correoModal && correoModal.value.trim()) {
     const c = correoModal.value.trim();
@@ -2048,6 +2103,7 @@ async function enviarPedido() {
         lat:       ubicacion ? ubicacion.lat : null,
         lng:       ubicacion ? ubicacion.lng : null,
         notas:     document.getElementById("pedNotas").value.trim(),
+        entrega:   entrega,
         agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
       })
@@ -2088,7 +2144,9 @@ async function enviarPedido() {
       document.getElementById("tituloExito").textContent = data.unido ? "¡Pedido actualizado!" : "¡Pedido recibido!";
       document.getElementById("textoExito").textContent = data.unido
         ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
-        : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`;
+        : (entrega === "feria"
+            ? `Hola ${nombre}, recibimos tu pedido. Lo vas a recoger en la Feria San Ramón; te escribiremos por WhatsApp cuando esté listo. ¡Gracias por apoyar productos locales!`
+            : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`);
       mostrarCorreoExito(data.correo);
       prepararBloqueCampanaExito();
       abrirModal('overlayExito');
@@ -2432,6 +2490,7 @@ try {
 
 activarFormatoCelular(document.getElementById("pedCelular"));
 pintarBotonUbicacion();
+try { if (localStorage.getItem("ecoltura_entrega") === "feria") elegirEntrega("feria"); } catch(e) {}
 activarFormatoCelular(document.getElementById("notifCelInput"));
 activarFormatoCelular(document.getElementById("visCelular"));
 
