@@ -243,6 +243,23 @@
                 transition: opacity .15s; }
     @media (hover: hover) and (pointer: fine) { .prod:hover .prod-img { opacity: .92; } }
     .prod-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    /* Sello de agricultura regenerativa sobre la foto */
+    .tag-reg { position: absolute; top: 10px; left: 10px; z-index: 2; display: inline-flex; align-items: center; gap: 5px;
+               background: var(--verde); color: #fff; font: 700 .6rem/1 'Inter', sans-serif; letter-spacing: 1.2px;
+               text-transform: uppercase; padding: 5px 9px 5px 7px; box-shadow: 0 2px 8px rgba(0,0,0,.18); pointer-events: none; }
+    .tag-reg svg { width: 11px; height: 11px; flex-shrink: 0; }
+    .dest-item .tag-reg { top: 36px; }          /* en el carrusel va debajo de "Más vendido" / "Destacado" */
+    /* Filtro "Solo regenerativos": se suma al de categorías */
+    .filtro-reg { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--borde); background: #fff;
+                  padding: 7px 12px; margin-bottom: 8px; cursor: pointer; font: 600 .74rem 'Inter', sans-serif;
+                  letter-spacing: .8px; text-transform: uppercase; color: var(--gris); }
+    .filtro-reg svg { width: 13px; height: 13px; color: var(--verde); }
+    .filtro-reg .sw { width: 30px; height: 17px; border-radius: 9px; background: #D6D6D1; position: relative; transition: background .2s; }
+    .filtro-reg .sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 13px; height: 13px; border-radius: 50%;
+                             background: #fff; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .2s; }
+    .filtro-reg.on { border-color: var(--verde); color: var(--verde-os); background: #F4F8F1; }
+    .filtro-reg.on .sw { background: var(--verde); }
+    .filtro-reg.on .sw::after { left: 15px; }
     .prod-img .placeholder { position: absolute; inset: 0; display: flex; align-items: center;
                               justify-content: center; flex-direction: column; gap: 8px; }
     .prod-img .placeholder svg { width: 40px; height: 34px; opacity: .25; }
@@ -820,9 +837,14 @@
       <!-- Separador: aquí empieza la lista completa -->
       <div class="titulo-lista" id="tituloLista" style="display:none"><h3>Todos los productos</h3></div>
 
+      <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="icoHojaReg" viewBox="0 0 24 24"><path fill="currentColor" d="M20.5 3.5C12 3.6 6.2 7.4 5.1 14.2c-.2 1.2-.1 2.3.2 3.3L3 19.8l1.2 1.2 2.3-2.3c1 .4 2.1.5 3.3.3C16.6 17.8 20.4 12 20.5 3.5zM8 16l7-7-.9-.9-7 7z"/></symbol></svg>
       <!-- Barra de filtros: categorías + buscador juntos -->
       <div class="barra-filtros">
         <div class="chips" id="chips"></div>
+        <button type="button" class="filtro-reg" id="filtroReg" onclick="toggleRegenerativos()" style="display:none"
+                aria-pressed="false" title="Mostrar solo productos de agricultura regenerativa">
+          <svg viewBox="0 0 24 24"><use href="#icoHojaReg"/></svg>Solo regenerativos<span class="sw"></span>
+        </button>
         <div class="buscador-wrap">
           <input type="text" id="buscar" placeholder="🔍 Buscar producto" oninput="renderProductos()">
         </div>
@@ -1416,6 +1438,15 @@ function renderModalPeso() {
   `;
 }
 let filtroCat = "Todos";
+let soloRegen = false;   // "Solo regenerativos": se combina con la categoría elegida
+const TAG_REG = '<span class="tag-reg"><svg viewBox="0 0 24 24"><use href="#icoHojaReg"/></svg>Regenerativo</span>';
+function toggleRegenerativos() {
+  soloRegen = !soloRegen;
+  const b = document.getElementById("filtroReg");
+  b.classList.toggle("on", soloRegen);
+  b.setAttribute("aria-pressed", soloRegen ? "true" : "false");
+  renderChips(); renderProductos();
+}
 
 async function cargarProductos() {
   try {
@@ -1434,7 +1465,12 @@ async function cargarProductos() {
 function renderChips() {
   // Orden preferido de categorías; las no listadas van al final
   const ordenPreferido = ["Verduras", "Frutas", "Hierbas", "Lácteos", "Huevos", "Miel", "Hongos", "Otros"];
-  const presentes = [...new Set(PRODUCTOS.map(p => p.categoria))];
+  const hayRegen = PRODUCTOS.some(p => p.regenerativo && p.id !== ID_EXPRESS);
+  document.getElementById("filtroReg").style.display = hayRegen ? "" : "none";
+  if (!hayRegen) soloRegen = false;
+  const base = soloRegen ? PRODUCTOS.filter(p => p.regenerativo) : PRODUCTOS;
+  const presentes = [...new Set(base.filter(p => p.id !== ID_EXPRESS).map(p => p.categoria))];
+  if (filtroCat !== "Todos" && !presentes.includes(filtroCat)) filtroCat = "Todos";
   const ordenadas = [
     ...ordenPreferido.filter(c => presentes.includes(c)),
     ...presentes.filter(c => !ordenPreferido.includes(c)).sort()
@@ -1529,7 +1565,7 @@ function renderTarjetaGrupo(g) {
   const imgId = g.variantes.reduce((a, b) => (b.precio > a.precio ? b : a)).id;
 
   return `<div class="prod">
-    <div class="prod-img" onclick="tocarFoto('${g.id}')">
+    <div class="prod-img" onclick="tocarFoto('${g.id}')">${g.regenerativo ? TAG_REG : ""}
       <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
            loading="lazy" decoding="async"
            onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1553,6 +1589,7 @@ function renderProductos() {
   let lista = PRODUCTOS.filter(p =>
     p.id !== ID_EXPRESS &&
     (filtroCat === "Todos" || p.categoria === filtroCat) &&
+    (!soloRegen || p.regenerativo) &&
     (!q || normalizarTexto(p.nombre).includes(q))
   );
 
@@ -1571,7 +1608,7 @@ function renderProductos() {
 
   const grid = document.getElementById("gridProductos");
   if (lista.length === 0) {
-    grid.innerHTML = '<div class="sin-resultados">No hay resultados para esta búsqueda.</div>';
+    grid.innerHTML = '<div class="sin-resultados">' + (soloRegen && !q ? 'No hay productos regenerativos en esta categoría.' : 'No hay resultados para esta búsqueda.') + '</div>';
     return;
   }
   grid.innerHTML = lista.map(tarjetaProducto).join("");
@@ -1598,7 +1635,7 @@ function tarjetaProducto(p) {
     const pv = precioVisual(p);
 
     return `<div class="prod">
-      <div class="prod-img" data-pid="${p.id}" onclick="tocarFoto(${p.id})">
+      <div class="prod-img" data-pid="${p.id}" onclick="tocarFoto(${p.id})">${p.regenerativo ? TAG_REG : ""}
         <img src="/static/img/productos/${p.id}.jpg" alt="${p.nombre}"
              loading="lazy" decoding="async"
              onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
@@ -1631,7 +1668,7 @@ function listaDestacados() {
 function renderDestacados() {
   const cont = document.getElementById("destacados");
   const buscando = document.getElementById("buscar").value.trim() !== "";
-  const lista = (filtroCat === "Todos" && !buscando) ? listaDestacados() : [];
+  const lista = (filtroCat === "Todos" && !buscando && !soloRegen) ? listaDestacados() : [];
   document.getElementById("tituloLista").style.display = lista.length ? "flex" : "none";
   if (lista.length === 0) { cont.style.display = "none"; return; }
   cont.style.display = "block";
@@ -1658,7 +1695,7 @@ function listaRecompra() {
 function renderRecompra() {
   const cont = document.getElementById("recompra");
   const buscando = document.getElementById("buscar").value.trim() !== "";
-  const lista = (filtroCat === "Todos" && !buscando) ? listaRecompra() : [];
+  const lista = (filtroCat === "Todos" && !buscando && !soloRegen) ? listaRecompra() : [];
   if (lista.length === 0) { cont.style.display = "none"; return; }
   cont.style.display = "block";
   cont.querySelector(".dest-todo").style.display = ultimaCompraGuardada.length ? "" : "none";
