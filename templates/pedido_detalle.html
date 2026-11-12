@@ -91,9 +91,26 @@
         {% endif %}
       </div>
       <div class="dato-row"><span class="dato-label">Recibido</span><span class="dato-valor">{{ pedido[6].strftime('%d/%m/%Y %I:%M %p') }}</span></div>
-      {% if pedido[7] %}
-      <div class="dato-row"><span class="dato-label">Notas</span><span class="dato-valor" style="max-width:60%;text-align:right">{{ pedido[7] }}</span></div>
-      {% endif %}
+      <div class="dato-row" id="filaNotas" style="align-items:flex-start">
+        <span class="dato-label">Notas</span>
+        <span class="dato-valor d-flex align-items-start gap-2 justify-content-end" style="max-width:70%;text-align:right">
+          <span style="white-space:pre-line">{{ pedido[7] or '—' }}</span>
+          <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 flex-shrink-0" title="Editar notas"
+                  onclick="document.getElementById('filaNotas').style.display='none';document.getElementById('formNotas').style.display='block';document.getElementById('txtNotas').focus();">
+            <i class="bi bi-pencil"></i></button>
+        </span>
+      </div>
+      <form id="formNotas" method="post" action="{{ url_for('pedidos_bp.pedido_notas', id=pedido[0]) }}"
+            class="dato-row" style="display:none">
+        <label for="txtNotas" class="dato-label d-block mb-1">Notas</label>
+        <textarea id="txtNotas" name="notas" rows="3" maxlength="1000" class="form-control mb-2">{{ pedido[7] or '' }}</textarea>
+        <div class="small text-muted mb-2">La primera parte (📍 dirección o 🧺 feria) es la que ve el repartidor como dirección; lo que va después de « — » sale como nota.</div>
+        <div class="d-flex gap-2 justify-content-end">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  onclick="document.getElementById('formNotas').style.display='none';document.getElementById('filaNotas').style.display='';">Cancelar</button>
+          <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+        </div>
+      </form>
       {% if pedido[15] is not none and pedido[16] is not none %}
       <div class="dato-row">
         <span class="dato-label">Ubicación</span>
