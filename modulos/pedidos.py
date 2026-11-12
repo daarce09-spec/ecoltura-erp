@@ -107,6 +107,11 @@ def mensaje_alistado(nombre, total, token, entrega="domicilio"):
             "",
             "Si querés, podés adelantar el pago por *SINPE Móvil*:",
             f"📱 {numero}" + (f" ({a_nombre})" if a_nombre else ""),
+        ]
+        nombre_completo = " ".join((nombre or "").split())
+        if nombre_completo:
+            lineas.append(f"En el detalle del SINPE poné tu nombre: *{nombre_completo}*")
+        lineas += [
             "Cuando lo hagás, enviános el comprobante por aquí. 🙏",
         ]
     if token:

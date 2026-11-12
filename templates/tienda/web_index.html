@@ -659,6 +659,24 @@
       input, select, textarea { font-size: 16px !important; }
     }
     @media (max-width: 720px) { .footer-inner { grid-template-columns: 1fr; } }
+    /* Firma del desarrollador: POWERED BY (lleva a su LinkedIn) */
+    .powered { max-width: 1160px; margin: 22px auto 0; display: flex; justify-content: center; }
+    .pw { display: inline-flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; text-decoration: none; cursor: pointer;
+          font: 500 .66rem/1 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 3px;
+          color: #6E6E68; padding: 8px 4px; }
+    .pw-marca { display: inline-flex; align-items: center; gap: 8px; color: #A4C93C; font-weight: 700;
+                font-size: .74rem; letter-spacing: 2px; text-shadow: 0 0 10px rgba(164,201,60,.35);
+                transition: text-shadow .35s ease, color .35s ease; }
+    .pw-in { flex-shrink: 0; filter: drop-shadow(0 0 4px rgba(164,201,60,.4)); }
+    .pw-cursor { width: 7px; height: 13px; background: #A4C93C; display: inline-block; margin-left: -4px;
+                 animation: pwParpadeo 1.1s steps(1) infinite; box-shadow: 0 0 8px rgba(164,201,60,.6); }
+    @media (hover: hover) and (pointer: fine) {
+      .pw:hover .pw-marca { color: #C9DC7A; text-shadow: 0 0 14px rgba(164,201,60,.75), 0 0 2px rgba(201,220,122,.9); }
+    }
+    @keyframes pwParpadeo { 50% { opacity: 0; } }
+    @media (prefers-reduced-motion: reduce) { .pw-cursor { animation: none; } }
+    /* En celular la barra del carrito tapa el final del pie: se deja espacio para que la firma se vea */
+    @media (max-width: 960px) { footer { padding-bottom: 110px; } }
   </style>
 </head>
 <body>
@@ -1143,6 +1161,11 @@
   <div class="firma">
     <span>© ECOLTURA — Cultivado con paciencia y respeto absoluto por la tierra.</span>
     <span class="version-chip" title="Versión de la página que está viendo (código interno: {{ APP_VERSION.split(' · ')[1] }})"><i></i><b>Versión {{ APP_RELEASE }}</b><em>{{ APP_VERSION.split(" · ")[2] }}</em></span>
+  </div>
+  <div class="powered">
+    <a class="pw" href="https://cr.linkedin.com/in/jdanielarcea" target="_blank" rel="noopener" title="Ver perfil en LinkedIn">POWERED BY
+      <span class="pw-marca"><svg class="pw-in" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05c.48-.9 1.64-1.85 3.37-1.85 3.6 0 4.27 2.37 4.27 5.46v6.28zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13zM7.12 20.45H3.56V9h3.56v11.45zM22.22 0H1.77C.79 0 0 .77 0 1.73v20.54C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.73V1.73C24 .77 23.2 0 22.22 0z"/></svg>José Daniel Arce Araya<i class="pw-cursor" aria-hidden="true"></i></span>
+    </a>
   </div>
 </footer>
 
