@@ -13,6 +13,8 @@ def _asegurar_destacado():
         conn = obtener_conexion()
         cur = conn.cursor()
         cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
+        # Producto de agricultura regenerativa: lleva el sello en la foto de la tienda
+        cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS regenerativo BOOLEAN DEFAULT FALSE")
         conn.commit()
         cur.close()
         conn.close()
@@ -66,7 +68,8 @@ def productos():
     cur  = conn.cursor()
     cur.execute(
         """SELECT id, nombre, categoria, unidad, precio, visible_web,
-                  grupo_id, grupo_nombre, nombre_variante, COALESCE(destacado, FALSE)
+                  grupo_id, grupo_nombre, nombre_variante, COALESCE(destacado, FALSE),
+                  COALESCE(regenerativo, FALSE)
            FROM productos ORDER BY nombre ASC"""
     )
     lista = cur.fetchall()
@@ -118,6 +121,25 @@ def toggle_destacado(id):
     conn.close()
     # Al destacar un producto, también queda visible en la web (si no, no saldría en la tienda)
     return jsonify({"destacado": nuevo, "visible_web": visible})
+
+
+# =====================================================
+# TOGGLE AGRICULTURA REGENERATIVA (AJAX)
+# =====================================================
+@productos_bp.route("/productos/toggle-regenerativo/<int:id>", methods=["POST"])
+def toggle_regenerativo(id):
+    """Marca o desmarca el producto como de agricultura regenerativa (sello en la tienda)."""
+    conn = obtener_conexion()
+    cur  = conn.cursor()
+    cur.execute(
+        "UPDATE productos SET regenerativo = NOT COALESCE(regenerativo, FALSE) WHERE id = %s RETURNING regenerativo",
+        (id,)
+    )
+    nuevo = cur.fetchone()[0]
+    conn.commit()
+    cur.close()
+    conn.close()
+    return jsonify({"regenerativo": nuevo})
 
 
 # =====================================================

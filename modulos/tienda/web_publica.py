@@ -31,6 +31,7 @@ def _asegurar_destacado():
         with obtener_conexion() as conn:
             cur = conn.cursor()
             cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS destacado BOOLEAN DEFAULT FALSE")
+            cur.execute("ALTER TABLE productos ADD COLUMN IF NOT EXISTS regenerativo BOOLEAN DEFAULT FALSE")
             # Correo opcional del cliente (para la confirmación del pedido)
             cur.execute("ALTER TABLE clientes ADD COLUMN IF NOT EXISTS correo VARCHAR(120)")
             # Ubicación de entrega marcada en el mapa (opcional)
@@ -100,7 +101,8 @@ def api_productos():
                 p.grupo_id,
                 p.grupo_nombre,
                 p.nombre_variante,
-                COALESCE(p.destacado, FALSE)
+                COALESCE(p.destacado, FALSE),
+                COALESCE(p.regenerativo, FALSE)
             FROM productos p
             WHERE p.visible_web = TRUE OR p.id = 118   -- Express (envío) va siempre
             ORDER BY
@@ -150,6 +152,7 @@ def api_productos():
             "grupo_nombre":   r[7],
             "nombre_variante": r[8],
             "destacado": bool(r[9]),
+            "regenerativo": bool(r[10]),
             "ventas": ventas_por_producto.get(r[0], 0),
         }
         for r in rows
@@ -174,12 +177,14 @@ def api_productos():
                     "categoria": p["categoria"],
                     "variantes": [],
                     "destacado": False,
+                    "regenerativo": False,
                     "ventas": 0,
                 }
                 grupos[gid] = entrada
                 resultado.append(entrada)
             grupos[gid]["variantes"].append(p)
             grupos[gid]["destacado"] = grupos[gid]["destacado"] or p["destacado"]
+            grupos[gid]["regenerativo"] = grupos[gid]["regenerativo"] or p["regenerativo"]
             grupos[gid]["ventas"] += p["ventas"]
         else:
             del p["nombre_variante"]

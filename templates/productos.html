@@ -29,7 +29,7 @@
     .tabla-prod .td-nom { grid-area:nom; font-size:1.02rem; line-height:1.25; }
     .tabla-prod .td-pre { grid-area:pre; font-weight:800; color:#3E6B22; font-size:1.05rem; align-self:start; }
     .tabla-prod .td-meta-movil { display:flex !important; gap:8px; align-items:center; color:#666; font-size:.85rem; }
-    .tabla-prod .td-web, .tabla-prod .td-dest { display:none !important; }
+    .tabla-prod .td-web, .tabla-prod .td-dest, .tabla-prod .td-reg { display:none !important; }
     .tabla-prod .td-tog { grid-area:tog; display:flex !important; gap:18px; flex-wrap:wrap; }
     .tabla-prod .td-tog .form-check { display:flex; align-items:center; gap:8px; margin:0; padding-left:0; }
     .tabla-prod .td-tog .form-check-input { margin:0; float:none; }
@@ -100,6 +100,10 @@
               <i class="bi bi-star me-1"></i>Destacar
               <small class="d-block text-muted fw-normal" style="font-size:.65rem">sale primero arriba</small>
             </th>
+            <th class="text-center">
+              <i class="bi bi-flower1 me-1"></i>Regenerativo
+              <small class="d-block text-muted fw-normal" style="font-size:.65rem">sello en la foto</small>
+            </th>
             <th></th>
           </tr>
         </thead>
@@ -155,6 +159,17 @@
               </div>
             </td>
 
+            <!-- Toggle agricultura regenerativa -->
+            <td class="text-center td-reg">
+              <div class="form-check form-switch d-flex justify-content-center mb-0">
+                <input class="form-check-input toggle-regenerativo" type="checkbox"
+                       data-id="{{ p[0] }}"
+                       {{ 'checked' if p[10] else '' }}
+                       style="width:2.2em;height:1.15em;cursor:pointer"
+                       title="{{ 'Agricultura regenerativa' if p[10] else 'Sin sello regenerativo' }}">
+              </div>
+            </td>
+
             <td class="td-tog d-none">
               <div class="form-check form-switch">
                 <input class="form-check-input espejo" type="checkbox" data-espejo=".toggle-web" data-id="{{ p[0] }}"
@@ -165,6 +180,11 @@
                 <input class="form-check-input espejo" type="checkbox" data-espejo=".toggle-destacado" data-id="{{ p[0] }}"
                        {{ 'checked' if p[9] else '' }} style="width:2.4em;height:1.25em;cursor:pointer" id="md{{ p[0] }}">
                 <label for="md{{ p[0] }}">Destacado</label>
+              </div>
+              <div class="form-check form-switch">
+                <input class="form-check-input espejo" type="checkbox" data-espejo=".toggle-regenerativo" data-id="{{ p[0] }}"
+                       {{ 'checked' if p[10] else '' }} style="width:2.4em;height:1.25em;cursor:pointer" id="mr{{ p[0] }}">
+                <label for="mr{{ p[0] }}">Regenerativo</label>
               </div>
             </td>
 
@@ -541,6 +561,25 @@
           var web = fila ? fila.querySelector('.toggle-web') : null;
           if (web && data.visible_web) { web.checked = true; web.title = 'Visible en web'; }
           sincronizarEspejos(fila);
+        })
+        .catch(function() {
+          self.checked = !self.checked;
+          sincronizarEspejos(self.closest('tr'));
+          alert('Error al actualizar. Intente de nuevo.');
+        });
+    });
+  });
+
+  // ===== Toggle agricultura regenerativa con AJAX =====
+  document.querySelectorAll('.toggle-regenerativo').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var id = this.dataset.id;
+      var self = this;
+      fetch('/productos/toggle-regenerativo/' + id, { method: 'POST' })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          self.title = data.regenerativo ? 'Agricultura regenerativa' : 'Sin sello regenerativo';
+          sincronizarEspejos(self.closest('tr'));
         })
         .catch(function() {
           self.checked = !self.checked;
