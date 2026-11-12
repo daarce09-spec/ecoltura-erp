@@ -10,10 +10,10 @@
   <meta name="apple-mobile-web-app-title" content="Ecoltura">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
-  <link rel="preload" as="image" href="{{ url_for('static', filename='img/ecoltura-logo.png') }}">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}">
-  <link rel="icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='img/apple-touch-icon.png') }}?v=2">
-  <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='img/ecoltura-logo.png') }}?v=2">
+  <link rel="preload" as="image" href="{{ url_for('static', filename='img/icon-512.png') }}">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/icon-512.png') }}?v=3">
+  <link rel="icon" type="image/png" sizes="180x180" href="{{ url_for('static', filename='img/icon-512.png') }}?v=3">
+  <link rel="icon" type="image/png" sizes="512x512" href="{{ url_for('static', filename='img/icon-512.png') }}?v=2">
   <!-- Manifiesto PROPIO del admin: así la app que se instala desde acá es
        "Ecoltura" y abre en /menu, separada de la tienda pública
        ("Mi Ecoltura", que abre en /). Con el manifiesto compartido, el
@@ -192,6 +192,8 @@
     @media (min-width: 992px) {
       .nav-tabs-eco { display: flex; }
       .brand-text { display: none; }
+      /* En computadora el logo va solo (sin el texto al lado): más grande para que se lea */
+      .navbar-logo { height: 60px; margin: -6px 0; }
       .btn-menu-grid { display: none !important; }
     }
     @media (max-width: 991.98px) {
@@ -258,7 +260,7 @@
 
   <div id="android-prompt" class="install-prompt">
     <div class="d-flex align-items-center">
-      <img src="{{ url_for('static', filename='img/apple-touch-icon.png') }}" width="50" class="me-3 rounded shadow-sm">
+      <img src="{{ url_for('static', filename='img/icon-512.png') }}?v=3" width="50" class="me-3 rounded shadow-sm">
       <div class="flex-grow-1" style="font-size: 0.85rem;">
         <strong>ECOLTURA App</strong><br>
         Instala acceso directo en tu pantalla.
@@ -271,7 +273,7 @@
   <nav class="navbar">
     <div class="container-fluid px-3 px-md-4">
       <a class="navbar-brand" href="{{ '/reparto' if ES_REPARTO else url_for('menu') }}">
-        <img src="{{ url_for('static', filename='img/ecoltura-logo.png') }}" class="navbar-logo" alt="ECOLTURA">
+        <img src="{{ url_for('static', filename='img/icon-512.png') }}" class="navbar-logo" alt="ECOLTURA">
         <div class="brand-text">
           <span class="brand-name">ECOLTURA</span>
           <span class="brand-sub">Agricultura Regenerativa</span>
