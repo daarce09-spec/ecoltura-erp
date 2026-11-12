@@ -408,18 +408,22 @@
                      border: 1px dashed #B9CFA9; font-size: .82rem; font-weight: 600; cursor: pointer; }
     .btn-ubicacion.marcado { border-style: solid; border-color: var(--verde); background: #F4F8F1; }
     /* ¿Cómo lo recibís? domicilio o feria */
-    .bloque-entrega { margin-bottom: 14px; }
-    .entrega-lab { font-size: .78rem; font-weight: 600; color: var(--gris); }
+    .bloque-entrega { margin: 2px 0 14px; padding-top: 14px; border-top: 1px solid var(--borde); flex-shrink: 0; }
+    .entrega-lab { font-size: .82rem; font-weight: 600; color: var(--negro); }
+    /* En la confirmación la lista de productos nunca se aplasta: si no cabe todo, se desplaza el modal */
+    #overlayConfirm .modal > * { flex-shrink: 0; }
+    #overlayConfirm .modal-lista { min-height: 92px; max-height: 34vh; max-height: 34dvh; }
+    #overlayConfirm .modal-detalle { flex: 0 0 auto !important; }
     #bloqueDomicilio input { width: 100%; margin-top: 10px; padding: 11px 13px; border: 1px solid var(--borde);
                              background: #F5F5F3; font: 400 16px 'Inter', sans-serif; color: var(--negro); outline: none; border-radius: 0; }
     #bloqueDomicilio input:focus { border-color: var(--verde); background: #fff; }
     .entrega-opc { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 6px; }
-    .ent-btn { padding: 10px 6px; border: 1px solid var(--borde); background: #fff; color: var(--negro);
-               font: 600 .82rem 'Inter', sans-serif; border-radius: 10px; cursor: pointer; line-height: 1.25; }
-    .ent-btn small { display: block; font-weight: 500; font-size: .7rem; color: var(--gris); margin-top: 2px; }
+    .ent-btn { padding: 9px 6px; border: 1px solid var(--borde); background: #fff; color: var(--negro);
+               font: 600 .84rem 'Inter', sans-serif; border-radius: 0; cursor: pointer; line-height: 1.25; }
+    .ent-btn small { display: block; font-weight: 400; font-size: .7rem; color: var(--gris); margin-top: 1px; }
     .ent-btn.on { border-color: var(--verde); background: #F4F8F1; color: var(--verde-os); box-shadow: inset 0 0 0 1px var(--verde); }
-    .nota-feria { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #EAF3E3; color: var(--verde-os);
-                  font-size: .82rem; line-height: 1.4; }
+    .nota-feria { margin-top: 10px; padding: 9px 12px; background: #EAF3E3; color: var(--verde-os);
+                  font-size: .8rem; line-height: 1.4; }
     .mapa-ayuda { font-size: .85rem; color: var(--gris); margin: -6px 0 12px; line-height: 1.45; }
     .mapa-buscar { display: flex; gap: 6px; margin-bottom: 8px; }
     .mapa-buscar input { flex: 1; min-width: 0; padding: 11px 12px; border: 1px solid var(--borde); font-size: 16px; background: #fff; outline: none; }
@@ -874,19 +878,19 @@
   <div class="modal">
     <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
     <div class="modal-titulo" id="tituloConfirm">Confirmar pedido</div>
+    <div class="modal-detalle" id="modalDetalle"></div>
     <div id="bloqueEntrega" class="bloque-entrega">
       <div class="entrega-lab">¿Cómo querés recibir tu pedido?</div>
       <div class="entrega-opc" id="entregaOpc">
         <button type="button" class="ent-btn on" data-ent="domicilio" onclick="elegirEntrega('domicilio')">🚚 A domicilio<small>Te lo llevamos a tu casa</small></button>
         <button type="button" class="ent-btn" data-ent="feria" onclick="elegirEntrega('feria')">🧺 En la feria<small>Lo recogés, sin envío</small></button>
       </div>
-      <div id="notaFeria" class="nota-feria" style="display:none">Lo recogés en la <b>Feria San Ramón</b>. No se cobra envío. Tu dirección queda guardada para tus pedidos a domicilio.</div>
+      <div id="notaFeria" class="nota-feria" style="display:none">🧺 Lo recogés en la <b>Feria San Ramón</b>. Sin costo de envío.</div>
       <div id="bloqueDomicilio">
         <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
         <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="ubicacionDesdeConfirm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
       </div>
     </div>
-    <div class="modal-detalle" id="modalDetalle"></div>
     <div class="bloque-correo" id="bloqueCorreoConfirm" style="display:none"></div>
     <div class="modal-nota">Te escribiremos por WhatsApp para confirmar tu pedido y coordinar la entrega.</div>
     <div class="modal-botones">
@@ -1897,7 +1901,8 @@ function pintarConfirmacion() {
   document.getElementById("btnConfirmar").textContent = modoEdicion ? "Guardar cambios" : (agregando ? "Agregar a mi pedido" : "Confirmar y enviar");
 
   let total = 0;
-  const filas = Object.keys(pedido).filter(clave => !(agregando && parsearClave(clave).id === ID_EXPRESS)).map(clave => {
+  const filas = Object.keys(pedido).filter(clave => !(agregando && parsearClave(clave).id === ID_EXPRESS))
+    .sort((x, y) => (parsearClave(x).id === ID_EXPRESS) - (parsearClave(y).id === ID_EXPRESS)).map(clave => {
     const { id, gramos } = parsearClave(clave);
     const p    = productosPorId[id];
     const cant = pedido[clave];
