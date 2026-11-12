@@ -3,8 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mi pedido — ECOLTURA</title>
+  <title>Tu pedido de Ecoltura</title>
   <meta name="robots" content="noindex">
+  <!-- Vista previa al compartir el link del pedido (WhatsApp) -->
+  <meta name="description" content="Mirá el detalle y el estado de tu pedido.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Mi Ecoltura">
+  <meta property="og:title" content="Tu pedido de Ecoltura">
+  <meta property="og:description" content="Mirá el detalle y el estado de tu pedido.">
+  <meta property="og:image" content="https://{{ request.host }}/static/img/og-ecoltura.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:locale" content="es_CR">
   <link rel="icon" type="image/png" href="/static/img/apple-touch-icon.png?v=2">
   <meta name="theme-color" content="#3E6B22">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -200,6 +210,65 @@ async function cargar() {
 cargar();
 // Se actualiza solo cuando el pedido cambia de estado
 setInterval(() => { if (!document.hidden) cargar(); }, 30000);
+</script>
+<!-- Avisos con el estilo de la tienda (reemplazan la alerta gris del navegador) -->
+<div id="avOverlay" class="av-overlay" role="alertdialog" aria-modal="true" aria-labelledby="avTexto">
+  <div class="av-caja">
+    <div class="av-ico" id="avIco"></div>
+    <div class="av-titulo" id="avTitulo"></div>
+    <div class="av-texto" id="avTexto"></div>
+    <button type="button" class="av-btn" id="avBtn">Entendido</button>
+  </div>
+</div>
+<style>
+  .av-overlay { position: fixed; inset: 0; z-index: 2000; display: none; align-items: center; justify-content: center;
+                padding: 20px; background: rgba(26,28,24,.55); }
+  .av-overlay.visible { display: flex; animation: avFondo .18s ease; }
+  .av-caja { background: #fff; width: 100%; max-width: 360px; padding: 28px 24px 22px; text-align: center;
+             box-shadow: 0 14px 40px rgba(0,0,0,.22); animation: avSube .22s ease; }
+  .av-ico { width: 52px; height: 52px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center;
+            justify-content: center; background: #FDF0E6; color: #D9742E; }
+  .av-ico.ok { background: #EAF3E3; color: #3E6B22; }
+  .av-titulo { font-family: 'Fraunces', Georgia, serif; font-size: 1.3rem; color: #1A1C18; margin-bottom: 6px; }
+  .av-texto { font-family: 'Inter', system-ui, sans-serif; font-size: .92rem; line-height: 1.5; color: #6E6E69; margin-bottom: 20px; }
+  .av-btn { width: 100%; padding: 13px; border: none; background: #3E6B22; color: #fff; cursor: pointer;
+            font: 600 .82rem 'Inter', system-ui, sans-serif; letter-spacing: .12em; text-transform: uppercase; }
+  .av-btn:active { background: #2E5117; }
+  .av-btn:focus { outline: none; }
+  @keyframes avFondo { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes avSube { from { transform: translateY(14px); opacity: 0 } to { transform: none; opacity: 1 } }
+</style>
+<script>
+  // Toda alert() de la página se muestra con este modal. Los mensajes que empiezan
+  // con "¡" son buenas noticias (ícono verde); los demás, avisos (ícono naranja).
+  (function () {
+    var ov = document.getElementById('avOverlay');
+    var ICO_AVISO = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9.5"/><path d="M12 7.5v5.5"/><circle cx="12" cy="16.6" r=".6" fill="currentColor"/></svg>';
+    var ICO_OK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>';
+    var foco = null;
+    function cerrar() {
+      ov.classList.remove('visible');
+      if (foco && foco.focus) { try { foco.focus(); } catch (e) {} }
+      foco = null;
+    }
+    window.alert = function (mensaje) {
+      var txt = String(mensaje == null ? '' : mensaje);
+      var ok = txt.charAt(0) === '¡';
+      var esError = /^error/i.test(txt);
+      document.getElementById('avIco').className = 'av-ico' + (ok ? ' ok' : '');
+      document.getElementById('avIco').innerHTML = ok ? ICO_OK : ICO_AVISO;
+      document.getElementById('avTitulo').textContent = ok ? '¡Listo!' : (esError ? 'Algo salió mal' : 'Un momento');
+      document.getElementById('avTexto').textContent = txt.replace(/^Error:\s*/, '');
+      foco = document.activeElement;
+      ov.classList.add('visible');
+      setTimeout(function () { document.getElementById('avBtn').focus(); }, 30);
+    };
+    document.getElementById('avBtn').addEventListener('click', cerrar);
+    ov.addEventListener('click', function (e) { if (e.target === ov) cerrar(); });
+    document.addEventListener('keydown', function (e) {
+      if (ov.classList.contains('visible') && (e.key === 'Escape' || e.key === 'Enter')) { e.preventDefault(); cerrar(); }
+    }, true);
+  })();
 </script>
 </body>
 </html>

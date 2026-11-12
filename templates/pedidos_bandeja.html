@@ -36,6 +36,7 @@
   .tag-cobrado { background:#EFF5EA; color:#2E5117; }
   .tag-prep { background:#EEF1F3; color:#555; }
   .tag-alistado { background:#CFE8F7; color:#0B4F75; }
+  .tag-feria { background:#FDF0E6; color:#A4501A; }
   .tag-fallida { background:#FBE4E1; color:#b3261e; }
   .tag-sinpe { background:#FFF1C9; color:#7A5300; }
   .kb-vacio { text-align:center; color:#9aa; font-size:.82rem; padding:20px 6px; }
@@ -146,7 +147,8 @@
   </div>
   {% if tipo == 'pendientes' %}
     <div class="mt-2 d-flex flex-wrap gap-1">
-      {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> Alistado · en reparto</span>
+      {% if p.feria %}<span class="tag tag-feria">🧺 Feria</span>{% endif %}
+      {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> Alistado · {{ 'para la feria' if p.feria else 'en reparto' }}</span>
       {% else %}<span class="tag tag-prep">Preparando</span>{% endif %}
       {% if p.fallida %}<span class="tag tag-fallida"><i class="bi bi-exclamation-triangle"></i> No entregado: {{ p.fallida[:40] }}</span>{% endif %}
     </div>

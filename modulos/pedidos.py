@@ -41,7 +41,8 @@ def _asegurar_columnas_seguimiento():
                            ADD COLUMN IF NOT EXISTS lng NUMERIC(9,6),
                            ADD COLUMN IF NOT EXISTS entrega_fallida TEXT,
                            ADD COLUMN IF NOT EXISTS entrega_fallida_en TIMESTAMP,
-                           ADD COLUMN IF NOT EXISTS entregado_reparto BOOLEAN DEFAULT FALSE""")
+                           ADD COLUMN IF NOT EXISTS entregado_reparto BOOLEAN DEFAULT FALSE,
+                           ADD COLUMN IF NOT EXISTS entrega VARCHAR(12) DEFAULT 'domicilio'""")
             # SINPE marcado por el repartidor: queda "por confirmar" hasta que la oficina vea el dinero
             cur.execute("ALTER TABLE ventas ADD COLUMN IF NOT EXISTS sinpe_pendiente BOOLEAN DEFAULT FALSE")
             # El paso "Listo" ahora se llama "Alistado"
@@ -87,11 +88,15 @@ def _colones_txt(x):
     return "₡" + f"{float(x or 0):,.0f}".replace(",", ".")
 
 
-def mensaje_alistado(nombre, total, token):
+def mensaje_alistado(nombre, total, token, entrega="domicilio"):
     primer = (nombre or "").strip().split(" ")[0].capitalize()
+    if entrega == "feria":
+        aviso = "Tu pedido de *Ecoltura* ya está alistado y te espera en la *Feria San Ramón*. 🧺"
+    else:
+        aviso = "Tu pedido de *Ecoltura* ya está alistado y pronto va camino a tu casa. 🚚"
     lineas = [
         f"¡Hola{(' ' + primer) if primer else ''}! 🌱",
-        "Tu pedido de *Ecoltura* ya está alistado y pronto va camino a tu casa. 🚚",
+        aviso,
         "",
         f"*Total a pagar: {_colones_txt(total)}*",
     ]
@@ -110,11 +115,11 @@ def mensaje_alistado(nombre, total, token):
     return "\n".join(lineas)
 
 
-def link_whatsapp_alistado(celular, nombre, total, token):
+def link_whatsapp_alistado(celular, nombre, total, token, entrega="domicilio"):
     cel8 = _ultimos_8(celular)
     if len(cel8) != 8:
         return ""
-    return f"https://wa.me/506{cel8}?text=" + quote(mensaje_alistado(nombre, total, token))
+    return f"https://wa.me/506{cel8}?text=" + quote(mensaje_alistado(nombre, total, token, entrega))
 
 
 # Métodos de pago de las ventas que vienen de pedidos
@@ -175,7 +180,8 @@ def bandeja_pedidos():
                    p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
                    v.metodo_pago, v.total, v.id, p.notas,
                    COALESCE(nd.n, 0),
-                   p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE), p.token
+                   p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE), p.token,
+                   COALESCE(p.entrega, 'domicilio')
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
@@ -193,7 +199,7 @@ def bandeja_pedidos():
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
-         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend, token) in filas:
+         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend, token, entrega) in filas:
         total = float(total_venta if total_venta is not None else (total_est or 0))
         tarjeta = {
             "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
@@ -201,7 +207,8 @@ def bandeja_pedidos():
             "metodo": metodo, "venta_id": venta_id, "notas": (notas or "").strip(), "n_items": n_items,
             "seguimiento": "Alistado" if seg in ("Alistado", "Listo") else "Preparando",
             "fallida": (fallida or "").strip(), "sinpe_pendiente": bool(sinpe_pend),
-            "wa_alistado": link_whatsapp_alistado(celular, nombre, total, token) if estado == "Pendiente" else "",
+            "feria": entrega == "feria",
+            "wa_alistado": link_whatsapp_alistado(celular, nombre, total, token, entrega) if estado == "Pendiente" else "",
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)

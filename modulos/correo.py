@@ -54,14 +54,15 @@ def _leer_pedido(token):
     with obtener_conexion() as conn:
         cur = conn.cursor()
         cur.execute("""
-            SELECT p.id, p.nombre_contacto, p.total_estimado, c.direccion
+            SELECT p.id, p.nombre_contacto, p.total_estimado, c.direccion,
+                   COALESCE(p.entrega, 'domicilio')
             FROM pedidos p LEFT JOIN clientes c ON c.id = p.cliente_id
             WHERE p.token = %s
         """, (token,))
         fila = cur.fetchone()
         if not fila:
             return None
-        pid, nombre, total, direccion = fila
+        pid, nombre, total, direccion, tipo_entrega = fila
         cur.execute("""
             SELECT d.producto_id, pr.nombre, pr.unidad, d.cantidad
             FROM pedidos_detalle d JOIN productos pr ON pr.id = d.producto_id
@@ -85,7 +86,8 @@ def _leer_pedido(token):
             subtot[prod] = base - desc
     items = [{"nombre": n, "cantidad": _cantidad(c, u), "subtotal": subtot.get(p, 0), "envio": p == ID_EXPRESS}
              for p, n, u, c in lineas]
-    return {"nombre": nombre or "", "total": float(total or 0), "direccion": direccion or "", "items": items}
+    return {"nombre": nombre or "", "total": float(total or 0), "direccion": direccion or "", "items": items,
+            "feria": tipo_entrega == "feria"}
 
 
 def _html(p, enlace, logo, unido):
@@ -124,7 +126,10 @@ def _html(p, enlace, logo, unido):
                       f'<td align="right" valign="top" style="padding:10px 0;border-bottom:1px solid #E2EBDC;{F}font-size:15px;color:#2B2B2B;white-space:nowrap;">{_colones(it["subtotal"])}</td></tr>')
 
     entrega = ""
-    if p["direccion"].strip():
+    if p.get("feria"):
+        entrega = (f'<tr><td style="padding:16px 32px 0;{F}font-size:14px;line-height:1.6;color:#5A5A55;">'
+                   f'🧺 <b style="color:#2B2B2B;">Lo recogés en:</b> Feria San Ramón</td></tr>')
+    elif p["direccion"].strip():
         entrega = (f'<tr><td style="padding:16px 32px 0;{F}font-size:14px;line-height:1.6;color:#5A5A55;">'
                    f'📍 <b style="color:#2B2B2B;">Lo llevamos a:</b> {escape(p["direccion"])}</td></tr>')
 
@@ -225,7 +230,9 @@ def _texto(p, enlace, unido):
         nom = "Envío a domicilio" if it["envio"] else f'{it["nombre"]} · {it["cantidad"]}'
         lineas.append(f'- {nom}: {_colones(it["subtotal"])}')
     lineas += ["", f'Total estimado: {_colones(p["total"])}', "", f"Ver o editar tu pedido: {enlace}", "",
-               "Te escribimos por WhatsApp para coordinar la entrega. El pago es al recibir, en efectivo o SINPE Móvil.",
+               ("Lo recogés en la Feria San Ramón. Te escribimos por WhatsApp cuando esté listo."
+                if p.get("feria") else
+                "Te escribimos por WhatsApp para coordinar la entrega.") + " El pago es al recibir, en efectivo o SINPE Móvil.",
                "", "Con cariño, el equipo de Ecoltura"]
     return "\n".join(lineas)
 

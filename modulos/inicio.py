@@ -80,12 +80,14 @@ def _por_hacer(cur):
           COUNT(*) FILTER (WHERE COALESCE(seguimiento, 'Preparando') NOT IN ('Alistado', 'Listo')
                              AND creado >= NOW() - INTERVAL '24 hours'),
           MAX(creado) FILTER (WHERE COALESCE(seguimiento, 'Preparando') NOT IN ('Alistado', 'Listo')),
-          COUNT(*) FILTER (WHERE seguimiento IN ('Alistado', 'Listo') AND entrega_fallida IS NULL),
+          COUNT(*) FILTER (WHERE seguimiento IN ('Alistado', 'Listo') AND entrega_fallida IS NULL
+                             AND COALESCE(entrega, 'domicilio') <> 'feria'),
+          COUNT(*) FILTER (WHERE seguimiento IN ('Alistado', 'Listo') AND COALESCE(entrega, 'domicilio') = 'feria'),
           COUNT(*) FILTER (WHERE entrega_fallida IS NOT NULL),
           COUNT(*) FILTER (WHERE COALESCE(modificado, FALSE))
         FROM pedidos WHERE estado = 'Pendiente'
     """)
-    por_alistar, nuevos, ultimo, alistados, fallidos, modificados = cur.fetchone()
+    por_alistar, nuevos, ultimo, alistados, feria, fallidos, modificados = cur.fetchone()
     cur.execute("""
         SELECT COUNT(*) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)),
                COALESCE(SUM(total) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)), 0),
@@ -117,6 +119,8 @@ def _por_hacer(cur):
          "boton": "Alistar", "href": "/admin/pedidos", "urgente": nuevos > 0},
         {"n": alistados, "titulo": "Pedidos listos para repartir", "detalle": "Ya están alistados",
          "boton": "Repartir", "href": "/reparto", "urgente": False},
+        {"n": feria, "titulo": "Pedidos para recoger en la feria", "detalle": "Ya están alistados · Feria San Ramón",
+         "boton": "Ver", "href": "/admin/pedidos", "urgente": False},
         {"n": fallidos, "titulo": "Entregas que no se pudieron hacer", "detalle": "Volver a coordinar con el cliente",
          "boton": "Ver", "href": "/admin/pedidos", "urgente": True},
         {"n": n_sinpe, "titulo": "SINPE por confirmar", "detalle": f"{colones(m_sinpe)} marcados por el repartidor",
@@ -160,7 +164,9 @@ def _recientes(cur):
             etiqueta, clase = "Preparando", ""
         zona = (notas or "").strip()
         if zona.startswith("📍"):
-            zona = zona[1:].strip().split(" — ", 1)[0]
+            zona = zona[1:].strip().split(" — ", 1)[0].split(" ➕ ", 1)[0]
+        elif zona.startswith("🧺"):
+            zona = "🧺 Feria San Ramón"
         else:
             zona = ""
         filas.append({
