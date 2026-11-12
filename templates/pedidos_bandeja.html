@@ -167,7 +167,7 @@
         <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a preparando</button>
         {% else %}
         <input type="hidden" name="valor" value="Alistado">
-        <button class="btn btn-primary"><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
+        <button class="btn btn-primary js-alistar" {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
         {% endif %}
       </form>
       <button type="button" class="btn btn-success js-vender"
@@ -423,5 +423,19 @@
     bootstrap.Modal.getOrCreateInstance(mPagar).show();
   }));
 })();
+</script>
+<script>
+  // Al marcar "Alistado" se abre WhatsApp con el aviso para el cliente ya escrito
+  // (pedido alistado, link del pedido y datos de SINPE). Se abre en el mismo toque
+  // para que el celular no lo bloquee; el pedido se marca igual en el Admin.
+  (function () {
+    if (window.__waAlistar) return;
+    window.__waAlistar = true;
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.js-alistar');
+      if (!b || !b.dataset.wa) return;
+      window.open(b.dataset.wa, '_blank', 'noopener');
+    }, true);
+  })();
 </script>
 {% endblock %}
