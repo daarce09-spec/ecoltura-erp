@@ -133,13 +133,23 @@ def _ultimos_8(celular):
 
 
 def _direccion(notas, dir_cliente):
-    """La dirección viene al inicio de las notas del pedido ("📍 dirección — notas")."""
-    notas = (notas or "").strip()
-    if notas.startswith("📍"):
-        texto = notas[1:].strip()
-        partes = texto.split(" — ", 1)
-        return partes[0].strip(), (partes[1].strip() if len(partes) > 1 else "")
-    return (dir_cliente or "").strip(), notas
+    """Separa la dirección de las notas del cliente.
+    Formato guardado: "📍 dirección — nota" y, si el cliente agregó productos
+    después, " ➕ otra nota" al final. Devuelve (dirección, [notas])."""
+    texto = (notas or "").strip()
+    direccion = (dir_cliente or "").strip()
+    if texto.startswith("📍"):
+        texto = texto[1:].strip()
+        corte = len(texto)
+        for sep in (" — ", " ➕ "):
+            i = texto.find(sep)
+            if i != -1:
+                corte = min(corte, i)
+        direccion, texto = texto[:corte].strip(), texto[corte:].strip()
+        if texto.startswith("—"):
+            texto = texto[1:].strip()
+    lista = [n.strip() for n in texto.replace("➕", "\n").split("\n") if n.strip()]
+    return direccion, lista
 
 
 def armar_ruta(cur):
