@@ -167,7 +167,8 @@
         <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a preparando</button>
         {% else %}
         <input type="hidden" name="valor" value="Alistado">
-        <button class="btn btn-primary"><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
+        <button class="btn btn-primary js-alistar" data-nombre="{{ p.nombre }}" data-total="₡{{ "{:,.0f}".format(p.total).replace(",", ".") }}"
+                {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
         {% endif %}
       </form>
       <button type="button" class="btn btn-success js-vender"
@@ -423,5 +424,89 @@
     bootstrap.Modal.getOrCreateInstance(mPagar).show();
   }));
 })();
+</script>
+<div class="al-modal" id="alModal" role="dialog" aria-modal="true" aria-labelledby="alTitulo">
+  <div class="caja">
+    <div class="ico"><i class="bi bi-box-seam"></i></div>
+    <h5 id="alTitulo">¿Pasar a Alistado?</h5>
+    <div class="quien"><b id="alNombre"></b><span id="alTotal"></span></div>
+    <p id="alTexto"></p>
+    <div class="acciones">
+      <button type="button" class="cancelar" id="alNo">Cancelar</button>
+      <button type="button" class="si" id="alSi"></button>
+    </div>
+  </div>
+</div>
+<style>
+  .al-modal { position:fixed; inset:0; z-index:3000; display:none; align-items:flex-end; justify-content:center;
+              background:rgba(26,28,24,.45); padding:16px; padding-bottom:calc(16px + env(safe-area-inset-bottom)); }
+  .al-modal.abierto { display:flex; animation:alFondo .18s ease; }
+  @media (min-width:600px) { .al-modal { align-items:center; } }
+  .al-modal .caja { width:100%; max-width:420px; background:#fff; border-radius:20px; padding:22px 20px 18px;
+                    text-align:center; box-shadow:0 12px 40px rgba(0,0,0,.25); animation:alSube .22s ease; }
+  .al-modal .ico { width:56px; height:56px; border-radius:50%; margin:0 auto 10px; display:flex; align-items:center;
+                   justify-content:center; font-size:1.6rem; background:#EFF5EA; color:#3E6B22; }
+  .al-modal h5 { font-weight:800; color:#1A1C18; margin:0 0 12px; font-size:1.15rem; }
+  .al-modal .quien { background:#F4F4F2; border-radius:12px; padding:10px 12px; display:flex;
+                     justify-content:space-between; align-items:center; gap:10px; margin-bottom:10px; }
+  .al-modal .quien b { color:#1A1C18; text-align:left; }
+  .al-modal .quien span { font-weight:800; font-size:1.1rem; color:#1A1C18; white-space:nowrap; }
+  .al-modal p { color:#6E6E69; font-size:.88rem; margin:0 0 16px; }
+  .al-modal .acciones { display:grid; grid-template-columns:1fr 1.6fr; gap:10px; }
+  .al-modal .acciones button { border-radius:12px; padding:12px 6px; font-weight:700; font-size:.95rem; border:1px solid #E6E6E2; }
+  .al-modal .cancelar { background:#fff; color:#1A1C18; }
+  .al-modal .si { background:#3E6B22; border-color:#3E6B22 !important; color:#fff; }
+  @keyframes alFondo { from { opacity:0 } to { opacity:1 } }
+  @keyframes alSube { from { transform:translateY(24px); opacity:0 } to { transform:none; opacity:1 } }
+</style>
+<script>
+  // "Marcar alistado": primero pregunta con un modal. Al confirmar, marca el pedido
+  // y abre WhatsApp con el aviso para el cliente (pedido alistado, link y SINPE).
+  // WhatsApp se abre en el mismo toque de "Sí" para que el celular no lo bloquee.
+  (function () {
+    if (window.__alModal) return;
+    window.__alModal = true;
+    var boton = null;
+    function el(id) { return document.getElementById(id); }
+    function modal() {
+      // El contenido vive en un contenedor fijo que encierra el z-index: se pasa al <body>
+      var nuevo = document.querySelector('#main-content #alModal');
+      if (nuevo) {
+        document.querySelectorAll('body > .al-modal').forEach(function (v) { v.remove(); });
+        document.body.appendChild(nuevo);
+      }
+      return el('alModal');
+    }
+    function cerrar() { var m = el('alModal'); if (m) m.classList.remove('abierto'); boton = null; }
+    document.addEventListener('click', function (e) {
+      var b = e.target.closest('.js-alistar');
+      if (b) {
+        e.preventDefault(); e.stopPropagation();
+        var m = modal(); if (!m) return;
+        boton = b;
+        el('alNombre').textContent = b.dataset.nombre || '';
+        el('alTotal').textContent = b.dataset.total || '';
+        if (b.dataset.wa) {
+          el('alTexto').textContent = 'Se abre WhatsApp con el aviso para el cliente: pedido alistado, link del pedido y datos de SINPE.';
+          el('alSi').innerHTML = '<i class="bi bi-whatsapp me-1"></i>Sí, alistar y avisar';
+        } else {
+          el('alTexto').textContent = 'Este pedido no tiene un celular válido, así que no se puede avisar por WhatsApp.';
+          el('alSi').textContent = 'Sí, alistar';
+        }
+        m.classList.add('abierto');
+        return;
+      }
+      if (e.target.closest('#alSi')) {
+        var bt = boton; cerrar();
+        if (!bt) return;
+        if (bt.dataset.wa) window.open(bt.dataset.wa, '_blank', 'noopener');
+        var f = bt.closest('form');
+        if (f.requestSubmit) f.requestSubmit(); else f.submit();
+      } else if (e.target.closest('#alNo') || e.target.id === 'alModal') {
+        cerrar();
+      }
+    }, true);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') cerrar(); });
+  })();
 </script>
 {% endblock %}

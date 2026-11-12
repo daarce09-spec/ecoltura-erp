@@ -2,6 +2,8 @@
 from flask import Blueprint, render_template, jsonify, request, redirect, url_for, flash, Response
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta
+from urllib.parse import quote
+import os
 from modulos.proveedores import asegurar_tablas as _asegurar_tablas_proveedores
 
 pedidos_bp = Blueprint("pedidos_bp", __name__)
@@ -65,6 +67,56 @@ def _asegurar_columnas_seguimiento():
 
 _asegurar_columnas_seguimiento()
 
+# ─────────────────────────────────────────────
+#  Aviso por WhatsApp al marcar "Alistado"
+#  Abre WhatsApp con el mensaje ya escrito (la persona solo toca Enviar).
+#  Datos de SINPE en Railway: SINPE_NUMERO y SINPE_NOMBRE (si no están, el
+#  mensaje sale sin la parte de SINPE).
+# ─────────────────────────────────────────────
+SITIO_TIENDA = "https://www.ecoltura.com"
+SINPE_NUMERO = "8993 5973"      # número de SINPE Móvil de Ecoltura
+
+
+def _link_tienda():
+    if os.environ.get("ENTORNO", "").lower() == "pruebas" and os.environ.get("TIENDA_URL"):
+        return os.environ["TIENDA_URL"].rstrip("/")
+    return SITIO_TIENDA
+
+
+def _colones_txt(x):
+    return "₡" + f"{float(x or 0):,.0f}".replace(",", ".")
+
+
+def mensaje_alistado(nombre, total, token):
+    primer = (nombre or "").strip().split(" ")[0].capitalize()
+    lineas = [
+        f"¡Hola{(' ' + primer) if primer else ''}! 🌱",
+        "Tu pedido de *Ecoltura* ya está alistado y pronto va camino a tu casa. 🚚",
+        "",
+        f"*Total a pagar: {_colones_txt(total)}*",
+    ]
+    numero = (os.environ.get("SINPE_NUMERO") or SINPE_NUMERO).strip()
+    if numero:
+        a_nombre = (os.environ.get("SINPE_NOMBRE") or "").strip()
+        lineas += [
+            "",
+            "Si querés, podés adelantar el pago por *SINPE Móvil*:",
+            f"📱 {numero}" + (f" ({a_nombre})" if a_nombre else ""),
+            "Cuando lo hagás, enviános el comprobante por aquí. 🙏",
+        ]
+    if token:
+        lineas += ["", "Mirá el detalle de tu pedido aquí:", f"{_link_tienda()}/pedido/{token}"]
+    lineas += ["", "¡Gracias por apoyar la agricultura regenerativa! 💚"]
+    return "\n".join(lineas)
+
+
+def link_whatsapp_alistado(celular, nombre, total, token):
+    cel8 = _ultimos_8(celular)
+    if len(cel8) != 8:
+        return ""
+    return f"https://wa.me/506{cel8}?text=" + quote(mensaje_alistado(nombre, total, token))
+
+
 # Métodos de pago de las ventas que vienen de pedidos
 PAGO_RECIBIDO = "Efectivo"
 METODO_SINPE  = "SINPE Móvil"
@@ -123,7 +175,7 @@ def bandeja_pedidos():
                    p.creado, p.gestionado, COALESCE(p.modificado, FALSE),
                    v.metodo_pago, v.total, v.id, p.notas,
                    COALESCE(nd.n, 0),
-                   p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE)
+                   p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE), p.token
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
@@ -141,7 +193,7 @@ def bandeja_pedidos():
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
-         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend) in filas:
+         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend, token) in filas:
         total = float(total_venta if total_venta is not None else (total_est or 0))
         tarjeta = {
             "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
@@ -149,6 +201,7 @@ def bandeja_pedidos():
             "metodo": metodo, "venta_id": venta_id, "notas": (notas or "").strip(), "n_items": n_items,
             "seguimiento": "Alistado" if seg in ("Alistado", "Listo") else "Preparando",
             "fallida": (fallida or "").strip(), "sinpe_pendiente": bool(sinpe_pend),
+            "wa_alistado": link_whatsapp_alistado(celular, nombre, total, token) if estado == "Pendiente" else "",
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)
