@@ -926,6 +926,18 @@ def detalle_descuento_json(id, detalle_id):
                    subtotal=subtotal, descuento=desc, total=total, desc_lineas=desc_lineas)
 
 
+@pedidos_bp.route("/admin/pedidos/<int:id>/notas", methods=["POST"])
+def pedido_notas(id):
+    """Editar las notas del pedido desde el Admin (dirección, referencias, feria…)."""
+    notas = (request.form.get("notas") or "").strip()[:1000]
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE pedidos SET notas = %s WHERE id = %s", (notas or None, id))
+        conn.commit()
+    flash(f"Pedido #{id}: notas guardadas.", "success")
+    return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+
 @pedidos_bp.route("/admin/pedidos/<int:id>/descuento", methods=["POST"])
 def pedido_descuento_json(id):
     data = request.get_json(silent=True) or {}
