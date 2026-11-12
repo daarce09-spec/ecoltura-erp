@@ -74,6 +74,7 @@ _asegurar_columnas_seguimiento()
 #  mensaje sale sin la parte de SINPE).
 # ─────────────────────────────────────────────
 SITIO_TIENDA = "https://www.ecoltura.com"
+SINPE_NUMERO = "8993 5973"      # número de SINPE Móvil de Ecoltura
 
 
 def _link_tienda():
@@ -94,7 +95,7 @@ def mensaje_alistado(nombre, total, token):
         "",
         f"*Total a pagar: {_colones_txt(total)}*",
     ]
-    numero = (os.environ.get("SINPE_NUMERO") or "").strip()
+    numero = (os.environ.get("SINPE_NUMERO") or SINPE_NUMERO).strip()
     if numero:
         a_nombre = (os.environ.get("SINPE_NOMBRE") or "").strip()
         lineas += [
