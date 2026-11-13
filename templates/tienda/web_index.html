@@ -1573,13 +1573,18 @@ function renderTarjetaGrupo(g) {
   // La foto de la tarjeta es la de la variante más grande (la más cara):
   // los grupos se ordenan por nombre y, por ejemplo, "1/2 Cartón de Huevos"
   // quedaba antes que "Cartón de Huevos", mostrando la foto del medio cartón.
-  const imgId = g.variantes.reduce((a, b) => (b.precio > a.precio ? b : a)).id;
+  // La foto del grupo la manda el servidor (foto_id): es la de su opción principal aunque
+  // esa opción esté agotada. Si esa imagen no existe, se prueban las de las otras opciones.
+  const porPrecio = [...g.variantes].sort((a, b) => b.precio - a.precio).map(v => v.id);
+  const candidatas = [...new Set([g.foto_id, ...porPrecio].filter(Boolean))];
+  const imgId = candidatas[0];
+  const respaldo = candidatas.slice(1).join(",");
 
   return `<div class="prod">
     <div class="prod-img" onclick="tocarFoto('${g.id}')">${g.regenerativo ? TAG_REG : ""}
       <img src="/static/img/productos/${imgId}.jpg" alt="${g.nombre}"
-           loading="lazy" decoding="async"
-           onerror="this.style.display='none';this.parentNode.querySelector('.placeholder').style.display='flex'">
+           loading="lazy" decoding="async" data-respaldo="${respaldo}"
+           onerror="fotoSiguiente(this)">
       <div class="placeholder" style="display:none">${HOJA_SVG}<span>Foto del producto</span></div>
     </div>
     <div class="prod-body">
@@ -1876,6 +1881,19 @@ function actualizarBarraMovil() {
 // ── TOCAR LA FOTO ──────────────────────────────────
 // Hace lo mismo que el "+": los productos simples se agregan (con un "✓ Agregado"
 // sobre la foto para que se note) y los que tienen pesos u opciones abren su ventanita.
+// Si una foto no carga, prueba la siguiente opción del grupo; si no queda ninguna, muestra el dibujo
+function fotoSiguiente(img) {
+  const resto = (img.dataset.respaldo || "").split(",").filter(Boolean);
+  if (resto.length) {
+    img.dataset.respaldo = resto.slice(1).join(",");
+    img.src = "/static/img/productos/" + resto[0] + ".jpg";
+    return;
+  }
+  img.style.display = "none";
+  const ph = img.parentNode.querySelector(".placeholder");
+  if (ph) ph.style.display = "flex";
+}
+
 function tocarFoto(clave) {
   const e = PRODUCTOS.find(x => String(x.id) === String(clave));
   if (!e) return;

@@ -135,6 +135,23 @@ def api_productos():
         # Pesos preestablecidos (kg/g) por producto — parametrizables desde
         # la tabla producto_pesos, sin necesidad de tocar código para
         # agregar o quitar opciones.
+        # Foto de cada grupo: la de su opción más cara, contando TODAS las opciones del grupo
+        # (aunque estén agotadas u ocultas). Así, si se acaba el sabor que tiene la foto,
+        # la tarjeta del grupo no se queda sin imagen.
+        foto_grupo = {}
+        try:
+            cur.execute("SAVEPOINT fg")
+            cur.execute("""
+                SELECT DISTINCT ON (grupo_id) grupo_id, id
+                FROM productos WHERE grupo_id IS NOT NULL
+                ORDER BY grupo_id, precio DESC, id
+            """)
+            foto_grupo = {r[0]: r[1] for r in cur.fetchall()}
+            cur.execute("RELEASE SAVEPOINT fg")
+        except Exception as ex:
+            print("No se pudo leer la foto de los grupos:", ex)
+            cur.execute("ROLLBACK TO SAVEPOINT fg")
+
         cur.execute("SELECT producto_id, gramos FROM producto_pesos ORDER BY producto_id, gramos")
         pesos_por_producto = {}
         for producto_id, gramos in cur.fetchall():
@@ -180,6 +197,7 @@ def api_productos():
                     "destacado": False,
                     "regenerativo": False,
                     "ventas": 0,
+                    "foto_id": foto_grupo.get(gid),
                 }
                 grupos[gid] = entrada
                 resultado.append(entrada)
