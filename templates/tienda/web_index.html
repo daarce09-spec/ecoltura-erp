@@ -907,6 +907,7 @@
       <div class="mapa-pin"><svg width="40" height="40" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6" fill="#fff"/></svg></div>
     </div>
     <button type="button" class="btn-gps" id="btnGps" onclick="usarGPS()">◎ Estoy en mi casa: usar mi ubicación</button>
+    <button type="button" class="btn-gps" id="btnGuardada" onclick="volverAGuardada()" style="display:none;margin-top:6px">⌂ Usar mi dirección guardada</button>
     <div class="modal-botones">
       <button class="btn-cancelar" id="btnQuitarUbic" onclick="quitarUbicacion()">Quitar</button>
       <button class="btn-confirmar" onclick="confirmarUbicacion()">Confirmar ubicación</button>
@@ -2028,11 +2029,13 @@ function abrirMapa() {
                   { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(mapa);
     }
     setTimeout(function () { mapa.invalidateSize(); }, 250);   // el modal recién se abrió
-    if (ubicacion) { mapa.setView([ubicacion.lat, ubicacion.lng], 17); return; }
-    // Sin punto guardado: se arranca en San Ramón y enseguida se pide la ubicación
-    // actual del aparato para centrar ahí el mapa. Si la persona no da permiso o
-    // no se puede obtener, el mapa se queda en San Ramón sin mostrar ningún error.
-    mapa.setView(SAN_RAMON, 14);
+    // Siempre se arranca en la ubicación actual del aparato. Mientras se obtiene,
+    // el mapa muestra el punto guardado (o San Ramón si no hay). Si la persona no da
+    // permiso o no se puede obtener, se queda ahí sin mostrar ningún error.
+    // Si tenía un punto guardado, aparece el botón para volver a él.
+    document.getElementById("btnGuardada").style.display = ubicacion ? "" : "none";
+    if (ubicacion) mapa.setView([ubicacion.lat, ubicacion.lng], 17);
+    else mapa.setView(SAN_RAMON, 14);
     mapaMovidoAMano = false;
     if (!mapaEscuchaMovimiento) {
       mapaEscuchaMovimiento = true;
@@ -2042,6 +2045,13 @@ function abrirMapa() {
   });
 }
 var mapaMovidoAMano = false, mapaEscuchaMovimiento = false;
+
+function volverAGuardada() {
+  if (!mapa || !ubicacion) return;
+  mapaMovidoAMano = true;                       // que la ubicación actual ya no lo mueva
+  mapa.setView([ubicacion.lat, ubicacion.lng], 17);
+  document.getElementById("mapaAyuda").textContent = "Esta es tu dirección guardada. Confirmala o mové el mapa si cambió.";
+}
 
 // silencioso = true: se llama solo al abrir el mapa (sin avisos si falla, y no mueve
 // el mapa si la persona ya lo empezó a mover mientras se buscaba la ubicación)
