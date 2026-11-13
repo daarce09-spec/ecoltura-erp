@@ -556,7 +556,14 @@
     // Al confirmar un modal (ej. "Sí, rechazar") el formulario viaja por htmx y
     // la pantalla se reemplaza; como el modal vivía en <body>, quedaba abierto
     // (y con el fondo gris) encima de la página nueva. Aquí se cierra y se limpia.
-    document.body.addEventListener('htmx:beforeSwap', function () {
+    document.body.addEventListener('htmx:beforeSwap', function (evt) {
+      // Modales propios (alistar en Pedidos, confirmar en Reparto) que se pasaron al
+      // <body>: si se cambia de pantalla quedaban sueltos y sin estilo encima de la
+      // pantalla nueva. Se quitan; la pantalla que llega trae el suyo.
+      var destino = evt.detail && evt.detail.target;
+      if (!destino || destino.id === 'main-content') {
+        document.querySelectorAll('body > .al-modal, body > .rp-modal').forEach(function (v) { v.remove(); });
+      }
       document.querySelectorAll('.modal').forEach(function (m) {
         if (!m.classList.contains('show') && !m.__hogar) return;
         try {
