@@ -168,7 +168,7 @@
         {% else %}
         <input type="hidden" name="valor" value="Alistado">
         <button class="btn btn-primary js-alistar" data-nombre="{{ p.nombre }}" data-total="₡{{ "{:,.0f}".format(p.total).replace(",", ".") }}"
-                {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
+                {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-truck me-1"></i>{{ 'Lista para feria' if p.feria else 'Pasar a Reparto' }}</button>
         {% endif %}
       </form>
       <button type="button" class="btn btn-success js-vender"
@@ -214,7 +214,7 @@
   <div class="kb-col c-reparto" data-col="reparto">
     <div class="kb-col-head"><span>Reparto</span><span class="cnt">{{ col_rep|length }}</span></div>
     {% for p in col_rep %}{{ tarjeta(p, 'pendientes') }}{% else %}
-      <div class="kb-vacio">Nada alistado todavía. Al tocar "Marcar alistado" el pedido pasa aquí.</div>
+      <div class="kb-vacio">Nada en reparto todavía. Al tocar "Pasar a Reparto" el pedido llega aquí.</div>
     {% endfor %}
   </div>
 
@@ -441,7 +441,7 @@
 <div class="al-modal" id="alModal" role="dialog" aria-modal="true" aria-labelledby="alTitulo">
   <div class="caja">
     <div class="ico"><i class="bi bi-box-seam"></i></div>
-    <h5 id="alTitulo">¿Pasar a Alistado?</h5>
+    <h5 id="alTitulo">¿Pasar a Reparto?</h5>
     <div class="quien"><b id="alNombre"></b><span id="alTotal"></span></div>
     <p id="alTexto"></p>
     <div class="acciones">
@@ -516,10 +516,10 @@
         el('alTotal').textContent = b.dataset.total || '';
         if (b.dataset.wa) {
           el('alTexto').textContent = 'Se abre WhatsApp con el aviso para el cliente: pedido alistado, link del pedido y datos de SINPE.';
-          el('alSi').innerHTML = '<i class="bi bi-whatsapp me-1"></i>Sí, alistar y avisar';
+          el('alSi').innerHTML = '<i class="bi bi-whatsapp me-1"></i>Sí, pasar y avisar';
         } else {
           el('alTexto').textContent = 'Este pedido no tiene un celular válido, así que no se puede avisar por WhatsApp.';
-          el('alSi').textContent = 'Sí, alistar';
+          el('alSi').textContent = 'Sí, pasar a Reparto';
         }
         m.classList.add('abierto');
         return;
