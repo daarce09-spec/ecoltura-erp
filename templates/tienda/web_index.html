@@ -456,8 +456,13 @@
     #mapa { position: absolute; inset: 0; background: #EEF3EA; }
     .mapa-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); z-index: 500;
                 pointer-events: none; color: #C0392B; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
-    .link-sin-ubic { display: block; margin: 14px auto 0; background: none; border: none; color: var(--gris);
-                     font: 500 .8rem 'Inter', sans-serif; text-decoration: underline; cursor: pointer; }
+    /* "No logro marcar mi casa": segunda opción, visible pero sin competir con Confirmar */
+    .link-sin-ubic { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+                     margin-top: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--borde);
+                     color: var(--negro); cursor: pointer; font: 500 .82rem/1.3 'Inter', sans-serif; }
+    .link-sin-ubic svg { flex-shrink: 0; color: var(--verde); }
+    .link-sin-ubic b { color: var(--verde); font-weight: 600; }
+    @media (hover: hover) and (pointer: fine) { .link-sin-ubic:hover { border-color: #B9CFA9; background: #F8FAF6; } }
     .btn-gps { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
                margin: 12px 0 4px; padding: 12px; background: #fff; color: var(--verde);
                border: 1px solid var(--verde); font-weight: 600; font-size: .88rem; cursor: pointer; }
@@ -913,7 +918,10 @@
       <button class="btn-cancelar" id="btnQuitarUbic" onclick="quitarUbicacion()">Quitar</button>
       <button class="btn-confirmar" onclick="confirmarUbicacion()">Confirmar ubicación</button>
     </div>
-    <button type="button" class="link-sin-ubic" onclick="sinUbicacion()">No logro marcar mi casa</button>
+    <button type="button" class="link-sin-ubic" onclick="sinUbicacion()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+      <span>¿No lográs marcarla? <b>Te la pedimos por WhatsApp</b></span>
+    </button>
   </div>
 </div>
 
