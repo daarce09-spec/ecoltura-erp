@@ -250,7 +250,7 @@
   </style>
 </head>
 
-<body hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML" hx-push-url="true">
+<body hx-boost="true" hx-target="#main-content" hx-select="#main-content" hx-swap="outerHTML transition:true" hx-push-url="true">
 {% if ENTORNO_PRUEBAS %}<div style="position:fixed;top:0;left:0;right:0;z-index:99999;background:#e67e00;color:#fff;font:700 12px/22px sans-serif;text-align:center;letter-spacing:.5px;pointer-events:none;padding-top:env(safe-area-inset-top, 0px);">ENTORNO DE PRUEBAS — los datos no son reales</div>
 <style>/* Con la barra de pruebas, el encabezado y el contenido bajan 22px para no quedar tapados */
   .navbar { top: 22px !important; }
@@ -354,8 +354,8 @@
       var EN_BARRA = ES_REPARTO ? { reparto: 1, cierre: 1 } : { pedidos: 1, reparto: 1, vender: 1, inicio: 1 };
       // En las pestañas de la computadora, "Vender" es parte de Ventas
       var EN_PESTANAS = ES_REPARTO ? {} : { vender: 'ventas', mas: '', cierre: 'reparto' };
-      function marcar() {
-        var ruta = location.pathname, sec = '';
+      function marcar(rutaDestino) {
+        var ruta = rutaDestino || location.pathname, sec = '';
         for (var i = 0; i < REGLAS.length; i++) { if (REGLAS[i][1].test(ruta)) { sec = REGLAS[i][0]; break; } }
         var secTab = (sec in EN_PESTANAS) ? EN_PESTANAS[sec] : sec;
         document.querySelectorAll('#navTabsEco a').forEach(function (a) { a.classList.toggle('on', a.dataset.sec === secTab); });
@@ -375,6 +375,7 @@
         }).catch(function () {});
       }
       marcar(); contadores();
+      window.__marcarNav = marcar;
       document.body.addEventListener('htmx:afterSettle', function () { marcar(); contadores(); });
       window.addEventListener('popstate', function () { setTimeout(marcar, 0); });
     })();
@@ -402,7 +403,7 @@
     });
 
     // PWA prompt
-    let deferredPrompt;
+    var deferredPrompt;   // var: htmx puede volver a ejecutar este script al ir "atrás"
 
     window.addEventListener('beforeinstallprompt', (e) => {
       e.preventDefault();
@@ -600,6 +601,10 @@
                   transition: width .25s ease, opacity .3s ease; }
     #barraCarga.activa { opacity: 1; width: 75%; transition: width 6s cubic-bezier(.1,.6,.2,1), opacity .1s; }
     #barraCarga.fin { opacity: 0; width: 100%; transition: width .15s ease, opacity .35s ease .15s; }
+    /* Si la pantalla tarda, el contenido se atenúa un poco (se nota que está cargando) */
+    body.navegando #main-content { opacity: .55; transition: opacity .2s ease; }
+    /* Cambio de pantalla con un fundido corto (navegadores que lo soportan) */
+    ::view-transition-old(root), ::view-transition-new(root) { animation-duration: .14s; }
   </style>
   <script>
     (function () {
@@ -607,8 +612,45 @@
       // Si una pantalla tarda más de 12 s, se corta y se abre de forma normal
       htmx.config.timeout = 12000;
       var barra = document.getElementById('barraCarga');
-      function inicio() { barra.className = ''; void barra.offsetWidth; barra.className = 'activa'; }
-      function fin() { barra.className = 'fin'; }
+      var tAtenuar = null;
+      function inicio() {
+        barra.className = ''; void barra.offsetWidth; barra.className = 'activa';
+        clearTimeout(tAtenuar);
+        tAtenuar = setTimeout(function () { document.body.classList.add('navegando'); }, 180);
+      }
+      function fin() {
+        barra.className = 'fin';
+        clearTimeout(tAtenuar); document.body.classList.remove('navegando');
+      }
+
+      // Navegación al instante con la barra y las pestañas:
+      //  · la pestaña tocada se marca de una vez (sin esperar la respuesta)
+      //  · en la barra de abajo la pantalla se pide al APOYAR el dedo, no al soltarlo,
+      //    lo que adelanta la carga ~100 ms; el "click" que llega después se ignora.
+      var yaPedido = null;
+      function navLink(t) {
+        var a = t && t.closest ? t.closest('#barraEco a, #navTabsEco a') : null;
+        if (!a || a.getAttribute('hx-boost') === 'false' || !a.getAttribute('href')) return null;
+        return a;
+      }
+      document.addEventListener('pointerdown', function (e) {
+        var a = navLink(e.target);
+        if (!a || e.button !== 0) return;
+        try { if (window.__marcarNav) window.__marcarNav(new URL(a.href).pathname); } catch (x) {}
+        if (e.pointerType === 'mouse' || !a.closest('#barraEco')) return;   // con mouse, el click normal ya es rápido
+        if (new URL(a.href).pathname === location.pathname && !location.search) return;
+        yaPedido = { a: a, t: Date.now(), propio: true };
+        a.click();                         // htmx hace la navegación de siempre (boost)
+        yaPedido.propio = false;
+      }, true);
+      document.addEventListener('click', function (e) {
+        var a = navLink(e.target);
+        if (!a || !yaPedido || yaPedido.propio) return;
+        if (yaPedido.a === a && Date.now() - yaPedido.t < 1500) {
+          e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation();   // ya se pidió al apoyar el dedo
+        }
+        yaPedido = null;
+      }, true);
       function esNavegacion(evt) {
         var d = evt.detail || {};
         return d.boosted || (d.requestConfig && d.requestConfig.boosted);
