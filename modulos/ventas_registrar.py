@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import math
 from flask import render_template, request, jsonify
 from db.conexion import obtener_conexion
 from datetime import datetime, timedelta     # ← aquí se importa correctamente
@@ -105,14 +106,30 @@ def guardar_venta():
         if not lineas_raw.strip():
             return jsonify({"status": "error", "message": "Debe agregar al menos un producto"}), 400
 
-        # Normalización de líneas
+        # Normalización de líneas (y validación: nada de cantidades o precios vacíos o "NaN")
         lineas_procesadas = []
         for linea in lineas_raw.split(","):
             l = linea.strip()
             if not l: continue
             partes = l.split("|")
             if len(partes) >= 4:
-                lineas_procesadas.append(partes)
+                try:
+                    p_id, cant, precio = int(partes[0]), float(partes[1]), float(partes[2])
+                except (TypeError, ValueError):
+                    return jsonify({"status": "error", "message": "Hay un producto con cantidad o precio inválido. Revisá las líneas."}), 400
+                if not all(math.isfinite(v) for v in (cant, precio)) or cant <= 0 or precio < 0:
+                    return jsonify({"status": "error", "message": "Hay un producto con cantidad o precio inválido. Revisá las líneas."}), 400
+                # Descuento vacío o "NaN" (pasaba en algunas líneas) = sin descuento
+                try:
+                    desc_col = float(partes[3] or 0)
+                except (TypeError, ValueError):
+                    desc_col = 0.0
+                if not math.isfinite(desc_col) or desc_col < 0:
+                    desc_col = 0.0
+                desc_col = min(desc_col, precio * cant)
+                lineas_procesadas.append([p_id, cant, precio, desc_col])
+        if not lineas_procesadas:
+            return jsonify({"status": "error", "message": "Debe agregar al menos un producto"}), 400
 
         conn = obtener_conexion()
         cur = conn.cursor()
