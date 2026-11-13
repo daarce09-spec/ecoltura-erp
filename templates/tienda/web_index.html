@@ -792,13 +792,7 @@
         <div class="sub">Elegí tus productos y enviá el pedido. Te escribimos por WhatsApp
           para confirmarlo y coordinar la entrega.
           El pago se realiza al recibir en efectivo o SINPE Móvil.</div>
-        {% if viernes_cerrado %}
-        <div class="aviso-entrega">🚚 Los pedidos de hoy después de la 1:00 p. m. se entregan el <b>próximo viernes</b>.</div>
-        {% elif es_viernes_hoy %}
-        <div class="aviso-entrega">🚚 ¡Hoy es día de entrega! Recibimos pedidos para hoy <b>hasta la 1:00 p. m.</b></div>
-        {% else %}
-        <div class="aviso-entrega">🚚 Las entregas se hacen los <b>viernes</b>. Pedí hasta el viernes a la 1:00 p. m.</div>
-        {% endif %}
+        <div class="aviso-entrega">🚚 Las entregas se hacen los <b>viernes</b>.</div>
       </div>
     </div>
   </div>
@@ -1850,7 +1844,7 @@ function actualizarBarraMovil() {
       nota.textContent = "Estos productos se agregarán a tu pedido en preparación.";
       nota.className = "nota-agregar"; nota.style.display = "";
     } else if (unidadesCarrito > 0 && hayPedidoActivo && pedidoActivo && pedidoActivo.viernes && !modoEdicion) {
-      nota.textContent = "Hoy es viernes después de la 1:00 p. m.: esto se enviará como un pedido nuevo para el próximo viernes.";
+      nota.textContent = "Hoy es viernes: esto se enviará como un pedido nuevo.";
       nota.className = "nota-agregar viernes"; nota.style.display = "";
     } else { nota.style.display = "none"; }
   }
@@ -1940,7 +1934,7 @@ function conPedidoEnCurso(accion) {
     if (avisoViernesVisto) return accion();
     mostrarAvisoPedido(
       "Tu pedido ya está en preparación",
-      "Hoy es viernes y ya lo estamos alistando para la entrega. Lo que agregues ahora se enviará como un pedido nuevo para el próximo viernes.",
+      "Hoy es viernes y lo estamos alistando para la entrega. Lo que agregues ahora se enviará como un pedido nuevo.",
       "Entendido",
       () => { avisoViernesVisto = true; accion(); });
     return;
@@ -2299,7 +2293,6 @@ async function enviarPedido() {
       mostrarBotonVerPedido(data.token);
       // textContent: el nombre lo escribe el cliente, no se inserta como HTML
       document.getElementById("tituloExito").textContent = data.unido ? "¡Pedido actualizado!" : "¡Pedido recibido!";
-      const avisoProximo = data.proximo_viernes ? " Como hoy ya pasó la 1:00 p. m., lo entregamos el próximo viernes." : "";
       document.getElementById("textoExito").textContent = data.unido
         ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
         : (entrega === "feria"
@@ -2307,7 +2300,6 @@ async function enviarPedido() {
             : (sinUbicacionAceptada && !ubicacionConfirmada
                 ? `Hola ${nombre}, recibimos tu pedido. Te vamos a escribir por WhatsApp para que nos compartás tu ubicación y coordinar la entrega. ¡Gracias por apoyar productos locales!`
                 : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`));
-      if (avisoProximo) document.getElementById("textoExito").textContent += avisoProximo;
       mostrarCorreoExito(data.correo);
       prepararBloqueCampanaExito();
       ubicacionConfirmada = false; sinUbicacionAceptada = false; pintarBotonUbicacion();   // el próximo pedido vuelve a pedir el punto
