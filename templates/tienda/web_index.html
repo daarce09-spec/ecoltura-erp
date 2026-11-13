@@ -522,6 +522,84 @@
              max-height: calc(100vh - 32px); max-height: calc(100dvh - 32px);
              display: flex; flex-direction: column; overflow-y: auto; }
     .modal > * { flex-shrink: 0; }
+    /* ── ASISTENTE DE 3 PASOS (terminar pedido) ── */
+    #overlayConfirm { padding: 0; }
+    .modal-pasos { max-width: 520px; padding: 0 !important; overflow: hidden !important;
+                   height: 100vh; height: 100dvh; max-height: none; display: flex; flex-direction: column; }
+    @media (min-width: 601px) { #overlayConfirm { padding: 16px; } .modal-pasos { height: auto; max-height: calc(100dvh - 32px); } }
+    .pasos-cab { flex: none; padding: 14px 18px 12px; border-bottom: 1px solid var(--borde); background: #fff; }
+    .pasos-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .pasos-titulo { flex: 1; font-family: 'Fraunces', serif; font-size: 1.3rem; color: var(--negro); }
+    .pasos-volver, .pasos-cerrar { flex: none; width: 42px; height: 42px; border-radius: 50%; border: none; cursor: pointer;
+                                   background: #F4F8F1; color: var(--verde); font-size: 1.25rem; line-height: 1; }
+    .pasos-cerrar { background: #F4F4F2; color: var(--gris); font-size: 1rem; }
+    .pasos-volver.oculto { visibility: hidden; }
+    .pasos-barra { display: flex; gap: 6px; }
+    .pasos-barra .pb { flex: 1; text-align: center; font: 600 .8rem 'Inter', sans-serif; color: var(--gris); }
+    .pasos-barra .pb i { display: block; height: 6px; border-radius: 3px; background: #E6E6E2; margin-bottom: 6px; }
+    .pasos-barra .pb.hecho i, .pasos-barra .pb.activo i { background: var(--verde); }
+    .pasos-barra .pb.activo { color: var(--verde); }
+    .pasos-cuerpo { flex: 1 1 auto; min-height: 0; overflow-y: auto; -webkit-overflow-scrolling: touch;
+                    padding: 22px 18px 24px; overscroll-behavior: contain; }
+    #overlayConfirm .paso-sec { display: none; padding: 0; margin: 0; background: none; border: none; }
+    #overlayConfirm .modal-pasos > .pasos-cuerpo { flex: 1 1 auto; }
+    #overlayConfirm .paso-sec.activo { display: block; animation: pasoEntra .2s ease; }
+    @keyframes pasoEntra { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+    .paso-preg { font-family: 'Fraunces', serif; font-weight: 400; font-size: 1.45rem; color: var(--negro); margin: 0 0 6px; }
+    .paso-ayuda { color: var(--gris); font-size: .98rem; margin: 0 0 20px; line-height: 1.45; }
+    .campo { margin-bottom: 20px; }
+    .campo > label, .campo-lab { display: block; font: 700 1.05rem 'Inter', sans-serif; color: var(--negro); margin-bottom: 8px; }
+    .campo .opc { font-weight: 500; font-size: .85rem; color: var(--gris); }
+    .campo input, .campo textarea { width: 100%; font: 400 18px 'Inter', sans-serif; color: var(--negro); padding: 14px 15px;
+                                    border: 2px solid #D3D3CD; border-radius: 10px; background: #fff; outline: none; }
+    .campo textarea { font-size: 16px; resize: none; }
+    .campo input::placeholder, .campo textarea::placeholder { color: #A9A9A3; }
+    .campo input:focus, .campo textarea:focus { border-color: var(--verde); box-shadow: 0 0 0 4px rgba(62,107,34,.14); }
+    .campo-pista { font-size: .86rem; color: var(--gris); margin-top: 6px; }
+    .campo-error { display: none; margin-top: 8px; padding: 10px 12px; border-radius: 10px; background: #FDECEA;
+                   color: #B42318; font: 600 .95rem 'Inter', sans-serif; }
+    .campo.mal input, .campo.mal textarea { border-color: #C0392B; animation: sacude .35s; }
+    .campo.mal .campo-error, .campo-error.ver { display: block; }
+    .campo.ok input { border-color: var(--verde); }
+    @keyframes sacude { 20%,60% { transform: translateX(-5px); } 40%,80% { transform: translateX(5px); } }
+    .recordado { background: #F4F8F1; border-radius: 14px; padding: 18px; margin-bottom: 18px; }
+    .rec-hola { font-family: 'Fraunces', serif; font-size: 1.35rem; color: var(--negro); }
+    .rec-sub { color: var(--gris); font-size: .95rem; margin-top: 2px; }
+    .rec-dato { font-size: 1.1rem; font-weight: 600; color: var(--negro); margin-top: 10px; }
+    .rec-cambiar { background: none; border: none; padding: 10px 0 0; color: var(--verde); font: 600 .95rem 'Inter', sans-serif;
+                   text-decoration: underline; cursor: pointer; }
+    #overlayConfirm .bloque-entrega { border: none; padding: 0; margin: 0 0 18px; }
+    #overlayConfirm .entrega-opc { display: block; margin: 0; }
+    #overlayConfirm .ent-btn { display: flex; align-items: center; gap: 14px; width: 100%; text-align: left;
+                               padding: 16px; margin-bottom: 12px; border: 2px solid #D3D3CD; border-radius: 14px; background: #fff; box-shadow: none; }
+    #overlayConfirm .ent-btn .ent-ic { flex: none; width: 50px; height: 50px; border-radius: 12px; background: #F4F4F2;
+                                       display: flex; align-items: center; justify-content: center; font-size: 1.6rem; }
+    #overlayConfirm .ent-btn .ent-tx { flex: 1; }
+    #overlayConfirm .ent-btn b { display: block; font-size: 1.08rem; color: var(--negro); }
+    #overlayConfirm .ent-btn small { font-size: .88rem; }
+    #overlayConfirm .ent-btn .ent-radio { flex: none; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #C8C8C2; }
+    #overlayConfirm .ent-btn.on { border-color: var(--verde); background: #F4F8F1; }
+    #overlayConfirm .ent-btn.on .ent-ic { background: #fff; }
+    #overlayConfirm .ent-btn.on .ent-radio { border: 8px solid var(--verde); }
+    #overlayConfirm .nota-feria { font-size: .95rem; border-radius: 10px; }
+    #overlayConfirm #bloqueDomicilio { margin-top: 6px; }
+    #overlayConfirm .btn-ubicacion { padding: 15px; font-size: 1rem; border: 2px solid var(--verde); border-radius: 12px; color: var(--verde); }
+    #overlayConfirm .btn-ubicacion.marcado { background: #F4F8F1; }
+    .rev-caja { border: 1px solid var(--borde); border-radius: 14px; margin-bottom: 12px; overflow: hidden; }
+    .rev-tit { display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; background: #F7F7F5;
+               font: 600 .78rem 'Inter', sans-serif; letter-spacing: .08em; text-transform: uppercase; color: var(--gris); }
+    .rev-tit button { background: none; border: none; color: var(--verde); font: 700 .9rem 'Inter', sans-serif; cursor: pointer;
+                      text-transform: none; letter-spacing: 0; padding: 4px 0 4px 10px; }
+    .rev-fila { padding: 12px 14px; font-size: 1rem; color: var(--negro); line-height: 1.4; }
+    #overlayConfirm .modal-detalle { margin: 0; padding: 4px 14px 10px; font-size: .95rem; }
+    #overlayConfirm .modal-lista { max-height: none; min-height: 0; }
+    .pasos-pie { flex: none; padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)); border-top: 1px solid var(--borde); background: #fff; }
+    .btn-paso { width: 100%; border: none; border-radius: 12px; padding: 17px; background: var(--verde); color: #fff;
+                font: 700 1.1rem 'Inter', sans-serif; cursor: pointer; }
+    .btn-paso:active { background: var(--verde-os); }
+    .btn-paso:disabled { opacity: .7; }
+    .pasos-ayuda { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; padding: 8px;
+                   color: #1F7A45; font: 600 .95rem 'Inter', sans-serif; text-decoration: none; }
     @media (max-width: 600px) { .modal { padding: 28px 20px 22px; } }
     .modal-titulo { font-family: 'Fraunces', serif; font-size: 1.5rem; color: var(--negro);
                     font-weight: 400; margin-bottom: 16px; }
@@ -874,12 +952,7 @@
       <!-- Express (envío) fijo debajo de la lista: siempre visible, aunque la lista tenga scroll -->
       <div id="zonaExpress"></div>
       <div class="total-res"><span>Total</span><span id="totalRes">₡0</span></div>
-      <input type="tel"  id="pedCelular"   placeholder="Celular (lo usamos para reconocerle)">
-      <input type="text" id="pedNombre"    placeholder="Nombre completo">
-      <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
-      <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
-      <input type="text" id="pedNotas"     placeholder="Notas (opcional — señas de la casa, horario...)">
-      <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
+      <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Continuar con mi pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
     </aside>
   </div>
@@ -931,28 +1004,107 @@
   </div>
 </div>
 
-<div class="overlay" id="overlayConfirm">
-  <div class="modal">
-    <button class="modal-cerrar" onclick="cerrarModal('overlayConfirm')">✕</button>
-    <div class="modal-titulo" id="tituloConfirm">Confirmar pedido</div>
-    <div class="modal-detalle" id="modalDetalle"></div>
-    <div id="bloqueEntrega" class="bloque-entrega">
-      <div class="entrega-lab">¿Cómo querés recibir tu pedido?</div>
-      <div class="entrega-opc" id="entregaOpc">
-        <button type="button" class="ent-btn on" data-ent="domicilio" onclick="elegirEntrega('domicilio')">🚚 A domicilio<small>Te lo llevamos a tu casa</small></button>
-        <button type="button" class="ent-btn" data-ent="feria" onclick="elegirEntrega('feria')">🧺 En la feria<small>Lo recogés, sin envío</small></button>
+<!-- Asistente para terminar el pedido: 1. datos  2. entrega  3. confirmar.
+     Una pregunta por pantalla, letra grande y sin avisos emergentes: si falta algo,
+     la pantalla lleva a la persona al campo y le dice qué escribir. -->
+<div class="overlay overlay-pasos" id="overlayConfirm">
+  <div class="modal modal-pasos" role="dialog" aria-modal="true" aria-labelledby="tituloConfirm">
+    <div class="pasos-cab">
+      <div class="pasos-top">
+        <button type="button" class="pasos-volver" id="pasosVolver" onclick="pasoAtras()" aria-label="Volver">←</button>
+        <div class="pasos-titulo" id="tituloConfirm">Terminar su pedido</div>
+        <button type="button" class="pasos-cerrar" onclick="cerrarModal('overlayConfirm')" aria-label="Cerrar">✕</button>
       </div>
-      <div id="notaFeria" class="nota-feria" style="display:none">🧺 Lo recogés en la <b>Feria San Ramón</b>. Sin costo de envío.</div>
-      <div id="bloqueDomicilio">
-        <input type="hidden" id="pedDireccion" value="">
-        <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="ubicacionDesdeConfirm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
+      <div class="pasos-barra" id="pasosBarra">
+        <div class="pb" data-n="1"><i></i>1. Sus datos</div>
+        <div class="pb" data-n="2"><i></i>2. Entrega</div>
+        <div class="pb" data-n="3"><i></i>3. Confirmar</div>
       </div>
     </div>
-    <div class="bloque-correo" id="bloqueCorreoConfirm" style="display:none"></div>
-    <div class="modal-nota">Te escribiremos por WhatsApp para confirmar tu pedido y coordinar la entrega.</div>
-    <div class="modal-botones">
-      <button class="btn-cancelar" onclick="cerrarModal('overlayConfirm')">Editar</button>
-      <button class="btn-confirmar" id="btnConfirmar" onclick="enviarPedido()">Confirmar y enviar</button>
+
+    <div class="pasos-cuerpo" id="pasosCuerpo">
+      <!-- PASO 1: datos -->
+      <section class="paso-sec" data-paso="1">
+        <h3 class="paso-preg">¿A nombre de quién va el pedido?</h3>
+        <p class="paso-ayuda">Lo usamos para avisarle por WhatsApp cuando su pedido vaya en camino.</p>
+        <div class="recordado" id="pasoRecordado" style="display:none">
+          <div class="rec-hola" id="recHola"></div>
+          <div class="rec-sub">Ya tenemos sus datos de la vez pasada:</div>
+          <div class="rec-dato" id="recDato"></div>
+          <button type="button" class="rec-cambiar" onclick="mostrarCamposDatos(true)">No soy yo / cambiar mis datos</button>
+        </div>
+        <div id="camposDatos">
+          <div class="campo" id="campoCel">
+            <label for="pedCelular">Su celular</label>
+            <input type="tel" id="pedCelular" placeholder="8888-7777" enterkeyhint="next">
+            <div class="campo-pista">Son 8 números. Puede ser el de WhatsApp.</div>
+            <div class="campo-error" role="alert"></div>
+          </div>
+          <div class="campo" id="campoNom">
+            <label for="pedNombre">Su nombre</label>
+            <input type="text" id="pedNombre" placeholder="Ej: María Rodríguez" autocomplete="name" maxlength="80" enterkeyhint="next">
+            <div class="campo-error" role="alert"></div>
+          </div>
+          <div class="campo" id="campoCor">
+            <label for="pedCorreo">Su correo <span class="opc">(no es obligatorio)</span></label>
+            <input type="email" id="pedCorreo" placeholder="Puede dejarlo en blanco" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="done">
+            <div class="campo-pista">Si lo escribe, le mandamos el comprobante por correo.</div>
+            <div class="campo-error" role="alert"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- PASO 2: entrega -->
+      <section class="paso-sec" data-paso="2">
+        <h3 class="paso-preg">¿Cómo recibe su pedido?</h3>
+        <p class="paso-ayuda">Toque una opción.</p>
+        <div id="bloqueEntrega" class="bloque-entrega">
+          <div class="entrega-opc" id="entregaOpc">
+            <button type="button" class="ent-btn on" data-ent="domicilio" onclick="elegirEntrega('domicilio')"><span class="ent-ic">🏠</span><span class="ent-tx"><b>Me lo llevan a la casa</b><small>Entrega a domicilio</small></span><span class="ent-radio"></span></button>
+            <button type="button" class="ent-btn" data-ent="feria" onclick="elegirEntrega('feria')"><span class="ent-ic">🧺</span><span class="ent-tx"><b>Lo recojo en la Feria</b><small>Feria San Ramón · sin costo de envío</small></span><span class="ent-radio"></span></button>
+          </div>
+          <div id="notaFeria" class="nota-feria" style="display:none">🧺 Lo recoge en la <b>Feria San Ramón</b>. Sin costo de envío.</div>
+          <div id="bloqueDomicilio">
+            <div class="campo-lab">¿Dónde queda su casa?</div>
+            <input type="hidden" id="pedDireccion" value="">
+            <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="ubicacionDesdeConfirm()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar mi casa en el mapa</span></button>
+            <div class="campo-error" id="errorUbicacion" role="alert"></div>
+          </div>
+        </div>
+        <div class="campo" id="campoNotas">
+          <label for="pedNotas">Señas de la casa u otra indicación <span class="opc">(no es obligatorio)</span></label>
+          <textarea id="pedNotas" rows="2" maxlength="300" placeholder="Ej: portón negro, al lado de la pulpería"></textarea>
+        </div>
+      </section>
+
+      <!-- PASO 3: confirmar -->
+      <section class="paso-sec" data-paso="3">
+        <h3 class="paso-preg" id="pregConfirm">Revise y envíe</h3>
+        <p class="paso-ayuda" id="ayudaConfirm">Si algo está mal, toque <b>Cambiar</b>.</p>
+        <div class="rev-caja" id="revDatos">
+          <div class="rev-tit"><span>Sus datos</span><button type="button" onclick="irPaso(1)">Cambiar</button></div>
+          <div class="rev-fila" id="revDatosTxt"></div>
+        </div>
+        <div class="rev-caja" id="revEntrega">
+          <div class="rev-tit"><span>Entrega</span><button type="button" onclick="irPaso(2)">Cambiar</button></div>
+          <div class="rev-fila" id="revEntregaTxt"></div>
+        </div>
+        <div class="rev-caja">
+          <div class="rev-tit"><span>Sus productos</span><button type="button" onclick="cambiarProductos()">Cambiar</button></div>
+          <div class="modal-detalle" id="modalDetalle"></div>
+        </div>
+        <div class="bloque-correo" id="bloqueCorreoConfirm" style="display:none"></div>
+        <div class="modal-nota">Paga al recibir: efectivo o SINPE Móvil. Le escribimos por WhatsApp para coordinar.</div>
+      </section>
+    </div>
+
+    <div class="pasos-pie">
+      <button type="button" class="btn-paso" id="btnPasoSig" onclick="pasoSiguiente()">Siguiente →</button>
+      <button type="button" class="btn-paso" id="btnConfirmar" onclick="enviarPedido()">Confirmar y enviar</button>
+      <a class="pasos-ayuda" id="pasosAyuda" href="https://wa.me/50689935973" target="_blank" rel="noopener" onclick="armarAyudaWa(this)">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="#25D366" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.1c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .1-3.3-.8-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9s.7-2 1-2.3c.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.3.5-.4.4c-.1.1-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.4.3.2.5.1.6 0l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.2z"/></svg>
+        ¿Necesita ayuda? Escríbanos
+      </a>
     </div>
   </div>
 </div>
@@ -1351,7 +1503,12 @@ function ubicacionDesdeConfirm() {
 }
 function cerrarMapa() {
   cerrarModal('overlayMapa');
-  if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
+  if (continuarTrasUbicacion) {
+    continuarTrasUbicacion = false;
+    if (pasoTrasMapa && sinUbicacionAceptada) pasoActual = pasoTrasMapa;
+    pasoTrasMapa = 0;
+    abrirModalConfirmacion(true);
+  }
 }
 function inicializarExpress() { asegurarExpress(); }
 function lineasReales() {
@@ -1855,7 +2012,7 @@ function actualizarBarraMovil() {
     } else { nota.style.display = "none"; }
   }
   const btnEnv = document.getElementById("btnEnviarPedido");
-  if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Revisar y enviar pedido";
+  if (btnEnv && !modoEdicion) btnEnv.textContent = modoAgregar() ? "Agregar a mi pedido" : "Continuar con mi pedido";
 }
 // iPhone: a veces el primer toque en un botón de producto no genera el "click"
 // (Safari lo usa para otra cosa y hay que tocar dos veces). Si un toque corto y sin
@@ -1969,23 +2126,138 @@ function tocarBarraMovil() {
   else document.getElementById('resumen').scrollIntoView({behavior:'smooth'});
 }
 
-// ── MODAL CONFIRMACIÓN ─────────────────────────────
-function abrirModalConfirmacion() {
-  const nombre    = document.getElementById("pedNombre").value.trim();
-  const celular   = document.getElementById("pedCelular").value.trim();
+// ── TERMINAR PEDIDO: ASISTENTE DE 3 PASOS ──────────────
+// 1. Sus datos  2. Entrega  3. Confirmar. Sin avisos emergentes: si falta algo se
+// marca el campo en rojo, se lleva a la persona hasta él y se abre el teclado.
+var pasoActual = 1;
+var pasoTrasMapa = 0;          // al confirmar el mapa desde "Siguiente", se sigue a este paso
+var datosDeAntes = false;      // nombre y celular venían guardados en este aparato
+var editandoDatos = false;     // la persona tocó "cambiar mis datos"
+
+function digitosCel() { return document.getElementById("pedCelular").value.replace(/\D/g, ""); }
+function datosCompletos() {
+  return digitosCel().length === 8 && document.getElementById("pedNombre").value.trim().length >= 2;
+}
+function mostrarCamposDatos(enfocar) {
+  editandoDatos = true;
+  document.getElementById("pasoRecordado").style.display = "none";
+  document.getElementById("camposDatos").style.display = "";
+  if (enfocar) setTimeout(function () { document.getElementById("pedCelular").focus(); }, 60);
+}
+function prepararPaso1() {
+  var rec = datosDeAntes && !editandoDatos && datosCompletos();
+  document.getElementById("pasoRecordado").style.display = rec ? "" : "none";
+  document.getElementById("camposDatos").style.display = rec ? "none" : "";
+  if (rec) {
+    var nom = document.getElementById("pedNombre").value.trim();
+    document.getElementById("recHola").textContent = "¡Hola de nuevo, " + nom.split(/\s+/)[0] + "! 👋";
+    document.getElementById("recDato").textContent = nom + " · " + document.getElementById("pedCelular").value.trim();
+  }
+}
+function errorCampo(id, msg) {
+  var c = document.getElementById(id);
+  c.classList.remove("mal", "ok"); void c.offsetWidth;   // reinicia la animación
+  if (msg) { c.querySelector(".campo-error").textContent = msg; c.classList.add("mal"); }
+}
+function llevarA(input) {
+  input.scrollIntoView({ behavior: "smooth", block: "center" });
+  setTimeout(function () { input.focus(); }, 280);
+}
+function validarPaso1() {
+  if (document.getElementById("camposDatos").style.display === "none") return true;
+  var primero = null, d = digitosCel();
+  var nom = document.getElementById("pedNombre"), cor = document.getElementById("pedCorreo");
+  if (d.length !== 8) {
+    errorCampo("campoCel", d.length ? "👆 Faltan números: son 8 y lleva " + d.length + "." : "👆 Escriba aquí su número de celular.");
+    primero = document.getElementById("pedCelular");
+  } else errorCampo("campoCel", "");
+  if (nom.value.trim().length < 2) { errorCampo("campoNom", "👆 Escriba aquí su nombre."); primero = primero || nom; }
+  else errorCampo("campoNom", "");
+  var c = cor.value.trim();
+  if (c && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(c)) {
+    errorCampo("campoCor", "👆 Revise el correo, parece mal escrito. También puede dejarlo en blanco.");
+    primero = primero || cor;
+  } else errorCampo("campoCor", "");
+  if (primero) { llevarA(primero); return false; }
+  return true;
+}
+function validarPaso2() {
+  var err = document.getElementById("errorUbicacion");
+  err.classList.remove("ver");
+  if (entrega === "feria") return true;
+  if ((ubicacion && ubicacionConfirmada) || sinUbicacionAceptada) return true;
+  // Falta el punto: se abre el mapa y, al confirmarlo, se sigue al paso 3
+  err.textContent = "👆 Falta marcar su casa en el mapa.";
+  err.classList.add("ver");
+  pasoTrasMapa = 3;
+  ubicacionDesdeConfirm();
+  return false;
+}
+function irPaso(n) {
+  pasoActual = n;
+  document.querySelectorAll("#overlayConfirm .paso-sec").forEach(function (sec) {
+    sec.classList.toggle("activo", +sec.dataset.paso === n);
+  });
+  document.querySelectorAll("#pasosBarra .pb").forEach(function (b) {
+    var k = +b.dataset.n; b.classList.toggle("activo", k === n); b.classList.toggle("hecho", k < n);
+  });
+  document.getElementById("pasosBarra").style.display = modoEdicion ? "none" : "";
+  document.getElementById("pasosVolver").classList.toggle("oculto", n === 1 || !!modoEdicion);
+  document.getElementById("btnPasoSig").style.display = n === 3 ? "none" : "";
+  document.getElementById("btnConfirmar").style.display = n === 3 ? "" : "none";
+  if (n === 1) { prepararPaso1(); document.getElementById("tituloConfirm").textContent = "Terminar su pedido"; }
+  if (n === 2) { elegirEntrega(entrega); pintarBotonUbicacion(); document.getElementById("tituloConfirm").textContent = "Terminar su pedido"; }
+  if (n === 3) { pintarConfirmacion(); prepararBloqueCorreo(); pintarRevision(); }
+  document.getElementById("pasosCuerpo").scrollTop = 0;
+}
+function pasoSiguiente() {
+  if (pasoActual === 1 && validarPaso1()) irPaso(2);
+  else if (pasoActual === 2 && validarPaso2()) irPaso(3);
+}
+function pasoAtras() {
+  if (pasoActual > 1 && !modoEdicion) irPaso(pasoActual - 1);
+  else cerrarModal("overlayConfirm");
+}
+function cambiarProductos() {
+  cerrarModal("overlayConfirm");
+  document.getElementById("resumen").scrollIntoView({ behavior: "smooth" });
+}
+function pintarRevision() {
+  var editar = !!modoEdicion;
+  document.getElementById("revDatos").style.display = editar ? "none" : "";
+  document.getElementById("revEntrega").style.display = editar ? "none" : "";
+  document.getElementById("pregConfirm").textContent = editar ? "Revise los cambios" : "Revise y envíe";
+  document.getElementById("ayudaConfirm").style.display = editar ? "none" : "";
+  if (editar) return;
+  document.getElementById("revDatosTxt").textContent =
+    document.getElementById("pedNombre").value.trim() + " · " + document.getElementById("pedCelular").value.trim();
+  document.getElementById("revEntregaTxt").textContent = entrega === "feria"
+    ? "🧺 La recoge en la Feria San Ramón"
+    : ((ubicacion && ubicacionConfirmada) ? "🏠 A domicilio · casa marcada en el mapa"
+                                          : "🏠 A domicilio · le pedimos la ubicación por WhatsApp");
+}
+// Ayuda por WhatsApp con el carrito ya escrito en el mensaje
+function armarAyudaWa(a) {
+  var lineas = [];
+  try {
+    Object.keys(pedido).forEach(function (clave) {
+      var pc = parsearClave(clave), p = productosPorId[pc.id];
+      if (!p || pc.id === ID_EXPRESS) return;
+      lineas.push("- " + p.nombre + (pc.gramos ? " (" + formatoPeso(pc.gramos) + ")" : "") + " × " + pedido[clave]);
+    });
+  } catch (e) {}
+  var txt = "Hola, necesito ayuda para terminar mi pedido en la tienda." + (lineas.length ? "\n" + lineas.join("\n") : "");
+  a.href = "https://wa.me/50689935973?text=" + encodeURIComponent(txt);
+}
+
+// reabrir = true: se vuelve al paso donde estaba (por ejemplo, después del mapa)
+function abrirModalConfirmacion(reabrir) {
   asegurarExpress();
   if (lineasReales().length === 0) { alert(modoEdicion ? "El pedido no puede quedar vacío. Si ya no lo querés, podés cancelarlo desde «Mi pedido»." : "Agregue al menos un producto."); return; }
-  if (!modoEdicion) {
-    if (!nombre || !celular) { alert("Indique su nombre y celular."); return; }
-    if (celular.replace(/\D/g, "").length !== 8) { alert("El celular debe tener 8 dígitos."); return; }
-    const correo = document.getElementById("pedCorreo").value.trim();
-    if (correo && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(correo)) { alert("Revisá el correo, parece que está mal escrito (o dejalo vacío)."); return; }
-  }
-  // ¿Domicilio o feria? Se elige aquí, en la confirmación (no aplica al editar)
   document.getElementById("bloqueEntrega").style.display = modoEdicion ? "none" : "";
-  elegirEntrega(entrega);
-  pintarConfirmacion();
-  prepararBloqueCorreo();
+  if (modoEdicion) irPaso(3);
+  else if (reabrir === true) irPaso(pasoActual);
+  else { editandoDatos = false; irPaso(1); }
   abrirModal('overlayConfirm');
 }
 
@@ -2150,7 +2422,13 @@ function confirmarUbicacion() {
   ubicacion = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
   ubicacionConfirmada = true; sinUbicacionAceptada = false;
   guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
-  if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
+  document.getElementById("errorUbicacion").classList.remove("ver");
+  if (continuarTrasUbicacion) {
+    continuarTrasUbicacion = false;
+    if (pasoTrasMapa) pasoActual = pasoTrasMapa;
+    pasoTrasMapa = 0;
+    abrirModalConfirmacion(true);
+  }
 }
 
 // Buscador de lugares (OpenStreetMap / Nominatim, gratis): solo Costa Rica, priorizando San Ramón.
@@ -2195,9 +2473,9 @@ function quitarUbicacion() {
 function pintarBotonUbicacion() {
   var b = document.getElementById("btnUbicacion");
   document.getElementById("txtUbicacion").textContent =
-    (ubicacion && ubicacionConfirmada) ? "✓ Ubicación marcada · Cambiar"
-    : sinUbicacionAceptada ? "Sin ubicación: te la pedimos por WhatsApp · Marcar ahora"
-    : "Marcá en el mapa dónde te lo llevamos";
+    (ubicacion && ubicacionConfirmada) ? "✓ Casa marcada en el mapa · Cambiar"
+    : sinUbicacionAceptada ? "Sin ubicación: se la pedimos por WhatsApp · Marcar ahora"
+    : "Marcar mi casa en el mapa";
   b.classList.toggle("marcado", !!(ubicacion && ubicacionConfirmada));
 }
 
@@ -2215,7 +2493,8 @@ function prepararBloqueCorreo() {
   const caja = document.getElementById("bloqueCorreoConfirm");
   if (modoEdicion) { caja.style.display = "none"; return; }
   const correo = document.getElementById("pedCorreo").value.trim();
-  if (correo) { cajaCorreo(caja, "Te enviaremos el comprobante a", correo); return; }
+  if (correo) { cajaCorreo(caja, "Le enviaremos el comprobante a", correo); return; }
+  caja.innerHTML = ""; caja.style.display = "none"; return;   // el correo ya se ofreció en el paso 1
   caja.innerHTML = '<div class="fila">' + ICONO_SOBRE +
     '<div class="txt"><div class="tit">¿Querés el comprobante por correo?</div>' +
     '<div class="sub">Te mandamos el resumen y el enlace para ver o editar tu pedido.</div></div></div>' +
@@ -2541,7 +2820,7 @@ async function iniciarEdicion(token) {
 function terminarEdicion() {
   modoEdicion = null; extrasEdicion = [];
   Object.keys(pedido).forEach(k => delete pedido[k]);
-  document.getElementById("btnEnviarPedido").textContent = "Revisar y enviar pedido";
+  document.getElementById("btnEnviarPedido").textContent = "Continuar con mi pedido";
   document.getElementById("btnConfirmar").textContent = "Confirmar y enviar";
   document.getElementById("franjaSalir").style.display = "none";
   history.replaceState(null, "", "/");
@@ -2651,9 +2930,18 @@ try {
   if (guardado.correo)    document.getElementById("pedCorreo").value    = guardado.correo;
   if (guardado.lat && guardado.lng) ubicacion = { lat: +guardado.lat, lng: +guardado.lng };
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
+  datosDeAntes = !!(guardado.nombre && guardado.celular);
 } catch(e) {}
+["pedCelular", "pedNombre", "pedCorreo"].forEach(function (id) {
+  document.getElementById(id).addEventListener("input", function () {
+    var c = this.closest(".campo"); if (c && c.classList.contains("mal")) c.classList.remove("mal");
+  });
+});
 
 activarFormatoCelular(document.getElementById("pedCelular"));
+document.getElementById("camposDatos").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { e.preventDefault(); pasoSiguiente(); }
+});
 pintarBotonUbicacion();
 try { if (localStorage.getItem("ecoltura_entrega") === "feria") elegirEntrega("feria"); } catch(e) {}
 activarFormatoCelular(document.getElementById("notifCelInput"));

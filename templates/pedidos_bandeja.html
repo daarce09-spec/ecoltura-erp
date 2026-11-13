@@ -14,6 +14,8 @@
   .per-btn { border:1.5px solid #dee2e6; background:white; border-radius:999px; padding:5px 14px;
              font-size:.8rem; font-weight:600; color:#555; text-decoration:none; }
   .per-btn.activo { background:#3E6B22; border-color:#3E6B22; color:white; }
+  .kb-col .periodos { margin-bottom:8px; }
+  .kb-col .per-btn { padding:3px 12px; font-size:.76rem; }
 
   .kb-tabs { display:none; gap:6px; overflow-x:auto; margin-bottom:12px; padding-bottom:2px; }
   .kb-tab { flex:0 0 auto; border:1.5px solid #dee2e6; background:white; border-radius:999px;
@@ -21,7 +23,7 @@
   .kb-tab.activo { background:#3E6B22; border-color:#3E6B22; color:white; }
   .kb-tab .n { opacity:.75; margin-left:4px; }
 
-  .kb-board { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:14px; align-items:start; }
+  .kb-board { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:14px; align-items:start; }
   .kb-col { background:#F6F8F4; border-radius:16px; padding:12px; min-height:140px; }
   .kb-col-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
                  font-weight:800; font-size:.9rem; color:#3E6B22; }
@@ -111,25 +113,19 @@
   </div></div>
 </div>
 
-<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-  <span class="text-muted small">Facturado y cobrado se calculan del periodo; por cobrar es todo lo pendiente.</span>
-  <div class="periodos">
-    <a class="per-btn {{ 'activo' if periodo == 'todo' }}"   href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='todo') }}">Todo</a>
-    <a class="per-btn {{ 'activo' if periodo == 'hoy' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='hoy') }}">Hoy</a>
-    <a class="per-btn {{ 'activo' if periodo == 'semana' }}" href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='semana') }}">7 días</a>
-    <a class="per-btn {{ 'activo' if periodo == 'mes' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='mes') }}">Este mes</a>
-  </div>
-</div>
-
+{# Pendientes = todavía preparando; Reparto = ya alistados (en camino o para la feria) #}
+{% set col_pend = columnas.pendientes | rejectattr('seguimiento', 'equalto', 'Alistado') | list %}
+{% set col_rep  = columnas.pendientes | selectattr('seguimiento', 'equalto', 'Alistado') | list %}
 {% set cols = [
-  ('pendientes', 'Pendientes', columnas.pendientes),
-  ('entregados', 'Entregados', columnas.entregados)
+  ('pendientes', 'Pendientes', col_pend|length),
+  ('reparto', 'Reparto', col_rep|length),
+  ('entregados', 'Entregados', n_entregados)
 ] %}
 
 <!-- Pestañas (solo en celular) -->
 <div class="kb-tabs" id="kbTabs">
-  {% for clave, titulo, lista in cols %}
-  <button type="button" class="kb-tab" data-col="{{ clave }}">{{ titulo }}<span class="n">{{ lista|length }}</span></button>
+  {% for clave, titulo, n in cols %}
+  <button type="button" class="kb-tab" data-col="{{ clave }}">{{ titulo }}<span class="n">{{ n }}</span></button>
   {% endfor %}
 </div>
 
@@ -151,8 +147,7 @@
       {% if p.proximo_viernes %}<span class="tag tag-prep">📅 Próximo viernes</span>{% endif %}
       {% if p.feria %}<span class="tag tag-feria">🧺 Feria</span>{% endif %}
       {% if p.falta_ubicacion %}<span class="tag tag-fallida">📍 Falta ubicación</span>{% endif %}
-      {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> Alistado · {{ 'para la feria' if p.feria else 'en reparto' }}</span>
-      {% else %}<span class="tag tag-prep">Preparando</span>{% endif %}
+      {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> {{ 'Alistado para la feria' if p.feria else 'En reparto' }}</span>{% endif %}
       {% if p.fallida %}<span class="tag tag-fallida"><i class="bi bi-exclamation-triangle"></i> No entregado: {{ p.fallida[:40] }}</span>{% endif %}
     </div>
   {% endif %}
@@ -169,11 +164,11 @@
       <form method="post" action="{{ url_for('pedidos_bp.pedido_seguimiento', id=p.id) }}" class="d-inline">
         {% if p.seguimiento == 'Alistado' %}
         <input type="hidden" name="valor" value="Preparando">
-        <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a preparando</button>
+        <button class="btn btn-outline-secondary"><i class="bi bi-arrow-counterclockwise me-1"></i>Volver a pendientes</button>
         {% else %}
         <input type="hidden" name="valor" value="Alistado">
         <button class="btn btn-primary js-alistar" data-nombre="{{ p.nombre }}" data-total="₡{{ "{:,.0f}".format(p.total).replace(",", ".") }}"
-                {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-box-seam me-1"></i>Marcar alistado</button>
+                {% if p.wa_alistado %}data-wa="{{ p.wa_alistado }}"{% endif %}><i class="bi bi-truck me-1"></i>{{ 'Lista para feria' if p.feria else 'Pasar a Reparto' }}</button>
         {% endif %}
       </form>
       <button type="button" class="btn btn-success js-vender"
@@ -210,14 +205,27 @@
 
 <div class="kb-board" id="kbBoard">
   <div class="kb-col c-pendientes" data-col="pendientes">
-    <div class="kb-col-head"><span>Pendientes</span><span class="cnt">{{ columnas.pendientes|length }}</span></div>
-    {% for p in columnas.pendientes %}{{ tarjeta(p, 'pendientes') }}{% else %}
-      <div class="kb-vacio">No hay pedidos pendientes</div>
+    <div class="kb-col-head"><span>Pendientes</span><span class="cnt">{{ col_pend|length }}</span></div>
+    {% for p in col_pend %}{{ tarjeta(p, 'pendientes') }}{% else %}
+      <div class="kb-vacio">No hay pedidos por preparar</div>
+    {% endfor %}
+  </div>
+
+  <div class="kb-col c-reparto" data-col="reparto">
+    <div class="kb-col-head"><span>Reparto</span><span class="cnt">{{ col_rep|length }}</span></div>
+    {% for p in col_rep %}{{ tarjeta(p, 'pendientes') }}{% else %}
+      <div class="kb-vacio">Nada en reparto todavía. Al tocar "Pasar a Reparto" el pedido llega aquí.</div>
     {% endfor %}
   </div>
 
   <div class="kb-col c-entregados" data-col="entregados">
     <div class="kb-col-head"><span>Entregados</span><span class="cnt">{{ n_entregados }}</span></div>
+    <div class="periodos">
+      <a class="per-btn {{ 'activo' if periodo == 'todo' }}"   href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='todo') }}">Todo</a>
+      <a class="per-btn {{ 'activo' if periodo == 'hoy' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='hoy') }}">Hoy</a>
+      <a class="per-btn {{ 'activo' if periodo == 'semana' }}" href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='semana') }}">7 días</a>
+      <a class="per-btn {{ 'activo' if periodo == 'mes' }}"    href="{{ url_for('pedidos_bp.bandeja_pedidos', periodo='mes') }}">Este mes</a>
+    </div>
     <div class="filtro-ent" id="filtroEnt">
       <button type="button" class="fe-btn activo" data-f="todos">Todos</button>
       <button type="button" class="fe-btn rojo" data-f="cobrar">Por cobrar ({{ n_cobrar }})</button>
@@ -433,7 +441,7 @@
 <div class="al-modal" id="alModal" role="dialog" aria-modal="true" aria-labelledby="alTitulo">
   <div class="caja">
     <div class="ico"><i class="bi bi-box-seam"></i></div>
-    <h5 id="alTitulo">¿Pasar a Alistado?</h5>
+    <h5 id="alTitulo">¿Pasar a Reparto?</h5>
     <div class="quien"><b id="alNombre"></b><span id="alTotal"></span></div>
     <p id="alTexto"></p>
     <div class="acciones">
@@ -508,10 +516,10 @@
         el('alTotal').textContent = b.dataset.total || '';
         if (b.dataset.wa) {
           el('alTexto').textContent = 'Se abre WhatsApp con el aviso para el cliente: pedido alistado, link del pedido y datos de SINPE.';
-          el('alSi').innerHTML = '<i class="bi bi-whatsapp me-1"></i>Sí, alistar y avisar';
+          el('alSi').innerHTML = '<i class="bi bi-whatsapp me-1"></i>Sí, pasar y avisar';
         } else {
           el('alTexto').textContent = 'Este pedido no tiene un celular válido, así que no se puede avisar por WhatsApp.';
-          el('alSi').textContent = 'Sí, alistar';
+          el('alSi').textContent = 'Sí, pasar a Reparto';
         }
         m.classList.add('abierto');
         return;
