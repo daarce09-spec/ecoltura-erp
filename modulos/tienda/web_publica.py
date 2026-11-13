@@ -14,9 +14,21 @@ from modulos.correo import correo_valido, enviar_confirmacion_pedido
 from datetime import datetime, timedelta
 
 
+# Los viernes se reciben pedidos para la entrega de ESE día hasta la 1:00 p. m.
+# Hasta esa hora todo funciona como cualquier día (editar, cancelar, sumar al pedido).
+# Desde la 1:00 p. m. los pedidos en curso ya no se cambian y lo nuevo va para el
+# viernes siguiente.
+HORA_CORTE_VIERNES = 13
+
+
+def _ahora_cr():
+    return datetime.utcnow() - timedelta(hours=6)       # hora de Costa Rica (UTC-6)
+
+
 def _es_viernes():
-    """Los viernes los pedidos no se pueden modificar ni cancelar (hora de Costa Rica, UTC-6)."""
-    return (datetime.utcnow() - timedelta(hours=6)).weekday() == 4
+    """True los viernes DESDE la hora de corte (antes de esa hora es un día normal)."""
+    ahora = _ahora_cr()
+    return ahora.weekday() == 4 and ahora.hour >= HORA_CORTE_VIERNES
 
 
 MSJ_VIERNES = "¡Ya estamos preparando tu pedido! 🌱 Para hacerle cambios, escribinos por WhatsApp y con gusto te ayudamos."
@@ -60,7 +72,8 @@ SQL_CEL_LIMPIO = "RIGHT(REGEXP_REPLACE(COALESCE(celular, ''), '[^0-9]', '', 'g')
 # ─────────────────────────────────────────────
 @web_bp.route("/")
 def index():
-    return render_template("tienda/web_index.html")
+    return render_template("tienda/web_index.html", viernes_cerrado=_es_viernes(),
+                           es_viernes_hoy=_ahora_cr().weekday() == 4)
 
 
 # ─────────────────────────────────────────────
@@ -498,6 +511,7 @@ def api_pedidos():
         print(f"No se pudo preparar el correo del pedido #{pedido_id}: {ex}")
 
     return jsonify({"ok": True, "pedido_id": pedido_id, "token": token, "unido": unido,
+                    "proximo_viernes": _es_viernes() and not unido,
                     "correo": correo if os.environ.get("RESEND_API_KEY") else ""})
 
 
