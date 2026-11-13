@@ -603,14 +603,14 @@ def api_pedido_estado(token):
         cur = conn.cursor()
         cur.execute("""
             SELECT p.id, p.estado, p.nombre_contacto, p.total_estimado, p.creado, v.metodo_pago,
-                   COALESCE(p.entrega, 'domicilio')
+                   COALESCE(p.entrega, 'domicilio'), p.lat, p.lng
             FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
             WHERE p.token = %s
         """, (token,))
         fila = cur.fetchone()
         if not fila:
             return jsonify({"ok": False, "error": "No encontramos este pedido."}), 404
-        pid, estado, nombre, total, creado, metodo, entrega = fila
+        pid, estado, nombre, total, creado, metodo, entrega, lat, lng = fila
         cur.execute("""
             SELECT d.producto_id, pr.nombre, pr.unidad, d.cantidad, d.precio_unitario,
                    COALESCE(d.descuento_tipo, 'monto'), COALESCE(d.descuento_valor, 0)
@@ -633,6 +633,10 @@ def api_pedido_estado(token):
         "viernes": estado == "Pendiente" and _es_viernes(),
         "pagado": bool(metodo) and metodo != "Por cobrar",
         "entrega": entrega,
+        # Punto donde se entregó (solo pedidos ya entregados a domicilio). Solo lo ve quien
+        # tiene el enlace privado; la tienda lo guarda para ofrecer "la dirección de mi última entrega".
+        "entregado_en": ({"lat": float(lat), "lng": float(lng)}
+                         if estado == "Resuelto" and entrega == "domicilio" and lat is not None else None),
         "nombre": nombre,
         "total": total,
         "descuento": max(0.0, suma - total),
