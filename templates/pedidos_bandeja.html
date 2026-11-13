@@ -148,6 +148,7 @@
   </div>
   {% if tipo == 'pendientes' %}
     <div class="mt-2 d-flex flex-wrap gap-1">
+      {% if p.proximo_viernes %}<span class="tag tag-prep">📅 Próximo viernes</span>{% endif %}
       {% if p.feria %}<span class="tag tag-feria">🧺 Feria</span>{% endif %}
       {% if p.falta_ubicacion %}<span class="tag tag-fallida">📍 Falta ubicación</span>{% endif %}
       {% if p.seguimiento == 'Alistado' %}<span class="tag tag-alistado"><i class="bi bi-box-seam"></i> Alistado · {{ 'para la feria' if p.feria else 'en reparto' }}</span>
