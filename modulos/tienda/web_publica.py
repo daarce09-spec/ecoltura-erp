@@ -324,8 +324,7 @@ def api_pedidos():
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
     if len(celular) != 8:
         return jsonify({"ok": False, "error": "El celular debe tener 8 dígitos."}), 400
-    if not direccion and entrega == "domicilio":
-        return jsonify({"ok": False, "error": "La dirección de entrega es obligatoria."}), 400
+    # A domicilio, lo que manda es el punto en el mapa (la dirección escrita ya no se pide)
     if not items:
         return jsonify({"ok": False, "error": "El pedido está vacío."}), 400
 
@@ -408,7 +407,7 @@ def api_pedidos():
 
         # La ubicación en el mapa es obligatoria: sin ella el repartidor no puede armar la ruta.
         # Solo se acepta sin punto si se agrega a un pedido en curso que ya lo tiene.
-        if entrega == "domicilio" and lat is None and not (abierto and abierto[2] is not None):
+        if entrega == "domicilio" and lat is None:
             conn.rollback()
             return jsonify({"ok": False, "falta_ubicacion": True,
                             "error": "Marcá en el mapa dónde te llevamos el pedido."}), 400
@@ -429,7 +428,7 @@ def api_pedidos():
             cur.execute("SELECT COALESCE(entrega, 'domicilio'), notas FROM pedidos WHERE id = %s", (pedido_id,))
             entrega_antes, notas_antes = cur.fetchone()
             if entrega != entrega_antes:
-                prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion}"
+                prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or PUNTO_MAPA}"
                 cur.execute("UPDATE pedidos SET entrega = %s, notas = %s WHERE id = %s",
                             (entrega, _cambiar_prefijo(notas_antes, prefijo), pedido_id))
             _asegurar_express(cur, pedido_id)
@@ -443,7 +442,7 @@ def api_pedidos():
             unido = True
         else:
             # 4. Pedido nuevo (la dirección va en notas para que el admin la vea)
-            prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion}"
+            prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or PUNTO_MAPA}"
             notas_completa = prefijo + (f" — {notas}" if notas else "")
             cur.execute("""
                 INSERT INTO pedidos
@@ -535,6 +534,7 @@ def _leer_lineas(cur, pedido_id):
 
 
 PREFIJO_FERIA = "🧺 Recoger en la Feria San Ramón"
+PUNTO_MAPA = "Punto marcado en el mapa"
 
 
 def _cambiar_prefijo(notas, prefijo):

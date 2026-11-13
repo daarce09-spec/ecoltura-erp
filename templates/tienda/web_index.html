@@ -865,7 +865,7 @@
       <input type="text" id="pedNombre"    placeholder="Nombre completo">
       <input type="email" id="pedCorreo"   placeholder="Correo, para enviarte la confirmación" autocomplete="email" inputmode="email" maxlength="120">
       <div class="nota-correo"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#3E6B22" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg><span>Te mandamos tu pedido por correo, con el enlace para verlo o editarlo. Es opcional.</span></div>
-      <input type="text" id="pedNotas"     placeholder="Notas (opcional — referencias, horario...)">
+      <input type="text" id="pedNotas"     placeholder="Notas (opcional — señas de la casa, horario...)">
       <button class="btn-enviar-pedido" id="btnEnviarPedido" onclick="abrirModalConfirmacion()">Revisar y enviar pedido</button>
       <div class="micro">Le contactaremos por WhatsApp para coordinar el pago y la entrega.</div>
     </aside>
@@ -927,7 +927,7 @@
       </div>
       <div id="notaFeria" class="nota-feria" style="display:none">🧺 Lo recogés en la <b>Feria San Ramón</b>. Sin costo de envío.</div>
       <div id="bloqueDomicilio">
-        <input type="text" id="pedDireccion" placeholder="Dirección de entrega">
+        <input type="hidden" id="pedDireccion" value="">
         <button type="button" class="btn-ubicacion" id="btnUbicacion" onclick="ubicacionDesdeConfirm()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s7-6.2 7-12a7 7 0 1 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.6"/></svg><span id="txtUbicacion">Marcar dónde te lo llevamos</span></button>
       </div>
     </div>
@@ -1998,6 +1998,9 @@ function cajaCorreo(caja, etiqueta, correo, pie) {
 // El pin queda fijo al centro y el cliente mueve el mapa: funciona igual con dedo o mouse,
 // esté o no en su casa. El GPS es solo un atajo.
 var ubicacion = null;           // { lat, lng } o null
+// La entrega a domicilio exige marcar el punto en el mapa EN CADA PEDIDO: el punto
+// recordado sirve para abrir el mapa ahí, pero hay que confirmarlo otra vez.
+var ubicacionConfirmada = false;
 var continuarTrasUbicacion = false;   // si el mapa se abrió al enviar el pedido, al confirmar se sigue al resumen
 var mapa = null;
 var SAN_RAMON = [10.0874, -84.4703];
@@ -2087,6 +2090,7 @@ function confirmarUbicacion() {
   if (!mapa) return;
   var c = mapa.getCenter();
   ubicacion = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
+  ubicacionConfirmada = true;
   guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
   if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
 }
@@ -2126,15 +2130,15 @@ function buscarLugar(ev) {
 }
 
 function quitarUbicacion() {
-  ubicacion = null;
+  ubicacion = null; ubicacionConfirmada = false;
   guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarMapa();
 }
 
 function pintarBotonUbicacion() {
   var b = document.getElementById("btnUbicacion");
   document.getElementById("txtUbicacion").textContent =
-    ubicacion ? "✓ Ubicación marcada · Cambiar" : "Marcar dónde te lo llevamos";
-  b.classList.toggle("marcado", !!ubicacion);
+    (ubicacion && ubicacionConfirmada) ? "✓ Ubicación marcada · Cambiar" : "Marcá en el mapa dónde te lo llevamos";
+  b.classList.toggle("marcado", !!(ubicacion && ubicacionConfirmada));
 }
 
 // Pantalla final: a qué correo le mandamos el comprobante
@@ -2162,10 +2166,8 @@ function prepararBloqueCorreo() {
 async function enviarPedido() {
   const btn = document.getElementById("btnConfirmar");
   if (!modoEdicion && entrega !== "feria") {
-    const dir = document.getElementById("pedDireccion");
-    if (!dir.value.trim()) { alert("Escribí la dirección de entrega."); dir.focus(); return; }
-    // La ubicación es obligatoria (el repartidor arma la ruta con ella)
-    if (!ubicacion) { ubicacionDesdeConfirm(); return; }
+    // El punto en el mapa es obligatorio y se confirma en cada pedido (el repartidor arma la ruta con él)
+    if (!ubicacion || !ubicacionConfirmada) { ubicacionDesdeConfirm(); return; }
   }
   const correoModal = document.getElementById("correoConfirm");
   if (!modoEdicion && correoModal && correoModal.value.trim()) {
@@ -2192,7 +2194,7 @@ async function enviarPedido() {
       body: JSON.stringify({
         nombre:    document.getElementById("pedNombre").value.trim(),
         celular:   document.getElementById("pedCelular").value.trim(),
-        direccion: document.getElementById("pedDireccion").value.trim(),
+        direccion: "",
         correo:    document.getElementById("pedCorreo").value.trim(),
         lat:       ubicacion ? ubicacion.lat : null,
         lng:       ubicacion ? ubicacion.lng : null,
@@ -2225,7 +2227,7 @@ async function enviarPedido() {
         localStorage.setItem("ecoltura_cliente", JSON.stringify({
           nombre:    document.getElementById("pedNombre").value.trim(),
           celular:   document.getElementById("pedCelular").value.trim(),
-          direccion: document.getElementById("pedDireccion").value.trim(),
+          direccion: "",
           correo:    document.getElementById("pedCorreo").value.trim(),
           lat:       ubicacion ? ubicacion.lat : null,
           lng:       ubicacion ? ubicacion.lng : null
@@ -2243,6 +2245,7 @@ async function enviarPedido() {
             : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`);
       mostrarCorreoExito(data.correo);
       prepararBloqueCampanaExito();
+      ubicacionConfirmada = false; pintarBotonUbicacion();   // el próximo pedido vuelve a pedir el punto
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);
@@ -2252,7 +2255,7 @@ async function enviarPedido() {
     } else if (data.falta_ubicacion) {
       // El servidor no recibió el punto (p. ej. una página vieja): se pide en el mapa y se sigue
       cerrarModal('overlayConfirm');
-      ubicacion = null; pintarBotonUbicacion();
+      ubicacion = null; ubicacionConfirmada = false; pintarBotonUbicacion();
       continuarTrasUbicacion = true; abrirMapa();
     } else {
       alert("Error: " + data.error);
@@ -2580,7 +2583,6 @@ try {
   const guardado = JSON.parse(localStorage.getItem("ecoltura_cliente") || "{}");
   if (guardado.nombre)    document.getElementById("pedNombre").value    = guardado.nombre;
   if (guardado.celular)   document.getElementById("pedCelular").value   = formatearCelular(guardado.celular);
-  if (guardado.direccion) document.getElementById("pedDireccion").value = guardado.direccion;
   if (guardado.correo)    document.getElementById("pedCorreo").value    = guardado.correo;
   if (guardado.lat && guardado.lng) ubicacion = { lat: +guardado.lat, lng: +guardado.lng };
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
