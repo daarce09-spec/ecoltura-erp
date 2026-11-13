@@ -110,16 +110,33 @@
           <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Guardar</button>
         </div>
       </form>
-      {% if pedido[15] is not none and pedido[16] is not none %}
-      <div class="dato-row">
+      {% if pedido[17] != 'feria' %}
+      <div class="dato-row" id="filaUbic" style="align-items:flex-start">
         <span class="dato-label">Ubicación</span>
-        <span class="dato-valor d-flex gap-2 flex-wrap justify-content-end">
+        <span class="dato-valor d-flex gap-2 flex-wrap justify-content-end align-items-center">
+          {% if pedido[15] is none %}<span class="badge text-bg-danger">📍 Falta ubicación</span>{% endif %}
+          {% if pedido[15] is not none and pedido[16] is not none %}
           <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener" hx-boost="false"
              href="https://waze.com/ul?ll={{ pedido[15] }},{{ pedido[16] }}&navigate=yes"><i class="bi bi-sign-turn-right me-1"></i>Waze</a>
           <a class="btn btn-sm btn-outline-success" target="_blank" rel="noopener" hx-boost="false"
              href="https://www.google.com/maps/search/?api=1&query={{ pedido[15] }},{{ pedido[16] }}"><i class="bi bi-geo-alt me-1"></i>Google Maps</a>
+          {% endif %}
+          <button type="button" class="btn btn-sm btn-outline-secondary" title="Cambiar la ubicación"
+                  onclick="document.getElementById('formUbic').style.display='block';document.getElementById('txtUbic').focus();">
+            <i class="bi bi-pencil"></i>{{ ' Pegar ubicación' if pedido[15] is none else '' }}</button>
         </span>
       </div>
+      <form id="formUbic" method="post" action="{{ url_for('pedidos_bp.pedido_ubicacion', id=pedido[0]) }}"
+            class="dato-row" style="display:none">
+        <label for="txtUbic" class="dato-label d-block mb-1">Pegá la ubicación que mandó el cliente</label>
+        <input id="txtUbic" name="coordenadas" class="form-control mb-2" autocomplete="off"
+               placeholder="10.0561, -84.4860  ·  o el enlace de Google Maps">
+        <div class="d-flex gap-2 justify-content-end">
+          <button type="button" class="btn btn-sm btn-outline-secondary"
+                  onclick="document.getElementById('formUbic').style.display='none';">Cancelar</button>
+          <button class="btn btn-sm btn-success"><i class="bi bi-check-lg me-1"></i>Guardar</button>
+        </div>
+      </form>
       {% endif %}
       {% if pedido[9] %}
       <div class="dato-row">

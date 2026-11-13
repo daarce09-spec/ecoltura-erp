@@ -84,10 +84,11 @@ def _por_hacer(cur):
                              AND COALESCE(entrega, 'domicilio') <> 'feria'),
           COUNT(*) FILTER (WHERE seguimiento IN ('Alistado', 'Listo') AND COALESCE(entrega, 'domicilio') = 'feria'),
           COUNT(*) FILTER (WHERE entrega_fallida IS NOT NULL),
-          COUNT(*) FILTER (WHERE COALESCE(modificado, FALSE))
+          COUNT(*) FILTER (WHERE COALESCE(modificado, FALSE)),
+          COUNT(*) FILTER (WHERE lat IS NULL AND COALESCE(entrega, 'domicilio') <> 'feria')
         FROM pedidos WHERE estado = 'Pendiente'
     """)
-    por_alistar, nuevos, ultimo, alistados, feria, fallidos, modificados = cur.fetchone()
+    por_alistar, nuevos, ultimo, alistados, feria, fallidos, modificados, sin_ubic = cur.fetchone()
     cur.execute("""
         SELECT COUNT(*) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)),
                COALESCE(SUM(total) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)), 0),
@@ -119,6 +120,8 @@ def _por_hacer(cur):
          "boton": "Alistar", "href": "/admin/pedidos", "urgente": nuevos > 0},
         {"n": alistados, "titulo": "Pedidos listos para repartir", "detalle": "Ya están alistados",
          "boton": "Repartir", "href": "/reparto", "urgente": False},
+        {"n": sin_ubic, "titulo": "Pedidos sin ubicación", "detalle": "Pedile la ubicación por WhatsApp y pegala en el pedido",
+         "boton": "Ver", "href": "/admin/pedidos", "urgente": True},
         {"n": feria, "titulo": "Pedidos para recoger en la feria", "detalle": "Ya están alistados · Feria San Ramón",
          "boton": "Ver", "href": "/admin/pedidos", "urgente": False},
         {"n": fallidos, "titulo": "Entregas que no se pudieron hacer", "detalle": "Volver a coordinar con el cliente",
