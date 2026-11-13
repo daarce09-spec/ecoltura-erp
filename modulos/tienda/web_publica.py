@@ -5,6 +5,7 @@ Ubicación: modulos/tienda/web_publica.py
 Blueprint registrado en app.py como: from modulos.tienda.web_publica import web_bp
 """
 import os
+import math
 from flask import Blueprint, render_template, jsonify, request, abort
 from db.conexion import obtener_conexion
 from modulos.push import notificar_admins, vincular_suscripciones_huerfanas
@@ -319,6 +320,8 @@ def api_pedidos():
     entrega   = "feria" if (data.get("entrega") or "").strip().lower() == "feria" else "domicilio"
     if entrega == "feria":
         lat, lng = None, None
+    # "No logro marcar mi casa": se acepta el pedido sin punto y la oficina lo pide por WhatsApp
+    sin_ubicacion = entrega == "domicilio" and bool(data.get("sin_ubicacion"))
 
     if not nombre or not celular:
         return jsonify({"ok": False, "error": "Nombre y celular son obligatorios."}), 400
@@ -407,7 +410,9 @@ def api_pedidos():
 
         # La ubicación en el mapa es obligatoria: sin ella el repartidor no puede armar la ruta.
         # Solo se acepta sin punto si se agrega a un pedido en curso que ya lo tiene.
-        if entrega == "domicilio" and lat is None:
+        if entrega == "domicilio" and lat is not None and _en_centro_por_defecto(lat, lng):
+            lat, lng = None, None   # pin sin mover: se le vuelve a pedir el punto
+        if entrega == "domicilio" and lat is None and not sin_ubicacion:
             conn.rollback()
             return jsonify({"ok": False, "falta_ubicacion": True,
                             "error": "Marcá en el mapa dónde te llevamos el pedido."}), 400
@@ -428,7 +433,7 @@ def api_pedidos():
             cur.execute("SELECT COALESCE(entrega, 'domicilio'), notas FROM pedidos WHERE id = %s", (pedido_id,))
             entrega_antes, notas_antes = cur.fetchone()
             if entrega != entrega_antes:
-                prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or PUNTO_MAPA}"
+                prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or (PUNTO_MAPA if lat is not None else SIN_PUNTO)}"
                 cur.execute("UPDATE pedidos SET entrega = %s, notas = %s WHERE id = %s",
                             (entrega, _cambiar_prefijo(notas_antes, prefijo), pedido_id))
             _asegurar_express(cur, pedido_id)
@@ -442,7 +447,7 @@ def api_pedidos():
             unido = True
         else:
             # 4. Pedido nuevo (la dirección va en notas para que el admin la vea)
-            prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or PUNTO_MAPA}"
+            prefijo = PREFIJO_FERIA if entrega == "feria" else f"📍 {direccion or (PUNTO_MAPA if lat is not None else SIN_PUNTO)}"
             notas_completa = prefijo + (f" — {notas}" if notas else "")
             cur.execute("""
                 INSERT INTO pedidos
@@ -485,6 +490,15 @@ def api_pedidos():
 # ─────────────────────────────────────────────
 ID_EXPRESS = 118
 ESTADO_CLIENTE = {"Pendiente": "Preparando", "Resuelto": "Entregado", "Rechazado": "Cancelado"}
+
+
+# Punto donde arranca el mapa de la tienda cuando no logra la ubicación del celular
+# (centro de San Ramón). Un pedido con el pin ahí es alguien que confirmó sin mover el mapa.
+MAPA_INICIO = (10.0874, -84.4703)
+
+
+def _en_centro_por_defecto(lat, lng):
+    return math.hypot((lat - MAPA_INICIO[0]) * 111000, (lng - MAPA_INICIO[1]) * 109500) < 60
 
 
 def _coordenadas(data):
@@ -535,6 +549,7 @@ def _leer_lineas(cur, pedido_id):
 
 PREFIJO_FERIA = "🧺 Recoger en la Feria San Ramón"
 PUNTO_MAPA = "Punto marcado en el mapa"
+SIN_PUNTO = "Ubicación pendiente: pedirla por WhatsApp"
 
 
 def _cambiar_prefijo(notas, prefijo):

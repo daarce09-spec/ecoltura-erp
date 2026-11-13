@@ -24,6 +24,15 @@ MESES = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto
          "septiembre", "octubre", "noviembre", "diciembre"]
 
 
+def _num(x):
+    """Número seguro: None o NaN cuentan como 0."""
+    try:
+        v = float(x or 0)
+    except (TypeError, ValueError):
+        return 0.0
+    return 0.0 if v != v else v      # v != v solo pasa con NaN
+
+
 def _seguro(cur, conn, fn, por_defecto):
     try:
         return fn(cur)
@@ -38,9 +47,9 @@ def _cifras(cur, periodo):
     cur.execute(f"""
         WITH r AS (SELECT date_trunc('{trunc}', NOW()) AS ini)
         SELECT
-          COALESCE(SUM(v.total) FILTER (WHERE v.fecha_venta >= r.ini), 0),
+          COALESCE(SUM(NULLIF(v.total, 'NaN')) FILTER (WHERE v.fecha_venta >= r.ini), 0),
           COUNT(*)              FILTER (WHERE v.fecha_venta >= r.ini),
-          COALESCE(SUM(v.total) FILTER (WHERE v.fecha_venta <  r.ini), 0),
+          COALESCE(SUM(NULLIF(v.total, 'NaN')) FILTER (WHERE v.fecha_venta <  r.ini), 0),
           COUNT(*)              FILTER (WHERE v.fecha_venta <  r.ini)
         FROM ventas v, r
         WHERE COALESCE(v.estado, '') NOT ILIKE 'anul%%'
@@ -56,20 +65,22 @@ def _cifras(cur, periodo):
     """)
     n_pedidos = cur.fetchone()[0]
     cur.execute("""
-        SELECT COALESCE(SUM(total), 0),
+        SELECT COALESCE(SUM(NULLIF(total, 'NaN')), 0),
                COUNT(*) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE))
         FROM ventas
         WHERE (metodo_pago = 'Por cobrar' OR COALESCE(sinpe_pendiente, FALSE))
           AND COALESCE(estado, '') NOT ILIKE 'anul%%'
     """)
     por_cobrar, n_sinpe = cur.fetchone()
-    ventas, antes = float(ventas), float(antes)
+    # Una venta mal guardada (total "NaN") no debe dañar las cifras: cuenta como 0
+    ventas, antes = _num(ventas), _num(antes)
+    por_cobrar = _num(por_cobrar)
     cambio = None if antes <= 0 else round((ventas - antes) / antes * 100)
     return {
         "ventas": ventas, "cambio": cambio, "antes": antes, "n_antes": n_antes,
         "pedidos": n_pedidos, "n_ventas": n_ventas,
         "ticket": (ventas / n_ventas) if n_ventas else 0.0,
-        "por_cobrar": float(por_cobrar), "n_sinpe": n_sinpe,
+        "por_cobrar": por_cobrar, "n_sinpe": n_sinpe,
     }
 
 
@@ -84,15 +95,16 @@ def _por_hacer(cur):
                              AND COALESCE(entrega, 'domicilio') <> 'feria'),
           COUNT(*) FILTER (WHERE seguimiento IN ('Alistado', 'Listo') AND COALESCE(entrega, 'domicilio') = 'feria'),
           COUNT(*) FILTER (WHERE entrega_fallida IS NOT NULL),
-          COUNT(*) FILTER (WHERE COALESCE(modificado, FALSE))
+          COUNT(*) FILTER (WHERE COALESCE(modificado, FALSE)),
+          COUNT(*) FILTER (WHERE lat IS NULL AND COALESCE(entrega, 'domicilio') <> 'feria')
         FROM pedidos WHERE estado = 'Pendiente'
     """)
-    por_alistar, nuevos, ultimo, alistados, feria, fallidos, modificados = cur.fetchone()
+    por_alistar, nuevos, ultimo, alistados, feria, fallidos, modificados, sin_ubic = cur.fetchone()
     cur.execute("""
         SELECT COUNT(*) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)),
-               COALESCE(SUM(total) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)), 0),
+               COALESCE(SUM(NULLIF(total, 'NaN')) FILTER (WHERE COALESCE(sinpe_pendiente, FALSE)), 0),
                COUNT(*) FILTER (WHERE metodo_pago = 'Por cobrar' AND NOT COALESCE(sinpe_pendiente, FALSE)),
-               COALESCE(SUM(total) FILTER (WHERE metodo_pago = 'Por cobrar' AND NOT COALESCE(sinpe_pendiente, FALSE)), 0)
+               COALESCE(SUM(NULLIF(total, 'NaN')) FILTER (WHERE metodo_pago = 'Por cobrar' AND NOT COALESCE(sinpe_pendiente, FALSE)), 0)
         FROM ventas WHERE COALESCE(estado, '') NOT ILIKE 'anul%%'
     """)
     n_sinpe, m_sinpe, n_cobrar, m_cobrar = cur.fetchone()
@@ -119,6 +131,8 @@ def _por_hacer(cur):
          "boton": "Alistar", "href": "/admin/pedidos", "urgente": nuevos > 0},
         {"n": alistados, "titulo": "Pedidos listos para repartir", "detalle": "Ya están alistados",
          "boton": "Repartir", "href": "/reparto", "urgente": False},
+        {"n": sin_ubic, "titulo": "Pedidos sin ubicación", "detalle": "Pedile la ubicación por WhatsApp y pegala en el pedido",
+         "boton": "Ver", "href": "/admin/pedidos", "urgente": True},
         {"n": feria, "titulo": "Pedidos para recoger en la feria", "detalle": "Ya están alistados · Feria San Ramón",
          "boton": "Ver", "href": "/admin/pedidos", "urgente": False},
         {"n": fallidos, "titulo": "Entregas que no se pudieron hacer", "detalle": "Volver a coordinar con el cliente",

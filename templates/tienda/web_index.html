@@ -456,6 +456,13 @@
     #mapa { position: absolute; inset: 0; background: #EEF3EA; }
     .mapa-pin { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -100%); z-index: 500;
                 pointer-events: none; color: #C0392B; filter: drop-shadow(0 2px 2px rgba(0,0,0,.35)); }
+    /* "No logro marcar mi casa": segunda opción, visible pero sin competir con Confirmar */
+    .link-sin-ubic { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+                     margin-top: 10px; padding: 10px 12px; background: #fff; border: 1px solid var(--borde);
+                     color: var(--negro); cursor: pointer; font: 500 .82rem/1.3 'Inter', sans-serif; }
+    .link-sin-ubic svg { flex-shrink: 0; color: var(--verde); }
+    .link-sin-ubic b { color: var(--verde); font-weight: 600; }
+    @media (hover: hover) and (pointer: fine) { .link-sin-ubic:hover { border-color: #B9CFA9; background: #F8FAF6; } }
     .btn-gps { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
                margin: 12px 0 4px; padding: 12px; background: #fff; color: var(--verde);
                border: 1px solid var(--verde); font-weight: 600; font-size: .88rem; cursor: pointer; }
@@ -911,6 +918,10 @@
       <button class="btn-cancelar" id="btnQuitarUbic" onclick="quitarUbicacion()">Quitar</button>
       <button class="btn-confirmar" onclick="confirmarUbicacion()">Confirmar ubicación</button>
     </div>
+    <button type="button" class="link-sin-ubic" onclick="sinUbicacion()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-12.4 7.4L3 21l2.1-5.4A8.4 8.4 0 1 1 21 11.5z"/></svg>
+      <span>¿No lográs marcarla? <b>Te la pedimos por WhatsApp</b></span>
+    </button>
   </div>
 </div>
 
@@ -2001,6 +2012,12 @@ var ubicacion = null;           // { lat, lng } o null
 // La entrega a domicilio exige marcar el punto en el mapa EN CADA PEDIDO: el punto
 // recordado sirve para abrir el mapa ahí, pero hay que confirmarlo otra vez.
 var ubicacionConfirmada = false;
+// "No logro marcar mi casa": el pedido sale sin punto y le pedimos la ubicación por WhatsApp
+var sinUbicacionAceptada = false;
+function sinUbicacion() {
+  sinUbicacionAceptada = true; ubicacionConfirmada = false;
+  pintarBotonUbicacion(); cerrarMapa();
+}
 var continuarTrasUbicacion = false;   // si el mapa se abrió al enviar el pedido, al confirmar se sigue al resumen
 var mapa = null;
 var SAN_RAMON = [10.0874, -84.4703];
@@ -2038,7 +2055,7 @@ function abrirMapa() {
     document.getElementById("btnGuardada").style.display = ubicacionEntregada() ? "" : "none";
     if (ubicacion) mapa.setView([ubicacion.lat, ubicacion.lng], 17);
     else mapa.setView(SAN_RAMON, 14);
-    mapaMovidoAMano = false;
+    mapaMovidoAMano = false; mapaPorGPS = false;
     if (!mapaEscuchaMovimiento) {
       mapaEscuchaMovimiento = true;
       mapa.on("dragstart", function () { mapaMovidoAMano = true; });
@@ -2046,7 +2063,15 @@ function abrirMapa() {
     usarGPS(true);
   });
 }
-var mapaMovidoAMano = false, mapaEscuchaMovimiento = false;
+var mapaMovidoAMano = false, mapaEscuchaMovimiento = false, mapaPorGPS = false;
+
+// El mapa arranca en el centro de San Ramón cuando no logra la ubicación del celular
+// (permiso negado, o el navegador interno de WhatsApp/Instagram que no la da).
+// Si la persona confirma sin mover el mapa, el pin queda en el parque: eso no se acepta.
+function enCentroPorDefecto(c) {
+  var dLat = (c.lat - SAN_RAMON[0]) * 111000, dLng = (c.lng - SAN_RAMON[1]) * 109500;
+  return Math.sqrt(dLat * dLat + dLng * dLng) < 60;   // a menos de ~60 m del punto inicial
+}
 
 // Punto de la última entrega a domicilio que ya se hizo (se guarda en este aparato
 // cuando la tienda ve que el pedido quedó Entregado).
@@ -2070,10 +2095,13 @@ function usarGPS(silencioso) {
   if (!navigator.geolocation) { if (!silencioso) alert("Este aparato no permite usar la ubicación. Mové el mapa a mano."); return; }
   navigator.geolocation.getCurrentPosition(function (pos) {
     if (!mapa || (silencioso && mapaMovidoAMano)) return;
+    mapaPorGPS = true;
     mapa.setView([pos.coords.latitude, pos.coords.longitude], 18);
     if (silencioso) document.getElementById("mapaAyuda").textContent =
       "Te ubicamos donde estás ahora. Si no es tu casa, buscá el lugar o mové el mapa hasta que el pin quede sobre tu casa.";
   }, function () {
+    if (silencioso && !ubicacion && !mapaMovidoAMano) document.getElementById("mapaAyuda").textContent =
+      "No pudimos ver dónde estás. Buscá tu barrio o un lugar cercano, o mové el mapa hasta que el pin quede sobre tu casa.";
     if (!silencioso) alert("No pudimos obtener tu ubicación. Revisá que el permiso de ubicación esté activado, o mové el mapa a mano.");
   }, { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
 }
@@ -2089,8 +2117,14 @@ function guardarUbicacionLocal() {
 function confirmarUbicacion() {
   if (!mapa) return;
   var c = mapa.getCenter();
+  if (!mapaMovidoAMano && !mapaPorGPS && enCentroPorDefecto(c)) {
+    document.getElementById("mapaAyuda").textContent =
+      "Todavía no marcaste tu casa: el pin está en el centro de San Ramón. Buscá un lugar cercano o mové el mapa hasta que el pin quede sobre tu casa.";
+    alert("Mové el mapa hasta tu casa antes de confirmar. Podés buscar un lugar cercano (escuela, iglesia, súper) arriba del mapa.");
+    return;
+  }
   ubicacion = { lat: +c.lat.toFixed(6), lng: +c.lng.toFixed(6) };
-  ubicacionConfirmada = true;
+  ubicacionConfirmada = true; sinUbicacionAceptada = false;
   guardarUbicacionLocal(); pintarBotonUbicacion(); cerrarModal('overlayMapa');
   if (continuarTrasUbicacion) { continuarTrasUbicacion = false; abrirModalConfirmacion(); }
 }
@@ -2120,7 +2154,7 @@ function buscarLugar(ev) {
       b.onclick = function () {
         caja.innerHTML = "";
         document.getElementById("mapaBuscar").blur();
-        if (mapa) mapa.setView([+l.lat, +l.lon], 17);
+        if (mapa) { mapaMovidoAMano = true; mapa.setView([+l.lat, +l.lon], 17); }
       };
       caja.appendChild(b);
     });
@@ -2137,7 +2171,9 @@ function quitarUbicacion() {
 function pintarBotonUbicacion() {
   var b = document.getElementById("btnUbicacion");
   document.getElementById("txtUbicacion").textContent =
-    (ubicacion && ubicacionConfirmada) ? "✓ Ubicación marcada · Cambiar" : "Marcá en el mapa dónde te lo llevamos";
+    (ubicacion && ubicacionConfirmada) ? "✓ Ubicación marcada · Cambiar"
+    : sinUbicacionAceptada ? "Sin ubicación: te la pedimos por WhatsApp · Marcar ahora"
+    : "Marcá en el mapa dónde te lo llevamos";
   b.classList.toggle("marcado", !!(ubicacion && ubicacionConfirmada));
 }
 
@@ -2167,7 +2203,7 @@ async function enviarPedido() {
   const btn = document.getElementById("btnConfirmar");
   if (!modoEdicion && entrega !== "feria") {
     // El punto en el mapa es obligatorio y se confirma en cada pedido (el repartidor arma la ruta con él)
-    if (!ubicacion || !ubicacionConfirmada) { ubicacionDesdeConfirm(); return; }
+    if ((!ubicacion || !ubicacionConfirmada) && !sinUbicacionAceptada) { ubicacionDesdeConfirm(); return; }
   }
   const correoModal = document.getElementById("correoConfirm");
   if (!modoEdicion && correoModal && correoModal.value.trim()) {
@@ -2196,10 +2232,11 @@ async function enviarPedido() {
         celular:   document.getElementById("pedCelular").value.trim(),
         direccion: "",
         correo:    document.getElementById("pedCorreo").value.trim(),
-        lat:       ubicacion ? ubicacion.lat : null,
-        lng:       ubicacion ? ubicacion.lng : null,
+        lat:       (ubicacion && ubicacionConfirmada) ? ubicacion.lat : null,
+        lng:       (ubicacion && ubicacionConfirmada) ? ubicacion.lng : null,
         notas:     document.getElementById("pedNotas").value.trim(),
         entrega:   entrega,
+        sin_ubicacion: entrega !== "feria" && sinUbicacionAceptada && !ubicacionConfirmada,
         agregar_a: modoAgregar() ? pedidoActivo.token : null,
         items
       })
@@ -2242,10 +2279,12 @@ async function enviarPedido() {
         ? `Hola ${nombre}, como ya tenías un pedido en preparación, agregamos estos productos a ese mismo pedido. Te escribiremos por WhatsApp para confirmar. ¡Gracias por apoyar productos locales!`
         : (entrega === "feria"
             ? `Hola ${nombre}, recibimos tu pedido. Lo vas a recoger en la Feria San Ramón; te escribiremos por WhatsApp cuando esté listo. ¡Gracias por apoyar productos locales!`
-            : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`);
+            : (sinUbicacionAceptada && !ubicacionConfirmada
+                ? `Hola ${nombre}, recibimos tu pedido. Te vamos a escribir por WhatsApp para que nos compartás tu ubicación y coordinar la entrega. ¡Gracias por apoyar productos locales!`
+                : `Hola ${nombre}, recibimos tu pedido. Te escribiremos por WhatsApp para confirmarlo y coordinar la entrega. ¡Gracias por apoyar productos locales!`));
       mostrarCorreoExito(data.correo);
       prepararBloqueCampanaExito();
-      ubicacionConfirmada = false; pintarBotonUbicacion();   // el próximo pedido vuelve a pedir el punto
+      ubicacionConfirmada = false; sinUbicacionAceptada = false; pintarBotonUbicacion();   // el próximo pedido vuelve a pedir el punto
       abrirModal('overlayExito');
       // Limpiar
       Object.keys(pedido).forEach(k => delete pedido[k]);

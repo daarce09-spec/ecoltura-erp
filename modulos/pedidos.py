@@ -88,7 +88,7 @@ def _colones_txt(x):
     return "₡" + f"{float(x or 0):,.0f}".replace(",", ".")
 
 
-def mensaje_alistado(nombre, total, token, entrega="domicilio"):
+def mensaje_alistado(nombre, total, token, entrega="domicilio", falta_ubicacion=False):
     primer = (nombre or "").strip().split(" ")[0].capitalize()
     if entrega == "feria":
         aviso = "Tu pedido de *Ecoltura* ya está alistado y te espera en la *Feria San Ramón*. 🧺"
@@ -100,6 +100,11 @@ def mensaje_alistado(nombre, total, token, entrega="domicilio"):
         "",
         f"*Total a pagar: {_colones_txt(total)}*",
     ]
+    if falta_ubicacion and entrega != "feria":
+        lineas += [
+            "",
+            "📍 *Para entregártelo necesitamos tu ubicación.* Compartila por aquí: tocá el clip 📎 → *Ubicación* → *Enviar mi ubicación actual* (o buscá tu casa en el mapa).",
+        ]
     numero = (os.environ.get("SINPE_NUMERO") or SINPE_NUMERO).strip()
     if numero:
         a_nombre = (os.environ.get("SINPE_NOMBRE") or "").strip()
@@ -120,11 +125,11 @@ def mensaje_alistado(nombre, total, token, entrega="domicilio"):
     return "\n".join(lineas)
 
 
-def link_whatsapp_alistado(celular, nombre, total, token, entrega="domicilio"):
+def link_whatsapp_alistado(celular, nombre, total, token, entrega="domicilio", falta_ubicacion=False):
     cel8 = _ultimos_8(celular)
     if len(cel8) != 8:
         return ""
-    return f"https://wa.me/506{cel8}?text=" + quote(mensaje_alistado(nombre, total, token, entrega))
+    return f"https://wa.me/506{cel8}?text=" + quote(mensaje_alistado(nombre, total, token, entrega, falta_ubicacion))
 
 
 # Métodos de pago de las ventas que vienen de pedidos
@@ -186,7 +191,7 @@ def bandeja_pedidos():
                    v.metodo_pago, v.total, v.id, p.notas,
                    COALESCE(nd.n, 0),
                    p.entrega_fallida, COALESCE(v.sinpe_pendiente, FALSE), p.token,
-                   COALESCE(p.entrega, 'domicilio')
+                   COALESCE(p.entrega, 'domicilio'), (p.lat IS NULL)
             FROM pedidos p
             LEFT JOIN clientes c ON c.id = p.cliente_id
             LEFT JOIN ventas v   ON v.id = p.venta_id
@@ -204,7 +209,7 @@ def bandeja_pedidos():
     rechazados = []
     por_entregar = facturado = cobrado = por_cobrar = 0.0
     for (pid, nombre, celular, total_est, estado, seg, creado, gestionado, modificado,
-         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend, token, entrega) in filas:
+         metodo, total_venta, venta_id, notas, n_items, fallida, sinpe_pend, token, entrega, sin_punto) in filas:
         total = float(total_venta if total_venta is not None else (total_est or 0))
         tarjeta = {
             "id": pid, "nombre": nombre or "", "celular": celular or "", "cel8": _ultimos_8(celular),
@@ -213,7 +218,9 @@ def bandeja_pedidos():
             "seguimiento": "Alistado" if seg in ("Alistado", "Listo") else "Preparando",
             "fallida": (fallida or "").strip(), "sinpe_pendiente": bool(sinpe_pend),
             "feria": entrega == "feria",
-            "wa_alistado": link_whatsapp_alistado(celular, nombre, total, token, entrega) if estado == "Pendiente" else "",
+            "falta_ubicacion": estado == "Pendiente" and entrega != "feria" and bool(sin_punto),
+            "wa_alistado": link_whatsapp_alistado(celular, nombre, total, token, entrega,
+                                                  entrega != "feria" and bool(sin_punto)) if estado == "Pendiente" else "",
         }
         if estado == "Pendiente":
             por_entregar += float(total_est or 0)
@@ -712,7 +719,7 @@ def pedido_detalle(id):
                    p.cliente_id, p.venta_id,
                    COALESCE(p.descuento_tipo, 'monto'), COALESCE(p.descuento_valor, 0),
                    COALESCE(p.seguimiento, 'Preparando'), COALESCE(p.modificado, FALSE), v.metodo_pago,
-                   p.lat, p.lng
+                   p.lat, p.lng, COALESCE(p.entrega, 'domicilio')
             FROM pedidos p LEFT JOIN ventas v ON v.id = p.venta_id
             WHERE p.id = %s
         """, (id,))
@@ -924,6 +931,49 @@ def detalle_descuento_json(id, detalle_id):
 
     return jsonify(ok=True, linea=neto, linea_base=base, linea_descuento=desc_l,
                    subtotal=subtotal, descuento=desc, total=total, desc_lineas=desc_lineas)
+
+
+@pedidos_bp.route("/admin/pedidos/<int:id>/ubicacion", methods=["POST"])
+def pedido_ubicacion(id):
+    """Pegar la ubicación que mandó el cliente por WhatsApp: acepta "10.05, -84.48",
+    un enlace de Google Maps o grados (10°03'21.6"N 84°29'09.7"W)."""
+    lat, lng = _leer_coordenadas(request.form.get("coordenadas", ""))
+    if lat is None:
+        flash("No reconocí esa ubicación. Pegá las coordenadas (ej. 10.0561, -84.4860) o el enlace de Google Maps.", "danger")
+        return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+    with obtener_conexion() as conn:
+        cur = conn.cursor()
+        cur.execute("UPDATE pedidos SET lat = %s, lng = %s WHERE id = %s RETURNING cliente_id", (lat, lng, id))
+        fila = cur.fetchone()
+        if fila and fila[0]:
+            cur.execute("UPDATE clientes SET lat = %s, lng = %s WHERE id = %s", (lat, lng, fila[0]))
+        conn.commit()
+    flash(f"Pedido #{id}: ubicación guardada.", "success")
+    return redirect(url_for("pedidos_bp.pedido_detalle", id=id))
+
+
+def _leer_coordenadas(texto):
+    import re
+    t = (texto or "").strip()
+    # Grados, minutos y segundos: 10°03'21.6"N 84°29'09.7"W
+    gms = re.findall(r"(\d+(?:\.\d+)?)\s*°\s*(\d+(?:\.\d+)?)\s*['’′]\s*(\d+(?:\.\d+)?)\s*[\"”″]?\s*([NSEWO])", t, re.I)
+    if len(gms) >= 2:
+        def a_decimal(g, m, s, d):
+            v = float(g) + float(m) / 60 + float(s) / 3600
+            return -v if d.upper() in ("S", "W", "O") else v
+        lat, lng = a_decimal(*gms[0]), a_decimal(*gms[1])
+    else:
+        nums = re.findall(r"-?\d{1,3}\.\d+", t)
+        if len(nums) < 2:
+            return None, None
+        lat, lng = float(nums[0]), float(nums[1])
+        if lat < 0 and lng > 0:          # pegaron "-84.48, 10.05"
+            lat, lng = lng, lat
+        if lng > 0:                      # Costa Rica siempre es longitud oeste
+            lng = -lng
+    if not (5.0 <= lat <= 11.5 and -87.5 <= lng <= -82.5):   # dentro de Costa Rica
+        return None, None
+    return round(lat, 6), round(lng, 6)
 
 
 @pedidos_bp.route("/admin/pedidos/<int:id>/notas", methods=["POST"])
