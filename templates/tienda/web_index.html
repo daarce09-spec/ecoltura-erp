@@ -549,7 +549,7 @@
     .paso-ayuda { color: var(--gris); font-size: .98rem; margin: 0 0 20px; line-height: 1.45; }
     .campo { margin-bottom: 20px; }
     .campo > label, .campo-lab { display: block; font: 700 1.05rem 'Inter', sans-serif; color: var(--negro); margin-bottom: 8px; }
-    .campo .opc { font-weight: 500; font-size: .85rem; color: var(--gris); }
+    .campo .opc { font-weight: 400; font-size: .8rem; color: #A3A39C; }
     .campo input, .campo textarea { width: 100%; font: 400 18px 'Inter', sans-serif; color: var(--negro); padding: 14px 15px;
                                     border: 2px solid #D3D3CD; border-radius: 10px; background: #fff; outline: none; }
     .campo textarea { font-size: 16px; resize: none; }
@@ -566,7 +566,11 @@
     .rec-hola { font-family: 'Fraunces', serif; font-size: 1.35rem; color: var(--negro); }
     .rec-sub { color: var(--gris); font-size: .95rem; margin-top: 2px; }
     .rec-dato { font-size: 1.1rem; font-weight: 600; color: var(--negro); margin-top: 10px; }
-    .rec-cambiar { background: none; border: none; padding: 10px 0 0; color: var(--verde); font: 600 .95rem 'Inter', sans-serif;
+    .rec-correo { font-size: .98rem; color: var(--gris); margin-top: 4px; word-break: break-all; }
+    .rec-campo { margin: 16px 0 0; padding-top: 14px; border-top: 1px solid #DCE6D3; }
+    .rec-campo > label { font-size: 1rem; }
+    .rec-campo input { font-size: 17px; padding: 12px 14px; border-color: #D5E3CB; }
+    .rec-cambiar { background: none; border: none; padding: 12px 0 0; color: var(--verde); font: 600 .95rem 'Inter', sans-serif;
                    text-decoration: underline; cursor: pointer; }
     #overlayConfirm .bloque-entrega { border: none; padding: 0; margin: 0 0 18px; }
     #overlayConfirm .entrega-opc { display: block; margin: 0; }
@@ -1031,6 +1035,13 @@
           <div class="rec-hola" id="recHola"></div>
           <div class="rec-sub">Ya tenemos sus datos de la vez pasada:</div>
           <div class="rec-dato" id="recDato"></div>
+          <div class="rec-correo" id="recCorreoTxt" style="display:none"></div>
+          <!-- Sin correo guardado: se le ofrece aquí mismo, dentro de la tarjeta -->
+          <div class="campo rec-campo" id="campoRecCorreo" style="display:none">
+            <label for="recCorreo">¿Quiere recibir el comprobante por correo? <span class="opc">(opcional)</span></label>
+            <input type="email" id="recCorreo" placeholder="nombre@correo.com" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="done">
+            <div class="campo-error" role="alert"></div>
+          </div>
           <button type="button" class="rec-cambiar" onclick="mostrarCamposDatos(true)">No soy yo / cambiar mis datos</button>
         </div>
         <div id="camposDatos">
@@ -1046,9 +1057,9 @@
             <div class="campo-error" role="alert"></div>
           </div>
           <div class="campo" id="campoCor">
-            <label for="pedCorreo">Su correo <span class="opc">(no es obligatorio)</span></label>
-            <input type="email" id="pedCorreo" placeholder="Puede dejarlo en blanco" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="done">
-            <div class="campo-pista">Si lo escribe, le mandamos el comprobante por correo.</div>
+            <label for="pedCorreo">Su correo <span class="opc">(opcional)</span></label>
+            <input type="email" id="pedCorreo" placeholder="nombre@correo.com" autocomplete="email" inputmode="email" maxlength="120" enterkeyhint="done">
+            <div class="campo-pista">Le enviamos ahí el comprobante de su pedido.</div>
             <div class="campo-error" role="alert"></div>
           </div>
         </div>
@@ -1072,7 +1083,7 @@
           </div>
         </div>
         <div class="campo" id="campoNotas">
-          <label for="pedNotas">Señas de la casa u otra indicación <span class="opc">(no es obligatorio)</span></label>
+          <label for="pedNotas">Señas de la casa u otra indicación <span class="opc">(opcional)</span></label>
           <textarea id="pedNotas" rows="2" maxlength="300" placeholder="Ej: portón negro, al lado de la pulpería"></textarea>
         </div>
       </section>
@@ -2153,6 +2164,11 @@ function prepararPaso1() {
     document.getElementById("recHola").textContent = "¡Hola de nuevo, " + nom.split(/\s+/)[0] + "! 👋";
     document.getElementById("recDato").textContent = nom + " · " + document.getElementById("pedCelular").value.trim();
   }
+  // Correo: si ya lo tenemos se muestra; si no, se le ofrece (opcional)
+  var cor = document.getElementById("pedCorreo").value.trim();
+  var rc = document.getElementById("recCorreoTxt");
+  rc.textContent = cor ? "✉ " + cor : ""; rc.style.display = (rec && cor) ? "" : "none";
+  document.getElementById("campoRecCorreo").style.display = (rec && !cor) ? "" : "none";
 }
 function errorCampo(id, msg) {
   var c = document.getElementById(id);
@@ -2164,7 +2180,18 @@ function llevarA(input) {
   setTimeout(function () { input.focus(); }, 280);
 }
 function validarPaso1() {
-  if (document.getElementById("camposDatos").style.display === "none") return true;
+  if (document.getElementById("camposDatos").style.display === "none") {
+    var rec = document.getElementById("recCorreo"), v = rec.value.trim();
+    if (document.getElementById("campoRecCorreo").style.display !== "none" && v) {
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(v)) {
+        errorCampo("campoRecCorreo", "👆 Revise el correo, parece mal escrito.");
+        llevarA(rec); return false;
+      }
+      document.getElementById("pedCorreo").value = v;
+    }
+    errorCampo("campoRecCorreo", "");
+    return true;
+  }
   var primero = null, d = digitosCel();
   var nom = document.getElementById("pedNombre"), cor = document.getElementById("pedCorreo");
   if (d.length !== 8) {
@@ -2175,7 +2202,7 @@ function validarPaso1() {
   else errorCampo("campoNom", "");
   var c = cor.value.trim();
   if (c && !/^[^@\s]+@[^@\s]+\.[^@\s]{2,}$/.test(c)) {
-    errorCampo("campoCor", "👆 Revise el correo, parece mal escrito. También puede dejarlo en blanco.");
+    errorCampo("campoCor", "👆 Revise el correo, parece mal escrito.");
     primero = primero || cor;
   } else errorCampo("campoCor", "");
   if (primero) { llevarA(primero); return false; }
@@ -2391,6 +2418,14 @@ function usarGPS(silencioso) {
   if (!navigator.geolocation) { if (!silencioso) alert("Este aparato no permite usar la ubicación. Mové el mapa a mano."); return; }
   navigator.geolocation.getCurrentPosition(function (pos) {
     if (!mapa || (silencioso && mapaMovidoAMano)) return;
+    // Sin GPS (computadoras, redes de empresa o VPN) el navegador adivina por la red y
+    // puede fallar por kilómetros: si el margen de error pasa de 300 m no se usa.
+    if (pos.coords.accuracy && pos.coords.accuracy > 300) {
+      if (!ubicacion) document.getElementById("mapaAyuda").textContent =
+        "No pudimos ver con exactitud dónde está. Busque su barrio o un lugar cercano, o mueva el mapa hasta que el pin quede sobre su casa.";
+      if (!silencioso) alert("Este aparato no da una ubicación exacta. Busque su barrio arriba del mapa o mueva el mapa a mano.");
+      return;
+    }
     mapaPorGPS = true;
     mapa.setView([pos.coords.latitude, pos.coords.longitude], 18);
     if (silencioso) document.getElementById("mapaAyuda").textContent =
@@ -2932,13 +2967,16 @@ try {
   if (guardado.celular)   celularRecordado = guardado.celular.replace(/\D/g, "");
   datosDeAntes = !!(guardado.nombre && guardado.celular);
 } catch(e) {}
-["pedCelular", "pedNombre", "pedCorreo"].forEach(function (id) {
+["pedCelular", "pedNombre", "pedCorreo", "recCorreo"].forEach(function (id) {
   document.getElementById(id).addEventListener("input", function () {
     var c = this.closest(".campo"); if (c && c.classList.contains("mal")) c.classList.remove("mal");
   });
 });
 
 activarFormatoCelular(document.getElementById("pedCelular"));
+document.getElementById("recCorreo").addEventListener("keydown", function (e) {
+  if (e.key === "Enter") { e.preventDefault(); pasoSiguiente(); }
+});
 document.getElementById("camposDatos").addEventListener("keydown", function (e) {
   if (e.key === "Enter") { e.preventDefault(); pasoSiguiente(); }
 });
