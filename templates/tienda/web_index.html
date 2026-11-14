@@ -2418,6 +2418,14 @@ function usarGPS(silencioso) {
   if (!navigator.geolocation) { if (!silencioso) alert("Este aparato no permite usar la ubicación. Mové el mapa a mano."); return; }
   navigator.geolocation.getCurrentPosition(function (pos) {
     if (!mapa || (silencioso && mapaMovidoAMano)) return;
+    // Sin GPS (computadoras, redes de empresa o VPN) el navegador adivina por la red y
+    // puede fallar por kilómetros: si el margen de error pasa de 300 m no se usa.
+    if (pos.coords.accuracy && pos.coords.accuracy > 300) {
+      if (!ubicacion) document.getElementById("mapaAyuda").textContent =
+        "No pudimos ver con exactitud dónde está. Busque su barrio o un lugar cercano, o mueva el mapa hasta que el pin quede sobre su casa.";
+      if (!silencioso) alert("Este aparato no da una ubicación exacta. Busque su barrio arriba del mapa o mueva el mapa a mano.");
+      return;
+    }
     mapaPorGPS = true;
     mapa.setView([pos.coords.latitude, pos.coords.longitude], 18);
     if (silencioso) document.getElementById("mapaAyuda").textContent =
